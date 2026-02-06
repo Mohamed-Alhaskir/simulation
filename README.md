@@ -2,8 +2,6 @@
 
 Frozen, version-locked pipeline for generating standardized feedback reports from audiovisual recordings of paediatric simulation scenarios.
 
-> **Study context**: This pipeline is part of a prospective evaluation at University Witten/Herdecke (Ethics ref: S-44/2025). It augments — rather than replaces — instructor-led debriefings by producing structured, reproducible feedback reports.
-
 ## Architecture
 
 ```
