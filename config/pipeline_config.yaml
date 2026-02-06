@@ -1,0 +1,160 @@
+# ==========================================================================
+# Paediatric Simulation AI Feedback Pipeline — Configuration
+# ==========================================================================
+# This file is part of the freeze manifest. Any change requires a version
+# bump and re-archival before confirmatory analyses.
+# ==========================================================================
+
+pipeline:
+  version: "0.1.0-dev"
+  seed: 42                        # Global random seed for reproducibility
+  language: "de"                  # Primary language (German)
+
+# --------------------------------------------------------------------------
+# Paths
+# --------------------------------------------------------------------------
+paths:
+  output_dir: "data/reports"
+  processed_dir: "data/processed"
+  template_dir: "templates"
+
+# --------------------------------------------------------------------------
+# Stage 1: Data Ingestion
+# --------------------------------------------------------------------------
+ingest:
+  accepted_video_formats: [".mp4", ".avi", ".mkv", ".mov"]
+  accepted_audio_formats: [".wav", ".mp3", ".flac", ".m4a"]
+  min_duration_s: 30              # Minimum recording duration to be valid
+  max_duration_s: 3600            # Maximum recording duration
+  # Physiological data (optional enrichment)
+  physio:
+    enabled: true
+    accepted_formats: [".csv", ".edf", ".json"]
+  # Eye-tracking data (optional enrichment)
+  eyetracking:
+    enabled: true
+    accepted_formats: [".csv", ".json", ".tsv"]
+
+# --------------------------------------------------------------------------
+# Stage 2: ASR (Whisper)
+# --------------------------------------------------------------------------
+asr:
+  model_name: "large-v3"          # Whisper model variant
+  device: "cuda"                  # "cpu", "cuda", "auto"
+  compute_type: "float16"         # "float16", "int8", "float32"
+  beam_size: 5
+  language: "de"
+  # Diarization via pyannote
+  diarization:
+    enabled: true
+    model: "pyannote/speaker-diarization-3.1"
+    min_speakers: 2
+    max_speakers: 2
+    # HuggingFace token required for pyannote models
+    hf_token_env: "HF_TOKEN"
+
+# --------------------------------------------------------------------------
+# Stage 3: Feature Extraction
+# --------------------------------------------------------------------------
+features:
+  # Verbal / interaction features
+  verbal:
+    compute_turn_taking: true
+    compute_pauses: true
+    pause_threshold_s: 2.0        # Silence > this = meaningful pause
+    compute_interruptions: true
+  # Physiological features
+  physio:
+    enabled: true
+    hrv_window_s: 300             # Rolling window for HRV computation
+    eda_smooth_window_s: 5
+  # Eye-tracking features
+  eyetracking:
+    enabled: true
+    fixation_threshold_ms: 100
+
+# --------------------------------------------------------------------------
+# Stage 4: LLM Analysis
+# --------------------------------------------------------------------------
+llm:
+  # Model configuration — local inference via llama-cpp-python or vLLM
+  backend: "llama_cpp"            # "llama_cpp" or "vllm"
+  model_path: "models/llama-3.1-8b-instruct.gguf"  # Path to local model weights
+  # For vLLM backend:
+  # model_name: "meta-llama/Llama-3.1-8B-Instruct"
+  context_length: 8192
+  temperature: 0.0                # Deterministic output
+  top_p: 1.0
+  seed: 42
+  max_tokens: 4096
+
+  # Assessment domains (mapped to LUCAS scale)
+  domains:
+    - name: "global_communication"
+      description: "Overall communication quality including empathy, clarity, and rapport"
+      scale:
+        min: 1
+        max: 5
+        labels:
+          1: "Inadequate"
+          2: "Below expectations"
+          3: "Meets expectations"
+          4: "Above expectations"
+          5: "Excellent"
+      weight: 1.0                 # Primary endpoint domain
+
+    - name: "conversation_structuring"
+      description: "Organization of the consultation: opening, agenda, transitions, closing"
+      scale:
+        min: 1
+        max: 5
+        labels:
+          1: "Inadequate"
+          2: "Below expectations"
+          3: "Meets expectations"
+          4: "Above expectations"
+          5: "Excellent"
+      weight: 0.8
+
+    - name: "clinical_content"
+      description: "Medical accuracy, completeness of history, appropriate clinical reasoning"
+      scale:
+        min: 1
+        max: 5
+        labels:
+          1: "Inadequate"
+          2: "Below expectations"
+          3: "Meets expectations"
+          4: "Above expectations"
+          5: "Excellent"
+      weight: 0.8
+
+  # Prompt template file (Jinja2)
+  prompt_template: "templates/analysis_prompt.j2"
+
+# --------------------------------------------------------------------------
+# Stage 5: Report Generation
+# --------------------------------------------------------------------------
+report:
+  format: "json"                  # Primary output format
+  additional_formats: ["pdf", "html"]
+  template: "templates/report_template.html"
+  # Blinding: generic labels only
+  label_prefix: "REPORT"         # Reports labelled REPORT_001, REPORT_002, ...
+  include_timestamps: true
+  include_confidence: false       # Whether to include LLM confidence estimates
+
+# --------------------------------------------------------------------------
+# Evaluation (not part of generation pipeline, but tracked in manifest)
+# --------------------------------------------------------------------------
+evaluation:
+  phase1:
+    primary_metric: "quadratic_weighted_kappa"
+    primary_domain: "global_communication"
+    threshold: 0.80               # Lower bound of 97.5% CI
+    alpha: 0.025
+  phase2:
+    primary_metric: "lucas_total_score"
+    scale: [0, 100]
+    noninferiority_margin: -15
+    alpha: 0.025
