@@ -1,0 +1,49 @@
+# ==========================================================================
+# Paediatric Simulation AI Feedback Pipeline — Complete Dependencies
+# ==========================================================================
+# Install: pip install -r requirements.txt
+# Or use the provided environment.yml for conda.
+# ==========================================================================
+
+# ---- Core ----
+pyyaml>=6.0
+numpy>=1.24
+jinja2>=3.1
+
+# ---- Stage 1: Data Ingestion ----
+# ffmpeg-python for programmatic ffprobe/ffmpeg access
+# (ffmpeg binary must also be installed via conda or system package)
+ffmpeg-python>=0.2.0
+
+# ---- Stage 2: ASR (Whisper + Diarization) ----
+faster-whisper>=1.0.0
+# PyTorch — installed via conda for proper CUDA support (see environment.yml)
+# torch>=2.1
+# Pyannote speaker diarization
+pyannote.audio>=3.1
+# HuggingFace hub for model downloads
+huggingface-hub>=0.20
+
+# ---- Stage 3: Feature Extraction ----
+scipy>=1.11                       # Signal processing for HRV/EDA
+pandas>=2.1                       # Tabular data handling for physio/eyetracking CSVs
+
+# ---- Stage 4: LLM Analysis ----
+llama-cpp-python>=0.2.50          # Local LLM inference
+
+# ---- Stage 5: Report Generation ----
+weasyprint>=60.0                  # HTML → PDF conversion
+
+# ---- Freeze Manifest / Reproducibility ----
+# (no extra deps — uses stdlib hashlib, subprocess, json)
+
+# ---- Evaluation (Phase 1 & Phase 2) ----
+scikit-learn>=1.3                 # Cohen's kappa, confusion matrices, agreement
+statsmodels>=0.14                 # Bootstrap CI, statistical tests
+matplotlib>=3.8                   # Plots for agreement, Bland-Altman
+seaborn>=0.13                     # Enhanced statistical plots
+
+# ---- Quality / Dev / Testing ----
+pytest>=7.4
+pytest-cov>=4.1
+ruff>=0.3.0                       # Linting
