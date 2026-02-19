@@ -1,5 +1,5 @@
 """
-Stage 3: Feature Extraction
+Stage 4: Feature Extraction
 =============================
 Extracts structured features from the diarized transcript:
   - Turn-taking patterns (who speaks when, how long)
@@ -13,6 +13,11 @@ Optionally extracts vitals from the patient monitor quadrant via OCR
 
 Note: No separate physio or eye-tracking CSV files exist in this setup.
       Eye-tracking is only visible in the bottom-right video quadrant.
+
+Profile assembly (combining transcript, verbal features, and video features
+into a single LLM-ready context) is handled by Stage 5 (LLMAnalysisStage),
+which saves an assembled_context.json for auditability before building
+the prompt.
 """
 
 import json
@@ -41,6 +46,8 @@ class FeatureExtractionStage(BaseStage):
         )
 
         # ---- Conversation phase segmentation ----
+        # Phases are computed here so Stage 3b (video analysis) can use them
+        # for per-phase NVB summaries via ctx["artifacts"]["features"]["phases"].
         features["phases"] = self._segment_conversation_phases(
             features["verbal"]["turns"]
         )
@@ -68,17 +75,10 @@ class FeatureExtractionStage(BaseStage):
         with open(features_path, "w") as f:
             json.dump(features, f, indent=2, ensure_ascii=False, default=str)
 
-        # ---- Build LLM profile ----
-        llm_profile = self._build_llm_profile(features, transcript)
-        profile_path = output_dir / "llm_profile.json"
-        with open(profile_path, "w") as f:
-            json.dump(llm_profile, f, indent=2, ensure_ascii=False)
-
         ctx["artifacts"]["features"] = features
         ctx["artifacts"]["features_path"] = str(features_path)
-        ctx["artifacts"]["llm_profile"] = llm_profile
-        ctx["artifacts"]["llm_profile_path"] = str(profile_path)
 
+        self.logger.info("Feature extraction complete")
         return ctx
 
     # ------------------------------------------------------------------
@@ -171,22 +171,24 @@ class FeatureExtractionStage(BaseStage):
                         "timestamp_s": round(turns[i]["start"], 2),
                     })
 
-        # Response latencies (how quickly does each speaker respond)
-        response_latencies = {}
+        # Response latencies — collect into lists first, then aggregate,
+        # to avoid mutating the dict while iterating over it.
+        raw_latencies: dict[str, list[float]] = {}
         for i in range(1, len(turns)):
             if turns[i]["speaker"] != turns[i - 1]["speaker"]:
                 gap = turns[i]["start"] - turns[i - 1]["end"]
                 if 0 <= gap < 10:  # Ignore unreasonable gaps
-                    sp = turns[i]["speaker"]
-                    if sp not in response_latencies:
-                        response_latencies[sp] = []
-                    response_latencies[sp].append(round(gap, 2))
+                    raw_latencies.setdefault(turns[i]["speaker"], []).append(
+                        round(gap, 2)
+                    )
 
-        for sp, latencies in response_latencies.items():
-            response_latencies[sp] = {
-                "mean_s": round(sum(latencies) / len(latencies), 2),
-                "count": len(latencies),
+        response_latencies = {
+            sp: {
+                "mean_s": round(sum(lats) / len(lats), 2),
+                "count": len(lats),
             }
+            for sp, lats in raw_latencies.items()
+        }
 
         summary = {
             "total_speakers": len(speakers),
@@ -211,9 +213,14 @@ class FeatureExtractionStage(BaseStage):
     def _segment_conversation_phases(self, turns: list[dict]) -> list[dict]:
         """
         Simple heuristic segmentation of conversation into phases:
-        opening, history-taking, examination/discussion, closing.
+        opening, main_consultation, summary_and_plan, closing.
 
         Based on temporal position within the conversation.
+
+        Note: This is a time-based heuristic, not content-based. It is
+        deterministic and auditable but may not reflect actual clinical
+        structure for atypically short or long consultations. Phase labels
+        should be treated as approximate in downstream analysis.
         """
         if not turns:
             return []
@@ -246,7 +253,6 @@ class FeatureExtractionStage(BaseStage):
                 phases[-1]["end_s"] = round(turn["end"], 2)
                 phases[-1]["turn_count"] += 1
 
-        # Calculate durations
         for phase in phases:
             phase["duration_s"] = round(phase["end_s"] - phase["start_s"], 2)
 
@@ -259,65 +265,12 @@ class FeatureExtractionStage(BaseStage):
         """
         Extract vital signs from the patient monitor quadrant video.
 
-        This is a placeholder — in production, you would use:
-        - Tesseract OCR on sampled frames
-        - Or a specialized medical display reader
-
-        For now, returns None. The vital signs visible in your video are:
-        HR, BP (NIBP), SpO2, Temp, displayed on a Philips monitor.
+        Placeholder — implement with Tesseract or a specialised reader
+        for Philips IntelliVue displays. Target values: HR, BP (NIBP),
+        SpO2, Temp sampled at regular intervals (e.g. every 30s).
         """
         self.logger.info(
             "Monitor OCR: placeholder — implement with Tesseract or "
-            "specialized reader for Philips IntelliVue displays"
+            "specialised reader for Philips IntelliVue displays"
         )
-        # TODO: Implement OCR extraction
-        # Sample frames at regular intervals (e.g., every 30s)
-        # Run OCR on the vital sign regions
-        # Parse HR, BP, SpO2, Temp values over time
         return None
-
-    # ------------------------------------------------------------------
-    # Build LLM profile
-    # ------------------------------------------------------------------
-    def _build_llm_profile(
-        self, features: dict, transcript: list[dict]
-    ) -> dict:
-        """
-        Assemble the structured profile document for the LLM prompt.
-        """
-
-        profile = {
-            # Transcript summary
-            "transcript_summary": {
-                "total_segments": len(transcript),
-                "total_duration_s": features["verbal"]["summary"]["total_duration_s"],
-                "speakers": features["verbal"]["summary"]["speakers"],
-            },
-            # Interaction metrics
-            "interaction": {
-                "total_turns": features["verbal"]["summary"]["total_turns"],
-                "meaningful_pauses": features["verbal"]["summary"]["meaningful_pauses"],
-                "interruptions": features["verbal"]["summary"]["interruptions"],
-                "response_latencies": features["verbal"]["summary"]["response_latencies"],
-                "pause_details": features["verbal"]["pauses"][:10],
-                "interruption_details": features["verbal"]["interruptions"][:10],
-            },
-            # Conversation phases
-            "conversation_phases": features.get("phases", []),
-            # Full diarized transcript
-            "diarized_transcript": [
-                {
-                    "speaker": seg["speaker"],
-                    "start": seg["start"],
-                    "end": seg["end"],
-                    "text": seg["text"],
-                }
-                for seg in transcript
-            ],
-        }
-
-        # Vitals from monitor (if extracted)
-        if features.get("vitals"):
-            profile["patient_vitals"] = features["vitals"]
-
-        return profile

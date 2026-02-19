@@ -94,6 +94,9 @@ class ASRStage(BaseStage):
         # ------------------------------------------------------------------
         # Merge ASR + diarization
         # ------------------------------------------------------------------
+        # NOTE: Both asr_segments and speaker_segments are in trimmed-audio
+        # time at this point. The merge MUST happen before timeline restoration
+        # below; reversing that order would misalign speaker assignments.
         transcript = self._merge(segments, speaker_segments)
 
         # ------------------------------------------------------------------
@@ -144,11 +147,35 @@ class ASRStage(BaseStage):
 
         self.logger.info(f"Loading Whisper model: {cfg['model_name']} on {device}")
 
-        model = WhisperModel(
-            cfg["model_name"],
-            device=device,
-            compute_type=cfg.get("compute_type", "float16") if device == "cuda" else "int8",
-        )
+        compute_type = cfg.get("compute_type", "float16") if device == "cuda" else "int8"
+        if device == "cpu" and compute_type == "int8":
+            self.logger.warning(
+                "Running Whisper in int8 quantized mode on CPU. Transcription quality "
+                "may be reduced, especially for domain-specific medical German. "
+                "Set compute_type='float32' in config for higher accuracy at the "
+                "cost of slower inference."
+            )
+
+        try:
+            model = WhisperModel(
+                cfg["model_name"],
+                device=device,
+                compute_type=compute_type,
+            )
+        except RuntimeError as e:
+            if "out of memory" in str(e).lower() and device == "cuda":
+                self.logger.warning(
+                    "CUDA out of memory loading Whisper model; retrying on CPU."
+                )
+                device = "cpu"
+                compute_type = "int8"
+                model = WhisperModel(
+                    cfg["model_name"],
+                    device=device,
+                    compute_type=compute_type,
+                )
+            else:
+                raise
 
         segments_gen, info = model.transcribe(
             audio_path,
@@ -205,7 +232,17 @@ class ASRStage(BaseStage):
         )
 
         if device == "cuda":
-            pipeline = pipeline.to(torch.device("cuda"))
+            try:
+                pipeline = pipeline.to(torch.device("cuda"))
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower():
+                    self.logger.warning(
+                        "CUDA out of memory loading diarization pipeline; "
+                        "falling back to CPU."
+                    )
+                    device = "cpu"
+                else:
+                    raise
 
         diarization = pipeline(
             audio_path,
@@ -291,6 +328,7 @@ class ASRStage(BaseStage):
                 seg["speaker"] = "UNKNOWN"
             return asr_segments
 
+        unknown_count = 0
         for seg in asr_segments:
             best_speaker = "UNKNOWN"
             best_overlap = 0.0
@@ -304,7 +342,19 @@ class ASRStage(BaseStage):
                     best_overlap = overlap
                     best_speaker = dseg["speaker"]
 
+            if best_speaker == "UNKNOWN":
+                unknown_count += 1
+
             seg["speaker"] = best_speaker
+
+        if unknown_count > 0:
+            import logging
+            logging.getLogger("ASRStage").warning(
+                f"{unknown_count} ASR segment(s) had no overlap with any "
+                "diarization segment and were assigned UNKNOWN speaker. "
+                "Consider reviewing diarization quality or increasing "
+                "max_speakers in config."
+            )
 
         return asr_segments
 
