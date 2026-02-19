@@ -1,0 +1,302 @@
+# LUCAS-Based Assessment Prompt Template
+
+```jinja
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische \
+Simulationsübung anhand der **Liverpool Undergraduate Communication Assessment Scale \
+(LUCAS)** (© University of Liverpool). Deine Aufgabe ist es, einen strukturierten \
+Feedbackbericht auf Basis des Transkripts und der Interaktionsdaten zu erstellen.
+
+## LUCAS-Bewertungsskala
+
+Die LUCAS besteht aus 10 Items (A-J) in drei Kategorien. Die maximale Gesamtpunktzahl \
+beträgt **18 Punkte**.
+
+---
+
+### KATEGORIE 1: INTRODUCTIONS (Items A-B)
+Bewertung: 1 (Competent) oder 0 (Unacceptable)
+
+**A) Greeting and Introduction**
+- **Competent (1):** Alle vier Elemente vorhanden: i) Begrüßt den Patienten, \
+ii) nennt vollständigen Namen, iii) nennt Berufsbezeichnung/Rolle, iv) gibt kurze \
+Erklärung, warum er/sie den Patienten anspricht. Beispiel: „Guten Tag, mein Name ist \
+[Vor- und Nachname], ich bin Medizinstudent/in im [X]. Semester der Universität [X]. \
+Der Arzt hat mich gebeten, mit Ihnen zu sprechen."
+- **Unacceptable (0):** Auslassung eines oder mehrerer der Elemente i) bis iv).
+
+**B) Identity Check**
+- **Competent (1):** Beide Elemente vorhanden: i) Überprüft den vollständigen Namen des \
+Patienten (bei Angehörigen/Betreuern: Name der Kontaktperson und Beziehung zum Patienten), \
+ii) prüft einen weiteren Identifikator (z.B. Geburtsdatum, Adresse).
+- **Unacceptable (0):** Auslassung von i) oder ii).
+
+---
+
+### KATEGORIE 2: GENERAL (Items C-H)
+Bewertung: 2 (Competent), 1 (Borderline) oder 0 (Unacceptable)
+
+**C) Audibility and Clarity of Speech**
+- **Competent (2):** Sprache ist klar oder überwiegend klar; moduliert Stimme oder nutzt \
+Wiederholung bei Bedarf; Patient hört wahrscheinlich alle Kernpunkte.
+- **Borderline (1):** Sprache stellenweise etwas unklar; versucht Stimme anzupassen oder \
+Wiederholungen einzusetzen, aber Patient hört möglicherweise einige Kernpunkte nicht.
+- **Unacceptable (0):** Sprache ist überwiegend unklar (z.B. zu leise, zu schnell, \
+undeutlich); keine Anpassung der Stimme oder Wiederholung, sodass Patient nicht folgen kann.
+
+**D) Non-verbal Behaviour**
+- **Competent (2):** Nonverbales Verhalten fördert das Engagement (ruhig, selbstsicher) \
+oder überwiegend förderlich (evtl. leicht unsicher, aber ohne negativen Einfluss auf die \
+Konsultation). Umfasst: Augenkontakt, Positionierung, Körperhaltung, Mimik, Gestik.
+- **Borderline (1):** Nonverbales Verhalten ist unbeholfen und wahrscheinlich ablenkend \
+für den Patienten; schränkt das Engagement zeitweise ein.
+- **Unacceptable (0):** Nonverbales Verhalten ist unangemessen für den klinischen Kontext \
+oder verstörend für den Patienten, sodass das Engagement erheblich gestört oder \
+verhindert wird.
+
+**E) Questions, Prompts and/or Explanations**
+_(Hinweis: Hier wird NICHT der medizinische Inhalt der Anamnese bewertet, sondern die \
+kommunikative Qualität.)_
+- **Competent (2):** Fragen/Erklärungen adressieren die wesentlichen Bedürfnisse, Gefühle \
+und Sorgen des Patienten; Auslassungen sind gering; Formulierungen sind überwiegend \
+verständlich (Fachjargon wird sparsam und erklärt eingesetzt).
+- **Borderline (1):** Versucht, Bedürfnisse und Gefühle des Patienten zu adressieren, aber \
+Fragen/Erklärungen sind unvollständig oder unzureichend; wesentliche Bedürfnisse nur \
+teilweise abgedeckt; Formulierungen teils schwer verständlich.
+- **Unacceptable (0):** Versäumt es, für den Patienten wesentliche Themen zu explorieren \
+oder zu erklären; Fragen/Erklärungen sind sehr schwer verständlich (z.B. schlechte \
+Wortwahl, kein Versuch umzuformulieren), sodass wesentliche Bedürfnisse des Patienten \
+nicht adressiert werden.
+
+**F) Empathy and Responsiveness**
+- **Competent (2):** Responsiv und sensibel gegenüber Bedürfnissen, Sichtweisen und \
+Gefühlen des Patienten (auch wenn Verbesserungsspielraum besteht); guter oder angemessener \
+Einsatz von Spiegelung/verbaler Bestätigung; erkennbare Fürsorge und Anteilnahme.
+- **Borderline (1):** Versucht, auf Bedürfnisse und Gefühle des Patienten einzugehen, aber \
+Reaktionen sind generell unvollständig oder oberflächlich (z.B. offensichtlich flüchtig \
+oder nur an der Oberfläche); wirkt distanziert oder abgelenkt.
+- **Unacceptable (0):** Kaum oder keine Anerkennung der Bedürfnisse und Gefühle des \
+Patienten (z.B. ignoriert Hauptsorgen, reagiert gleichgültig auf geäußerte Sorgen); \
+wirkt kalt oder desinteressiert.
+
+**G) Clarifying and Summarising; Elicitation of Patient's Queries**
+- **Competent (2):** Zeigt gutes oder angemessenes Bewusstsein und Einsatz von Klärung, \
+Zusammenfassung und Rückfragen (keine wichtigen Missverständnisse bleiben ungeklärt); \
+Technik evtl. leicht forciert, aber nicht so, dass das Engagement eingeschränkt wird.
+- **Borderline (1):** Versucht Klärung, Zusammenfassung und Rückfragen einzusetzen, aber \
+ineffektiv oder unvollständig (z.B. übersieht wichtige Missverständnisse; \
+Klärungstechnik wirkt aufdringlich oder künstlich und schränkt das Engagement ein).
+- **Unacceptable (0):** Zeigt sehr wenig oder kein Bewusstsein für angemessene Klärung \
+und Zusammenfassung; gibt dem Patienten keine Gelegenheit, Fragen zu stellen.
+
+**H) Consulting Style and Organisation**
+- **Competent (2):** Konsultation wirkt gesprächsartig und geordnet (gelegentliche \
+Ausrutscher möglich, z.B. unsichere Pausen); offene und geschlossene Fragen angemessen \
+eingesetzt; gutes oder angemessenes Zeitmanagement.
+- **Borderline (1):** Konsultation wirkt leicht unorganisiert; unausgewogener Einsatz von \
+offenen und geschlossenen Fragen; ineffektives Zeitmanagement (z.B. muss den Abschluss \
+überstürzen).
+- **Unacceptable (0):** Konsultation wirkt verhörartig (z.B. Übermäßiger Einsatz \
+geschlossener Fragen, wiederholte Mehrfachfragen) oder planlos und richtungslos \
+(z.B. Übermäßiger Einsatz offener Fragen); sehr schlechtes Zeitmanagement \
+(Konsultation endet abrupt).
+
+---
+
+### KATEGORIE 3: PROFESSIONAL BEHAVIOUR AND CONDUCT (Items I–J)
+Bewertung: 2 (Competent) oder 0 (Unacceptable)
+
+**I) Professional Behaviour**
+- **Competent (2):** Verhalten gegenüber dem Patienten ist höflich, rücksichtsvoll, \
+freundlich. Zeigt professionelles Engagement.
+- **Unacceptable (0):** Verhalten ist unprofessionell: übermäßig lässig, desinteressiert, \
+unhöflich oder gedankenlos (z.B. Patient hat den Eindruck, nicht ernst genommen zu werden; \
+Würde des Patienten wird nicht gewahrt).
+
+**J) Professional Spoken/Verbal Conduct**
+- **Competent (2):** Verbale Kommunikation ist professionell. Aussagen vermeiden größere \
+Ungenauigkeiten, sind respektvoll, bleiben im Rahmen der eigenen Kompetenz; \
+Beruhigung ist angemessen.
+- **Unacceptable (0):** Verbale Kommunikation ist unprofessionell. Dies kann beinhalten: \
+i) größere Sachfehler, ii) abwertende, urteilende oder respektlose Bemerkungen, \
+iii) Aussagen jenseits der eigenen Ausbildung/Kompetenz, iv) falsche oder verfrühte \
+Beruhigung (z.B. unangemessen „Machen Sie sich keine Sorgen" oder „Alles wird gut").
+
+---
+
+## Diarisiertes Transkript
+
+{transcript}
+
+## Interaktionsmetriken
+
+{interaction}
+
+## Gesprächsphasen
+
+{conversation_phases}
+
+
+{video_nvb_section}
+## Anweisungen
+
+Bewerte die Simulation anhand **JEDES der 10 LUCAS-Items (A-J)** gemäß der oben \
+beschriebenen Skala und Deskriptoren.
+
+Für jedes Item gib an:
+1. **rating**: Ganzzahlige Bewertung gemäß der jeweiligen Skala \
+(A/B: 0 oder 1; C-H: 0, 1 oder 2; I/J: 0 oder 2)
+2. **justification**: Begründung der Bewertung unter direktem Bezug auf die LUCAS-Deskriptoren
+3. **evidence**: 1-3 konkrete Belege aus dem Transkript (Zeitstempel und Zitat)
+4. **strengths**: 1-3 spezifische Stärken in diesem Bereich
+5. **gaps**: 0-2 konkrete Verbesserungsbereiche (leer lassen wenn Competent ohne Einschränkungen)
+6. **next_steps**: 1-2 umsetzbare Empfehlungen für den Lernenden
+
+Zusätzliche Hinweise:
+- Nutze die **volle Bandbreite der Skala** – „Competent" bedeutet nicht automatisch \
+Bestehen, „Borderline"/„Unacceptable" bedeutet nicht automatisch Durchfallen.
+- Beziehe dich auf konkrete Stellen im Transkript (Zeitstempel, wörtliche Zitate).
+- Unterscheide zwischen den verschiedenen Sprechern.
+- Berücksichtige die Gesprächsdynamik (Pausen, Unterbrechungen, Sprechanteile).
+- Items I und J haben kein Borderline – nur 0 oder 2.
+- Bewerte fair und konstruktiv.
+- Berechne den **Gesamtscore** (max. 18 Punkte).
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein zusätzlicher Text):
+
+{{
+  "lucas_items": [
+    {{
+      "item": "A",
+      "name": "Greeting and Introduction",
+      "category": "Introductions",
+      "max_score": 1,
+      "rating": "<0 oder 1>",
+      "rating_label": "<Competent|Unacceptable>",
+      "justification": "<Begründung mit Bezug auf LUCAS-Deskriptoren>",
+      "evidence": ["<[MM:SS] 'Zitat aus Transkript'>"],
+      "strengths": ["<Stärke>"],
+      "gaps": ["<Verbesserungsbereich>"],
+      "next_steps": ["<Empfehlung>"]
+    }},
+    {{
+      "item": "B",
+      "name": "Identity Check",
+      "category": "Introductions",
+      "max_score": 1,
+      "rating": "<0 oder 1>",
+      "rating_label": "<Competent|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "C",
+      "name": "Audibility and Clarity of Speech",
+      "category": "General",
+      "max_score": 2,
+      "rating": "<0, 1 oder 2>",
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "D",
+      "name": "Non-verbal Behaviour",
+      "category": "General",
+      "max_score": 2,
+      "rating": "<0, 1 oder 2>",
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "E",
+      "name": "Questions, Prompts and/or Explanations",
+      "category": "General",
+      "max_score": 2,
+      "rating": "<0, 1 oder 2>",
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "F",
+      "name": "Empathy and Responsiveness",
+      "category": "General",
+      "max_score": 2,
+      "rating": "<0, 1 oder 2>",
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "G",
+      "name": "Clarifying and Summarising",
+      "category": "General",
+      "max_score": 2,
+      "rating": "<0, 1 oder 2>",
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "H",
+      "name": "Consulting Style and Organisation",
+      "category": "General",
+      "max_score": 2,
+      "rating": "<0, 1 oder 2>",
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "I",
+      "name": "Professional Behaviour",
+      "category": "Professional Behaviour and Conduct",
+      "max_score": 2,
+      "rating": "<0 oder 2>",
+      "rating_label": "<Competent|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }},
+    {{
+      "item": "J",
+      "name": "Professional Spoken/Verbal Conduct",
+      "category": "Professional Behaviour and Conduct",
+      "max_score": 2,
+      "rating": "<0 oder 2>",
+      "rating_label": "<Competent|Unacceptable>",
+      "justification": "...",
+      "evidence": ["..."],
+      "strengths": ["..."],
+      "gaps": ["..."],
+      "next_steps": ["..."]
+    }}
+  ],
+  "total_score": "<Summe aller Ratings (max. 18)>",
+  "overall_summary": "<3-5 Sätze Gesamtbewertung: Hauptstärken, wichtigste Entwicklungsbereiche, Gesamteindruck>"
+}}
+```

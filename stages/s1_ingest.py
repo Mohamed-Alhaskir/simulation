@@ -203,7 +203,14 @@ class DataIngestionStage(BaseStage):
         for ext in extensions:
             found.extend(directory.glob(f"*{ext}"))
             found.extend(directory.glob(f"video/*{ext}"))
-        return sorted(set(found))
+        # Resolve to absolute paths before deduplicating so that the same file
+        # reached via different glob patterns doesn't appear twice.
+        seen = {}
+        for p in found:
+            resolved = p.resolve()
+            if resolved not in seen:
+                seen[resolved] = p
+        return sorted(seen.values())
 
     # ------------------------------------------------------------------
     # Audio extraction
@@ -214,19 +221,55 @@ class DataIngestionStage(BaseStage):
         Extract audio track from video with diarization-safe preprocessing:
         - mono
         - 16 kHz
-        - loudness normalization
+        - loudness normalization (two-pass for accuracy)
         - gentle high-pass filtering
         """
+        import json as _json
+
+        # Pass 1: measure loudness statistics
+        measure_result = subprocess.run(
+            [
+                "ffmpeg", "-y",
+                "-i", video_path,
+                "-vn",
+                "-af", "highpass=f=70,loudnorm=I=-16:LRA=11:TP=-1.5:print_format=json",
+                "-f", "null", "-",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        # loudnorm stats are written to stderr
+        measured = {}
+        try:
+            stderr = measure_result.stderr
+            json_start = stderr.rfind("{")
+            json_end = stderr.rfind("}") + 1
+            if json_start != -1 and json_end > json_start:
+                measured = _json.loads(stderr[json_start:json_end])
+        except (ValueError, KeyError):
+            pass  # fall back to single-pass defaults
+
+        # Pass 2: apply normalization using measured values
+        if measured.get("input_i"):
+            loudnorm_filter = (
+                f"highpass=f=70,"
+                f"loudnorm=I=-16:LRA=11:TP=-1.5"
+                f":measured_I={measured['input_i']}"
+                f":measured_LRA={measured['input_lra']}"
+                f":measured_TP={measured['input_tp']}"
+                f":measured_thresh={measured['input_thresh']}"
+                f":offset={measured.get('target_offset', '0.0')}"
+                f":linear=true"
+            )
+        else:
+            loudnorm_filter = "highpass=f=70,loudnorm=I=-16:LRA=11:TP=-1.5"
+
         subprocess.run(
             [
                 "ffmpeg", "-y",
                 "-i", video_path,
                 "-vn",
-                "-af",
-                (
-                    "highpass=f=70,"
-                    "loudnorm=I=-16:LRA=11:TP=-1.5"
-                ),
+                "-af", loudnorm_filter,
                 "-acodec", "pcm_s16le",
                 "-ar", "16000",
                 "-ac", "1",
@@ -285,7 +328,11 @@ class DataIngestionStage(BaseStage):
                 quadrants[name] = out_path
             except subprocess.CalledProcessError as e:
                 # Non-critical — log and continue
-                pass
+                import logging
+                logging.getLogger("DataIngestionStage").warning(
+                    f"Quadrant split failed for '{name}': "
+                    f"{e.stderr.decode(errors='replace').strip()}"
+                )
 
         return quadrants
 
@@ -318,6 +365,8 @@ class DataIngestionStage(BaseStage):
     @staticmethod
     def _get_video_resolution(path: Path) -> tuple[int, int]:
         """Get video width and height using ffprobe."""
+        import logging
+        _log = logging.getLogger("DataIngestionStage")
         try:
             result = subprocess.run(
                 [
@@ -338,4 +387,9 @@ class DataIngestionStage(BaseStage):
                 return (int(stream["width"]), int(stream["height"]))
         except (KeyError, ValueError, IndexError, subprocess.TimeoutExpired):
             pass
+        _log.warning(
+            f"ffprobe could not read resolution for {path}; "
+            "falling back to 1920x1080. Quadrant crops may be incorrect "
+            "if the actual resolution differs."
+        )
         return (1920, 1080)  # Default assumption
