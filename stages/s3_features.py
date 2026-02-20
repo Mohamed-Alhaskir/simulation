@@ -34,7 +34,9 @@ class FeatureExtractionStage(BaseStage):
         output_dir = Path(ctx["output_base"]) / "03_features"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        transcript = ctx["artifacts"]["transcript"]
+
+        transcript = self._resolve_artifact(ctx["artifacts"]["transcript"])
+
         features = {}
 
         # ---- Verbal / interaction features ----

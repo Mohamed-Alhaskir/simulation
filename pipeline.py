@@ -90,6 +90,14 @@ STAGE_ORDER = [
     "report",
 ]
 
+_ARTIFACT_KEYS_TO_SLIM = {
+    "ingest":         ["video_frames"],
+    "asr":            ["transcript"],
+    "features":       ["features"],
+    "video_analysis": ["video_features"],
+    "analysis":       ["assembled_context"],
+}
+
 
 class Pipeline:
     """End-to-end pipeline orchestrator."""
@@ -258,7 +266,6 @@ class Pipeline:
             except Exception:
                 self.logger.exception(f"Stage '{stage_name}' failed.")
                 ctx["timestamps"][stage_name] = {"status": "FAILED"}
-                # Remove any partial checkpoint so a re-run starts fresh
                 cp = self._checkpoint_path(output_base, stage_name)
                 if cp.exists():
                     cp.unlink()
@@ -273,6 +280,17 @@ class Pipeline:
             self._save_checkpoint(output_base, stage_name, ctx)
             self.logger.info(f"    ✓ {stage_name} completed in {elapsed:.2f}s")
 
+            # ── Release stage resources from RAM/VRAM ──────────────────
+            if hasattr(stage, "cleanup"):
+                stage.cleanup()
+                self.logger.info(f"    ♻ {stage_name} resources released")
+
+            # ── Slim ctx: replace large in-memory artifacts with paths ──
+            for key in _ARTIFACT_KEYS_TO_SLIM.get(stage_name, []):
+                if key in ctx["artifacts"] and not isinstance(ctx["artifacts"][key], str):
+                    ctx["artifacts"][key] = ctx["artifacts"].get(f"{key}_path", f"[slimmed after {stage_name}]")
+                    self.logger.debug(f"    ↓ ctx['artifacts']['{key}'] slimmed to path reference")
+        
         # Save pipeline run metadata
         meta_path = output_base / "pipeline_meta.json"
         with open(meta_path, "w", encoding="utf-8") as f:
