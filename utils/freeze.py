@@ -40,7 +40,7 @@ class FreezeManifest:
             },
             "models": {
                 "asr": {
-                    "engine": "whisper",
+                    "engine": self.config.get("asr", {}).get("model_type"),
                     "model_name": self.config.get("asr", {}).get("model_name"),
                     "compute_type": self.config.get("asr", {}).get("compute_type"),
                     "beam_size": self.config.get("asr", {}).get("beam_size"),

@@ -1,5 +1,5 @@
 """
-Stage 4: Video-Based Non-Verbal Behaviour Analysis (LUCAS-Aligned)
+Stage 3b: Video-Based Non-Verbal Behaviour Analysis (LUCAS-Aligned)
 ====================================================================
 Uses MediaPipe Tasks API (FaceLandmarker + PoseLandmarker + HandLandmarker)
 for tracking face, pose, and hands — compatible with mediapipe 0.10.14.
@@ -53,7 +53,7 @@ CHANGELOG
   JSON output are computed.
 """
 
-import json, math, os, urllib.request
+import base64, json, math, os, urllib.request
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 import numpy as np
@@ -491,6 +491,8 @@ class VideoAnalysisStage(BaseStage):
     LEFT_EYE_OUTER = 33;  RIGHT_EYE_OUTER = 263
     CHIN = 152; FOREHEAD = 10
     LEFT_MOUTH = 61; RIGHT_MOUTH = 291
+    UPPER_LIP = 13; LOWER_LIP = 14
+    LEFT_BROW = 70; RIGHT_BROW = 300
 
     # ── Pose landmark indices ──
     POSE_NOSE = 0
@@ -509,6 +511,7 @@ class VideoAnalysisStage(BaseStage):
         output_dir = Path(ctx["output_base"]) / "04_video_analysis"
         output_dir.mkdir(parents=True, exist_ok=True)
 
+
         if not cfg.get("enabled", False):
             self.logger.info("Video analysis disabled in config, skipping.")
             return ctx
@@ -522,10 +525,19 @@ class VideoAnalysisStage(BaseStage):
 
         self.logger.info(f"Video source: {video_path}")
 
+        try:
+            import cv2
+            import mediapipe as mp
+        except ImportError:
+            self.logger.error("opencv-python and/or mediapipe not installed.")
+            raise
+
         for key in ("face", "pose", "hand"):
             _ensure_model(key)
         _ensure_dnn_model()
 
+        features = self._resolve_artifact(ctx["artifacts"].get("features", {}))
+        phases = features.get("phases", [])
         sample_fps = cfg.get("sample_fps", 2)
 
         results = self._analyze_video(video_path, sample_fps, cfg)
@@ -555,6 +567,7 @@ class VideoAnalysisStage(BaseStage):
             )
 
         nvb_metrics = self._compute_lucas_nvb_metrics(frame_data, baseline, video_fps)
+        phase_summaries = self._compute_phase_summaries(frame_data, phases, baseline, video_fps)
 
         annotated_video_path = None
         if cfg.get("generate_annotated_video", True):
@@ -569,6 +582,7 @@ class VideoAnalysisStage(BaseStage):
 
         lucas_nvb_output = self._build_llm_output(
             nvb_metrics=nvb_metrics,
+            phase_summaries=phase_summaries,
             baseline=baseline,
             metadata=results["metadata"],
         )
@@ -577,6 +591,9 @@ class VideoAnalysisStage(BaseStage):
         with open(features_path, "w") as f:
             json.dump(lucas_nvb_output, f, indent=2, ensure_ascii=False, cls=_NumpySafeEncoder)
 
+        llm_profile = ctx["artifacts"].get("llm_profile", {})
+        llm_profile["lucas_nvb"] = lucas_nvb_output
+        ctx["artifacts"]["llm_profile"] = llm_profile
         ctx["artifacts"]["video_features"] = lucas_nvb_output
         ctx["artifacts"]["video_features_path"] = str(features_path)
         if annotated_video_path:
@@ -797,9 +814,8 @@ class VideoAnalysisStage(BaseStage):
                     rgb_full = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                     # Stage 1: DNN face detection
-                    #_run_dnn = (_frames_since_dnn % dnn_interval == 0)
-                    #_frames_since_dnn += 1
-                    _run_dnn = (frame_idx % dnn_interval == 0)
+                    _run_dnn = (_frames_since_dnn % dnn_interval == 0)
+                    _frames_since_dnn += 1
 
                     if _run_dnn:
                         blob = cv2.dnn.blobFromImage(
@@ -1162,6 +1178,8 @@ class VideoAnalysisStage(BaseStage):
                 lm = face_landmarks[idx]
                 return np.array([lm.x * img_w, lm.y * img_h])
 
+            upper_lip = lm_2d(self.UPPER_LIP)
+            lower_lip = lm_2d(self.LOWER_LIP)
             left_mouth = lm_2d(self.LEFT_MOUTH)
             right_mouth = lm_2d(self.RIGHT_MOUTH)
             nose_tip = lm_2d(self.NOSE_TIP)
@@ -1346,7 +1364,7 @@ class VideoAnalysisStage(BaseStage):
         ]
 
         d2 = {
-            "eye_level_y_distribution": _distribution_summary(eye_level_ys),
+            "Height_to_patient": _distribution_summary(eye_level_ys),
             "pose_detection_rate": round(pose_rate, 3),
             "reliability": _reliability_level(pose_rate),
             "method_note": (
@@ -1518,6 +1536,38 @@ class VideoAnalysisStage(BaseStage):
             "I_professional_behaviour_demeanour": d_i,
         }
 
+    # ═══════════════════════════════════════════════════════════════════════
+    # Phase-level summaries
+    # ═══════════════════════════════════════════════════════════════════════
+    def _compute_phase_summaries(
+        self,
+        frame_data: List[Dict],
+        phases: List[Dict],
+        baseline: PersonBaseline,
+        video_fps: float,
+    ) -> List[Dict]:
+        if not phases or not frame_data:
+            return []
+        summaries = []
+        for phase in phases:
+            p_start = phase.get("start_s", 0)
+            p_end   = phase.get("end_s", 0)
+            phase_frames = [f for f in frame_data if p_start <= f["timestamp_s"] <= p_end]
+            if not phase_frames:
+                summaries.append({
+                    "phase": phase.get("phase", "unknown"),
+                    "start_s": p_start,
+                    "end_s": p_end,
+                    "frames_analyzed": 0,
+                })
+                continue
+            summary = self._compute_lucas_nvb_metrics(phase_frames, baseline, video_fps)
+            summary["phase"] = phase.get("phase", "unknown")
+            summary["start_s"] = p_start
+            summary["end_s"] = p_end
+            summary["frames_analyzed"] = len(phase_frames)
+            summaries.append(summary)
+        return summaries
 
     # ═══════════════════════════════════════════════════════════════════════
     # Build LLM-optimised output JSON
@@ -1525,6 +1575,7 @@ class VideoAnalysisStage(BaseStage):
     def _build_llm_output(
         self,
         nvb_metrics: Dict,
+        phase_summaries: List[Dict],
         baseline: PersonBaseline,
         metadata: Dict,
     ) -> Dict[str, Any]:
@@ -1558,6 +1609,8 @@ class VideoAnalysisStage(BaseStage):
             },
         }
         output.update(nvb_metrics)
+        if phase_summaries:
+            output["phase_summaries"] = phase_summaries
         return output
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -1735,6 +1788,17 @@ class VideoAnalysisStage(BaseStage):
             nonlocal y
             y += n
 
+        def fmt_dist(d, label=""):
+            """Single-line distribution summary: mean ± SD."""
+            if d is None or d.get("n", 0) == 0:
+                return f"{label}  n/a"
+            return f"{label}  {d['mean']:.2f} ± {d['std']:.2f}  [{d['min']:.2f}–{d['max']:.2f}]"
+
+        def fmt_prop(p, label=""):
+            """Single-line proportion: XX% (n/total)."""
+            if p is None or p.get("rate") is None:
+                return f"{label}  n/a"
+            return f"{label}  {p['rate']*100:.0f}%  ({p['count']}/{p['total']})"
 
         # ════════════════════════════════════════════════════════════════
         # D1 — Eye Contact
@@ -1863,3 +1927,14 @@ class VideoAnalysisStage(BaseStage):
         status = "+".join(parts) if parts else "none"
         cv2.putText(frame, f"Track: {status}", (x, height - 14),
                     FONT, 0.40, DIM, 1, cv2.LINE_AA)
+    # s4_video_analysis.py  
+    def cleanup(self) -> None:
+        """Release memory held after video analysis completes."""
+        # No persistent model handles — detectors live in worker processes
+        # and are closed in the finally block of _process_video_segment.
+        # Clear any large cached data if present.
+        for attr in ("_frame_data_cache", "_cached_landmarks"):
+            if hasattr(self, attr):
+                delattr(self, attr)
+        import gc
+        gc.collect()

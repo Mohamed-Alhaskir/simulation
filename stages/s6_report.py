@@ -96,7 +96,7 @@ class ReportGenerationStage(BaseStage):
 
     def run(self, ctx: dict) -> dict:
         cfg = self._get_stage_config("report")
-        output_dir = Path(ctx["output_base"]) / "05_report"
+        output_dir = Path(ctx["output_base"]) / "06_report"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         analysis   = ctx["artifacts"]["analysis"]
@@ -110,7 +110,7 @@ class ReportGenerationStage(BaseStage):
             json.dump(report, f, indent=2, ensure_ascii=False)
         self.logger.info(f"JSON report: {json_path}")
 
-        additional = cfg.get("additional_formats", [])
+        additional = cfg.get("additional_formats", ["pdf"])
 
         # ── HTML ──
         html_path = None
@@ -165,7 +165,7 @@ class ReportGenerationStage(BaseStage):
         Spikes is taken directly from the combined dict (or ctx fallback).
         """
         label_prefix = cfg.get("label_prefix", "REPORT")
-        report_id    = f"{label_prefix}_{session_id}"
+        report_id    = f"{session_id}"
 
         # ── Unwrap the nested structure from Stage 5 ──
         # ctx["artifacts"]["lucas_analysis"] is the direct LUCAS output;
@@ -446,7 +446,7 @@ class ReportGenerationStage(BaseStage):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>LUCAS Feedback Report &mdash; {rid}</title>
+<title>Feedback Report &mdash; {rid}</title>
 <style>
 /* ═══════════════════════════════════════════════════════════════
    Base
@@ -1063,6 +1063,8 @@ a {{ color: var(--accent); }}
   @page {{
     size: A4;
     margin: 15mm 12mm 18mm 12mm;
+    /* Suppress browser-injected header/footer */
+    margin-top: 10mm;
   }}
   body {{ background: #fff; font-size: 11.5px; }}
   .page {{ padding: 0; max-width: 100%; }}
@@ -1111,10 +1113,9 @@ a {{ color: var(--accent); }}
   <div class="letterhead">
     <div class="lh-top">
       <div class="lh-titles">
-        <h1>LUCAS Simulation Feedback Report</h1>
+        <h1>LUCAS & Spike Simulation Feedback Report</h1>
         <div class="subtitle">
-          Liverpool Undergraduate Communication Assessment Scale
-          &nbsp;&middot;&nbsp; Paediatric Simulation
+          Paediatric Simulation
         </div>
       </div>
       <div class="lh-score-panel">
@@ -1204,7 +1205,7 @@ a {{ color: var(--accent); }}
 
   <!-- ⑧ FOOTER -->
   <div class="report-footer">
-    <span>LUCAS &copy; University of Liverpool</span>
+    <span>MO &copy; 420 </span>
     <span>Report ID: {rid}</span>
   </div>
 

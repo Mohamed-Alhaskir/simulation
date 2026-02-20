@@ -318,6 +318,11 @@ class ASRStage(BaseStage):
 
         subprocess.run(cmd, check=True, capture_output=True)
 
+
+    def cleanup(self) -> None:
+        if hasattr(self, "_whisper_model"):
+            del self._whisper_model
+        import gc; gc.collect()
     # ------------------------------------------------------------------
     # Merge ASR + diarization
     # ------------------------------------------------------------------
