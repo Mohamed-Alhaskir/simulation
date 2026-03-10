@@ -26,7 +26,6 @@ Report IDs use a blinded label for evaluation (e.g. REPORT_session123).
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-
 from stages.base import BaseStage
 
 # LUCAS section groupings for report layout
@@ -96,9 +95,8 @@ class ReportGenerationStage(BaseStage):
 
     def run(self, ctx: dict) -> dict:
         cfg = self._get_stage_config("report")
-        output_dir = Path(ctx["output_base"]) / "06_report"
+        output_dir = Path(ctx["output_base"]) / "07_report"
         output_dir.mkdir(parents=True, exist_ok=True)
-
         analysis   = ctx["artifacts"]["analysis"]
         session_id = ctx["session_id"]
 
@@ -223,6 +221,13 @@ class ReportGenerationStage(BaseStage):
 
         if spikes and cfg.get("include_spikes", True):
             report["spikes_annotation"] = spikes
+
+        cc = (
+            ctx["artifacts"].get("clinical_content")
+            or analysis.get("clinical_content")
+        )
+        if cc:
+            report["clinical_content"] = cc
 
         return report
 
@@ -422,7 +427,7 @@ class ReportGenerationStage(BaseStage):
                 </table>
                 <div class="sp-seq {seq_cls}">
                   <strong>Sequence:</strong>
-                  {"Correct &nbsp;✓" if seq_ok else f"Issues detected &mdash; {seq_note}"}
+                  {"Correct &nbsp;✓" if seq_ok else f"&mdash; {seq_note}"}
                 </div>
                 <p class="sp-overall">{overall}</p>
               </div>
@@ -435,6 +440,119 @@ class ReportGenerationStage(BaseStage):
         rid     = report.get("report_id", "")
         gen_at  = (report.get("generated_at", "") or "")[:19].replace("T", " ")
         summary = report.get("overall_summary", "")
+
+
+        # ── Clinical Content section ──────────────────────────────────────
+        cc_html = ""
+        cc_data = report.get("clinical_content")
+        if cc_data and not cc_data.get("parse_error"):
+            cc_items = cc_data.get("items", [])
+            critical_misses = cc_data.get("critical_misses", [])
+            critical_fps    = cc_data.get("critical_false_positives", [])
+            raw_score       = cc_data.get("raw_score", "—")
+            max_score       = cc_data.get("max_applicable_score", "—")
+            pct             = cc_data.get("normalised_score_pct", "—")
+            has_miss        = cc_data.get("has_critical_miss", False)
+            overall_note    = cc_data.get("overall_clinical_note", "")
+            cat_pcts        = cc_data.get("category_scores_pct", {})
+
+            # Critical miss banner
+            banner_html = ""
+            if critical_misses:
+                miss_lis = "".join(
+                    f"<li><strong>{m['id']} — {m['name']}</strong>: {m['justification']}</li>"
+                    for m in critical_misses
+                )
+                banner_html = (
+                    '<div class="cc-banner">'
+                    '<div class="cc-banner-title">Critical Miss — Immediate Feedback Required</div>'
+                    f'<ul class="cc-banner-items">{miss_lis}</ul>'
+                    '</div>'
+                )
+            if critical_fps:
+                fp_lis = "".join(
+                    f"<li><strong>{m['id']} — {m['name']}</strong>: {m['justification']}</li>"
+                    for m in critical_fps
+                )
+                banner_html += (
+                    '<div class="cc-banner" style="border-color:#ea580c;background:#fff7ed;">'
+                    '<div class="cc-banner-title" style="color:#ea580c;">'
+                    'Clinically Incorrect Statement Detected</div>'
+                    f'<ul class="cc-banner-items" style="color:#7c2d12;">{fp_lis}</ul>'
+                    '</div>'
+                )
+
+            # Score boxes
+            miss_cls = "has-miss" if has_miss else ""
+            score_boxes = (
+                f'<div class="cc-score-box {miss_cls}">'
+                f'<div class="cc-score-label">Clinical Score</div>'
+                f'<div class="cc-score-num">{raw_score}/{max_score}</div>'
+                f'<div class="cc-score-pct">{pct}%</div>'
+                '</div>'
+            )
+            for cat, cpct in cat_pcts.items():
+                score_boxes += (
+                    f'<div class="cc-score-box">'
+                    f'<div class="cc-score-label">{cat}</div>'
+                    f'<div class="cc-score-num">{cpct}%</div>'
+                    '</div>'
+                )
+
+            # Item table — group by category
+            from itertools import groupby
+            def _cc_rating_cls(r):
+                if r == "NA": return "cc-rating-na"
+                if r == 2:    return "cc-rating-2"
+                if r == 1:    return "cc-rating-1"
+                return "cc-rating-0"
+
+            cc_items_sorted = sorted(cc_items, key=lambda x: x.get("category",""))
+            table_rows = ""
+            for cat_name, grp in groupby(cc_items_sorted, key=lambda x: x.get("category","")):
+                table_rows += (
+                    f'<tr class="cc-cat-header">'
+                    f'<td colspan="4">{cat_name}</td></tr>'
+                )
+                for item in grp:
+                    r         = item["rating"]
+                    r_cls     = _cc_rating_cls(r)
+                    r_str     = str(r) if r != "NA" else "NA"
+                    is_crit   = item.get("critical", False)
+                    is_miss   = is_crit and r == 0
+                    is_wrong  = item.get("wrong", False)
+                    row_cls   = "cc-critical-miss" if is_miss else ("cc-wrong" if is_wrong else "")
+                    crit_badge = '<span class="cc-crit-badge">CRITICAL</span>' if is_crit else ""
+                    ev_text   = "; ".join(item.get("evidence", [])[:2]) or "—"
+                    table_rows += (
+                        f'<tr class="{row_cls}">'
+                        f'<td><strong>{item["id"]}</strong>{crit_badge}</td>'
+                        f'<td>{item["name"]}</td>'
+                        f'<td class="{r_cls}" style="text-align:center;white-space:nowrap;">{r_str}/2</td>'
+                        f'<td>{item["justification"]} <em style="color:#94a3b8;font-size:11px;">{ev_text}</em></td>'
+                        '</tr>'
+                    )
+
+            cc_html = f"""
+            <div class="section-block">
+              <div class="section-header">
+                <span class="section-title">Clinical Content Assessment</span>
+              </div>
+              <div class="card-plain">
+                {banner_html}
+                <div class="cc-score-panel">{score_boxes}</div>
+                <p style="margin:0 0 12px;font-size:13px;color:#374151;">{overall_note}</p>
+                <table class="cc-item-table">
+                  <thead><tr>
+                    <th style="width:70px">ID</th>
+                    <th>Item</th>
+                    <th style="width:60px;text-align:center">Score</th>
+                    <th>Justification &amp; Evidence</th>
+                  </tr></thead>
+                  <tbody>{table_rows}</tbody>
+                </table>
+              </div>
+            </div>"""
 
         # ── blank log lines ───────────────────────────────────────────────
         log_lines = "".join(
@@ -1187,7 +1305,10 @@ a {{ color: var(--accent); }}
   <!-- ⑤ DETAILED ITEM FEEDBACK -->
   {sections_html}
 
-  <!-- ⑥ SPIKES ANNOTATION -->
+  <!-- ⑥ CLINICAL CONTENT -->
+  {cc_html}
+
+  <!-- ⑦ SPIKES ANNOTATION -->
   {spikes_html}
 
   <!-- ⑦ ASSESSOR NOTES / OBSERVATION LOG -->
@@ -1312,6 +1433,137 @@ window.addEventListener('beforeprint', prepareForPrint);
 }}
 @media screen {{
   .print-val {{ display: none; }}
+}}
+
+/* ── Clinical Content section ─────────────────────── */
+.cc-banner {{
+  background: #fef2f2;
+  border: 2px solid #dc2626;
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}}
+.cc-banner-title {{
+  font-size: 14px;
+  font-weight: 700;
+  color: #dc2626;
+  letter-spacing: .04em;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}}
+.cc-banner-title::before {{
+  content: "⚠";
+  font-size: 16px;
+}}
+.cc-banner-items {{
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}}
+.cc-banner-items li {{
+  font-size: 13px;
+  color: #7f1d1d;
+  padding: 4px 0 4px 20px;
+  position: relative;
+}}
+.cc-banner-items li::before {{
+  content: "✗";
+  position: absolute;
+  left: 0;
+  color: #dc2626;
+  font-weight: 700;
+}}
+.cc-score-panel {{
+  display: flex;
+  gap: 24px;
+  align-items: stretch;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}}
+.cc-score-box {{
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px 20px;
+  min-width: 140px;
+  text-align: center;
+}}
+.cc-score-box.has-miss {{
+  border-color: #dc2626;
+  background: #fef2f2;
+}}
+.cc-score-label {{
+  font-size: 11px;
+  color: #6b7280;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}}
+.cc-score-num {{
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e3a5f;
+}}
+.cc-score-pct {{
+  font-size: 13px;
+  color: #475569;
+  margin-top: 2px;
+}}
+.cc-item-table {{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}}
+.cc-item-table th {{
+  background: #1e3a5f;
+  color: #fff;
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+}}
+.cc-item-table td {{
+  padding: 7px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: top;
+}}
+.cc-item-table tr:nth-child(even) td {{
+  background: #f8fafc;
+}}
+.cc-item-table tr.cc-critical-miss td {{
+  background: #fef2f2;
+  color: #7f1d1d;
+}}
+.cc-item-table tr.cc-wrong td {{
+  background: #fff7ed;
+}}
+.cc-rating-2 {{ color: #16a34a; font-weight: 700; }}
+.cc-rating-1 {{ color: #d97706; font-weight: 700; }}
+.cc-rating-0 {{ color: #dc2626; font-weight: 700; }}
+.cc-rating-na {{ color: #94a3b8; font-style: italic; }}
+.cc-crit-badge {{
+  font-size: 10px;
+  background: #dc2626;
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  vertical-align: middle;
+}}
+.cc-cat-header td {{
+  background: #e9eef5 !important;
+  font-weight: 700;
+  font-size: 12px;
+  color: #1e3a5f;
+  letter-spacing: .04em;
+  padding: 6px 10px;
+}}
+@media print {{
+  .cc-banner {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  .cc-critical-miss td {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
 }}
 </style>
 

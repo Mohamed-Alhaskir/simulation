@@ -24,6 +24,7 @@ import json
 from pathlib import Path
 
 from stages.base import BaseStage
+from utils.artifact_io import save_artifact
 
 
 class FeatureExtractionStage(BaseStage):
@@ -74,8 +75,7 @@ class FeatureExtractionStage(BaseStage):
 
         # ---- Save features ----
         features_path = output_dir / "features.json"
-        with open(features_path, "w") as f:
-            json.dump(features, f, indent=2, ensure_ascii=False, default=str)
+        save_artifact(features, features_path, description="features", logger_instance=self.logger, default=str)
 
         ctx["artifacts"]["features"] = features
         ctx["artifacts"]["features_path"] = str(features_path)
