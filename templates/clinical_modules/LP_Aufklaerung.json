@@ -1,0 +1,119 @@
+{
+  "id": "LP_Aufklaerung",
+  "name": "LP-Aufklärung bei V.a. Meningitis — Fachlicher Erwartungshorizont (§630e BGB)",
+  "description": "Einwilligungsgespräch für Lumbalpunktion. Bewertet die ärztliche Aufklärung nach §630e BGB anhand des fachlichen Erwartungshorizonts (Checkliste Version 1.0, 09-10-2025). 9 Items A–I.",
+  "scenario_type": "consent_conversation",
+
+  "scoring_preamble": "Vergib Score 2 nur, wenn die Anforderung klar und vollständig erfüllt ist. Score 1 erfordert, dass das Thema erkennbar angesprochen wurde, aber wesentliche Inhalte fehlen oder zu vage bleiben. Score 0, wenn das Thema nicht thematisiert wird oder die Aussage so unvollständig ist, dass die Bezugsperson keinen realistischen Eindruck erhält. Im Zweifelsfall zwischen 1 und 2 wähle 1. Im Zweifelsfall zwischen 0 und 1 wähle 0, es sei denn, es liegt ein klarer Transkriptbeleg vor.",
+
+  "items": [
+    {
+      "id": "LP_A",
+      "name": "Art — Welche Behandlung / welcher Eingriff ist geplant?",
+      "category": "§630e Aufklärung",
+      "description": "Benennt den geplanten Eingriff explizit und verständlich: Lumbalpunktion / Punktion des liquorgefüllten Subarachnoidalraums zu diagnostischen Zwecken. Bezugsperson versteht was durchgeführt wird und warum.",
+      "critical": true,
+      "scoring_guidance": {
+        "2": "Eingriff explizit benannt (LP, Lumbalpunktion, Nervenwasserpunktion o.Ä.) UND der diagnostische Zweck klar erklärt (z.B. um Entzündungszellen / Erreger im Nervenwasser nachzuweisen). Beide Bestandteile — Bezeichnung UND Zweck — müssen im Transkript belegbar sein.",
+        "1": "Eingriff benannt aber diagnostischer Zweck nicht erklärt, ODER Zweck erklärt aber Bezeichnung des Eingriffs fehlt oder ist so umgangssprachlich, dass Bezugsperson unklar bleibt was konkret gemacht wird.",
+        "0": "Eingriff nicht explizit benannt oder so vage umschrieben, dass Bezugsperson keinen klaren Eindruck erhält was geplant ist."
+      }
+    },
+    {
+      "id": "LP_B",
+      "name": "Umfang — In welchem Ausmaß wird die Maßnahme durchgeführt?",
+      "category": "§630e Aufklärung",
+      "description": "Erklärt in welchem Ausmaß die LP durchgeführt wird: eigentlicher Vorgang dauert nur wenige Minuten, kleine Menge Liquor wird entnommen, kleine Wunde wird mit Pflaster versorgt.",
+      "critical": false,
+      "scoring_guidance": {
+        "2": "Mindestens zwei voneinander unabhängige Aspekte des Umfangs klar benannt: Dauer des Eingriffs (Minuten) UND/ODER Menge des entnommenen Liquors (wenige ml) UND/ODER Wundversorgung danach. Die Angaben müssen konkret sein — vage Äußerungen wie 'das geht schnell' ohne Zeitangabe zählen nicht.",
+        "1": "Genau ein konkreter Aspekt des Umfangs benannt.",
+        "0": "Kein Hinweis auf den Umfang der Maßnahme, oder ausschließlich vage Formulierungen ohne jeden konkreten Anhaltspunkt."
+      }
+    },
+    {
+      "id": "LP_C",
+      "name": "Durchführung — Wie läuft die Maßnahme ab? (Technik, Betäubung, Schritte, Dauer)",
+      "category": "§630e Aufklärung",
+      "description": "Beschreibt den Ablauf der LP verständlich: Lagerung (Embryonalhaltung / Rundrücken), Lokalanästhesie und/oder Sedierung, Einstich im Bereich L3–L5 (kein Rückenmark an dieser Stelle), Liquorentnahme wenige ml, Nadelentfernung.",
+      "critical": true,
+      "scoring_guidance": {
+        "2": "Mindestens drei der folgenden Elemente verständlich und korrekt erklärt: (1) Lagerung (gebückte Haltung / Embryonalhaltung / Rundrücken / auf der Seite), (2) Betäubung oder Sedierung (Lokalanästhesie, Beruhigungsmittel, Narkose), (3) Einstichlokalisation (Lendenwirbelsäule / unterer Rücken / zwischen den Wirbelkörpern / L3–L5), (4) warum kein Rückenmark an der Punktionsstelle, (5) Entnahme von nur wenigen ml Nervenwasser. Hinweis: Lagerung allein ist leicht zu erwähnen und hat geringes Gewicht — Score 2 erfordert, dass Betäubung oder Sedierung (Element 2) eines der drei erfüllten Elemente ist.",
+        "1": "Ablauf erkennbar skizziert, aber wesentliche Schritte fehlen — insbesondere wenn Betäubung/Sedierung nicht erwähnt wird, oder wenn nur ein oder zwei Elemente genannt werden.",
+        "0": "Ablauf nicht beschrieben oder so fragmentarisch, dass Bezugsperson keinen realistischen Eindruck vom Vorgehen erhält."
+      }
+    },
+    {
+      "id": "LP_D",
+      "name": "Mögliche Folgen — Welche unmittelbaren Wirkungen sind wahrscheinlich?",
+      "category": "§630e Aufklärung",
+      "description": "Benennt häufige Folgen und Nebenwirkungen (>3%): lokaler Schmerz an der Punktionsstelle, postpunktionelles Kopfschmerzsyndrom (Post-LP-Kopfschmerz), lumbale Wurzelreizsymptomatik (ischiasartiges Ziehen ins Bein), lokale leichte Blutung.",
+      "critical": false,
+      "scoring_guidance": {
+        "2": "Mindestens zwei häufige Folgen/Nebenwirkungen korrekt und spezifisch benannt. Die Folgen müssen klar als häufig oder typisch eingeordnet werden — nicht als seltene Komplikationen. Z.B. lokaler Schmerz an der Punktionsstelle UND postpunktioneller Kopfschmerz, ODER Kopfschmerz UND ischiasartiges Ziehen ins Bein.",
+        "1": "Genau eine häufige Folge korrekt und spezifisch benannt. Vage Aussagen wie 'das kann wehtun' oder 'das ist unangenehm' ohne Benennung einer konkreten Folge zählen nicht.",
+        "0": "Keine häufigen Folgen oder Nebenwirkungen erwähnt, oder ausschließlich vage Schmerzaussagen ohne konkrete Folgebenennung."
+      }
+    },
+    {
+      "id": "LP_E",
+      "name": "Risiken — Welche Komplikationen können auftreten?",
+      "category": "§630e Aufklärung",
+      "description": "Benennt seltene Komplikationen (<3%): Infektion des Stichkanals, Kreislaufreaktionen bis Synkope, Blutungen mit neurologischen Ausfällen, Subduralhämatom, Hirnnervenausfälle, Einklemmungssyndrome (v.a. bei Kontraindikationen).",
+      "critical": true,
+      "scoring_guidance": {
+        "2": "Mindestens zwei seltene Komplikationen korrekt und spezifisch benannt UND in klinischen Kontext eingeordnet (z.B. Häufigkeit, Behandelbarkeit, oder Abwägung gegenüber Notwendigkeit). Eine Komplikation korrekt benannt und eingeordnet UND eine zweite zumindest korrekt benannt genügt für Score 2.",
+        "1": "Mindestens eine seltene Komplikation korrekt benannt, aber ohne jede Einordnung (keine Häufigkeit, keine Behandelbarkeit, keine Abwägung), ODER zwei Komplikationen nur vage angedeutet ohne konkrete Benennung.",
+        "0": "Keine seltenen Komplikationen benannt, oder ausschließlich vage Formulierungen wie 'kann in seltenen Fällen gefährlich sein' ohne Nennung einer konkreten Komplikation."
+      }
+    },
+    {
+      "id": "LP_F",
+      "name": "Notwendigkeit und Dringlichkeit — Warum ist die Maßnahme erforderlich? Muss sie sofort erfolgen?",
+      "category": "§630e Aufklärung",
+      "description": "Erklärt warum die LP jetzt erforderlich ist: diagnostische LP soll bei klinischem Verdacht auf bakterielle Meningitis so rasch wie möglich erfolgen, da eine unbehandelte Meningitis zu schweren Folgeschäden oder Tod führen kann und die Behandlung (Antibiotika) erst nach Diagnose gezielt eingesetzt werden kann.",
+      "critical": true,
+      "scoring_guidance": {
+        "2": "Beide Aspekte belegt: (1) Dringlichkeit klar kommuniziert — zeitkritisch, möglichst bald — UND (2) Begründung genannt — warum jetzt: z.B. rasche Diagnose für gezielte Therapie, Risiko schwerer Folgen bei Verzögerung. Zudem: Bezugsperson nicht unter unzumutbaren Druck gesetzt.",
+        "1": "Dringlichkeit erwähnt aber ohne Begründung, ODER Begründung (Warum nötig) gegeben aber zeitlicher Rahmen (Warum jetzt) unklar oder fehlend.",
+        "0": "Dringlichkeit nicht thematisiert, ODER Bezugsperson ohne jede Erklärung unter Druck gesetzt ('Sie müssen jetzt unterschreiben')."
+      }
+    },
+    {
+      "id": "LP_G",
+      "name": "Eignung — Ist die Maßnahme für die Diagnose/Therapie geeignet?",
+      "category": "§630e Aufklärung",
+      "description": "Erklärt warum die LP das geeignete diagnostische Verfahren ist: Liquoranalytik ist das einzige Verfahren, das den direkten Nachweis einer Entzündung im Liquorraum und der auslösenden Erreger führen kann. CT/MRT allein reicht für Erregerdiagnostik nicht aus.",
+      "critical": false,
+      "scoring_guidance": {
+        "2": "Beide Aspekte erklärt: (1) Liquordiagnostik ist das einzige oder führende Verfahren für direkten Erreger- oder Entzündungsnachweis im Nervenwasser UND (2) Bildgebung (CT/MRT) allein reicht nicht aus — mit kurzer Begründung warum (z.B. Blut zeigt nur systemische Entzündung, nicht Lokalisation oder Erreger).",
+        "1": "Nur einer der beiden Aspekte erklärt, ODER beide Aspekte nur sehr vage angedeutet ohne Begründung ('das ist die beste Methode' ohne Erklärung warum).",
+        "0": "Eignung nicht erklärt."
+      }
+    },
+    {
+      "id": "LP_H",
+      "name": "Erfolgsaussichten — Welche Chancen bestehen auf Besserung oder Heilung?",
+      "category": "§630e Aufklärung",
+      "description": "Erklärt die Erfolgsaussichten der LP: was die LP diagnostisch leisten kann, und — falls erwähnt — dass sie manchmal trotz Sorgfalt nicht gelingt und ggf. wiederholt werden muss.",
+      "critical": false,
+      "scoring_guidance": {
+        "2": "Erfolgsaussichten realistisch und vollständig eingeordnet: Möglichkeit des Misslingens oder der Wiederholung erwähnt UND erklärt was in diesem Fall passiert. ODER: Erfolgsaussichten der nachfolgenden Therapie klar dargestellt (z.B. bei frühzeitiger Diagnose gut behandelbar) UND Grenzen der LP benannt.",
+        "1": "Nur eine allgemeine positive Aussage über Behandlungserfolg oder Diagnose ohne Einschränkung (z.B. 'wenn wir das früh erkennen, kann man es gut behandeln') — korrekt aber unvollständig. ODER: Nur die Möglichkeit des Misslingens erwähnt ohne weitere Erklärung.",
+        "0": "Erfolgsaussichten nicht thematisiert — weder der Nutzen der Diagnose noch die Grenzen der LP werden angesprochen."
+      }
+    },
+    {
+      "id": "LP_I",
+      "name": "Behandlungsalternativen — Gibt es gleichwertige Alternativen?",
+      "category": "§630e Aufklärung",
+      "description": "Thematisiert ob es Alternativen gibt: zur direkten Untersuchung des Nervenwassers auf Krankheitserreger ist die LP die einzige Möglichkeit. Blut- und Bildgebungsbefunde ergänzen, ersetzen die LP-Diagnostik aber nicht.",
+      "critical": false,
+      "scoring_guidance": {
+        "2": "Explizit erklärt dass keine gleichwertige Alternative für direkte Liquordiagnostik besteht UND kurz begründet warum andere Verfahren (Blutkultur, CT, MRT) nicht gleichwertig sind (ergänzend, nicht ersetzend).",
+        "1": "Fehlende Alternative erwähnt oder impliziert ('es gibt keinen anderen Weg', 'nur so kann man das feststellen') ohne Begründung warum andere Verfahren nicht ausreichen.",
+        "0": "Alternativen nicht thematisiert."
+      }
+    }
+  ]
+}

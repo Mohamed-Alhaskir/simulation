@@ -2,22 +2,36 @@
 Stage 2: Automatic Speech Recognition & Speaker Diarization
 ============================================================
 - Uses trimmed audio window defined in inventory.json
-- Runs Whisper (faster-whisper) for transcription
-- Runs pyannote.audio for speaker diarization
-- Merges ASR segments with speaker labels
+- Delegates to whisper-diarization (MahmoudAshraf97) for transcription + diarization
+  which uses: Demucs source separation → Whisper + CTC alignment →
+              NeMo TitaNet speaker embeddings → word-level speaker assignment
+- Parses whisper-diarization output back into pipeline transcript format
 - Outputs diarized transcript with original timestamps
+
+Config:
+  asr:
+    model_name: large-v3
+    language: de
+    batch_size: 8
+    device: cuda
+    suppress_numerals: false
+    diarization:
+      enabled: true
+      repo_path: /path/to/whisper-diarization   # clone of MahmoudAshraf97/whisper-diarization
 """
 
 import json
 import os
+import re
 import subprocess
+import tempfile
 from pathlib import Path
 
 from stages.base import BaseStage
 
 
 class ASRStage(BaseStage):
-    """Speech-to-text with speaker diarization."""
+    """Speech-to-text with speaker diarization via whisper-diarization."""
 
     # ------------------------------------------------------------------
     # Main entry point
@@ -49,14 +63,12 @@ class ASRStage(BaseStage):
         audio_path = ctx["artifacts"].get("primary_audio")
         if audio_path is None:
             raise ValueError("No primary_audio found for ASR stage.")
-
         self.logger.info(f"Audio source: {audio_path}")
 
         # ------------------------------------------------------------------
         # Trim audio if needed
         # ------------------------------------------------------------------
         trimmed_audio = output_dir / "audio_for_asr.wav"
-
         if conversation_start > 0 or conversation_end is not None:
             self.logger.info(
                 f"Trimming audio for ASR: start={conversation_start}s, "
@@ -73,45 +85,32 @@ class ASRStage(BaseStage):
             audio_for_asr = audio_path
 
         # ------------------------------------------------------------------
-        # Whisper transcription
-        # ------------------------------------------------------------------
-        segments = self._transcribe(audio_for_asr, cfg)
-        self.logger.info(f"Whisper produced {len(segments)} segments")
-
-        # ------------------------------------------------------------------
-        # Speaker diarization
+        # Transcription + diarization
         # ------------------------------------------------------------------
         diar_cfg = cfg.get("diarization", {})
-        speaker_segments = None
 
         if diar_cfg.get("enabled", False):
-            speaker_segments = self._diarize(audio_for_asr, diar_cfg)
-            if speaker_segments:
-                self.logger.info(
-                    f"Diarization identified speakers in {len(speaker_segments)} segments"
-                )
-
-        # ------------------------------------------------------------------
-        # Merge ASR + diarization
-        # ------------------------------------------------------------------
-        # NOTE: Both asr_segments and speaker_segments are in trimmed-audio
-        # time at this point. The merge MUST happen before timeline restoration
-        # below; reversing that order would misalign speaker assignments.
-        transcript = self._merge(segments, speaker_segments)
+            self.logger.info("Running whisper-diarization pipeline...")
+            transcript = self._run_whisper_diarization(audio_for_asr, cfg, diar_cfg, output_dir)
+            self.logger.info(f"Got {len(transcript)} segments from whisper-diarization")
+        else:
+            self.logger.info("Diarization disabled — transcribing without speaker labels...")
+            transcript = self._transcribe_only(audio_for_asr, cfg)
+            for seg in transcript:
+                seg["speaker"] = "UNKNOWN"
 
         # ------------------------------------------------------------------
         # Restore original timeline
         # ------------------------------------------------------------------
-        if conversation_start > 0:
-            for seg in transcript:
-                seg["start"] += conversation_start
-                seg["end"] += conversation_start
+        #if conversation_start > 0:
+        #    for seg in transcript:
+        #        seg["start"] += conversation_start
+        #        seg["end"] += conversation_start
 
         # ------------------------------------------------------------------
-        # Optional speaker post-processing
+        # Speaker post-processing
         # ------------------------------------------------------------------
-        #if speaker_segments:
-        #    transcript = self._postprocess_speakers(transcript)
+        #transcript = self._postprocess_speakers(transcript)
 
         # ------------------------------------------------------------------
         # Save outputs
@@ -135,9 +134,223 @@ class ASRStage(BaseStage):
         return ctx
 
     # ------------------------------------------------------------------
-    # Whisper transcription
+    # Run whisper-diarization as subprocess + parse output
     # ------------------------------------------------------------------
-    def _transcribe(self, audio_path: str, cfg: dict) -> list[dict]:
+    def _run_whisper_diarization(
+        self,
+        audio_path: str,
+        cfg: dict,
+        diar_cfg: dict,
+        output_dir: Path,
+    ) -> list[dict]:
+        import torch
+
+        repo_path = diar_cfg.get("repo_path")
+        if not repo_path or not Path(repo_path).exists():
+            raise ValueError(
+                f"whisper-diarization repo not found at '{repo_path}'. "
+                "Clone https://github.com/MahmoudAshraf97/whisper-diarization "
+                "and set diarization.repo_path in config."
+            )
+        device = "cuda" 
+
+        # whisper-diarization writes output next to the input file
+        # so we work in a temp dir to keep things clean
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Copy audio into temp dir
+            tmp_audio = Path(tmpdir) / "input.wav"
+            subprocess.run(
+                ["cp", audio_path, str(tmp_audio)],
+                check=True
+            )
+
+            cmd = [
+                "conda", "run",
+                "-n", "whisper-diarization",
+                "python", "diarize.py",
+                "-a", str(tmp_audio),
+                "--whisper-model", cfg.get("model_name", "large-v3"),
+                "--device", device,
+                "--language", cfg.get("language", "de"),
+                "--batch-size", "16",
+                "--beam-size", "7",
+                "--temperature", "0",
+                "--suppress_numerals",
+                "--no-stem",
+            ]
+
+
+            if cfg.get("suppress_numerals", False):
+                cmd.append("--suppress_numerals")
+
+            if diar_cfg.get("no_stem", False):
+                cmd.append("--no-stem")
+
+            self.logger.info(f"Running: {' '.join(cmd)}")
+
+            result = subprocess.run(
+                cmd,
+                cwd=repo_path,
+                capture_output=False,   # show output in logs
+                text=True,
+            )
+
+            if result.returncode != 0:
+                raise RuntimeError(
+                    f"whisper-diarization failed with return code {result.returncode}"
+                )
+
+            # whisper-diarization writes a .txt file next to the audio
+            # Format: "Speaker X: text\n" with optional timestamps
+            txt_output = Path(tmpdir) / "input.txt"
+            srt_output = Path(tmpdir) / "input.srt"
+
+            if srt_output.exists():
+                self.logger.info("Parsing SRT output (real timestamps + speakers)...")
+                transcript = self._parse_srt(str(srt_output))
+            elif txt_output.exists():
+                self.logger.info("Parsing TXT output (no timestamps, fallback)...")
+                transcript = self._parse_txt(str(txt_output))
+            else:
+                # Search for any output file
+                outputs = list(Path(tmpdir).glob("input*"))
+                self.logger.warning(f"Expected output not found. Files: {outputs}")
+                raise RuntimeError(
+                    "whisper-diarization did not produce expected output file. "
+                    f"Files found: {outputs}"
+                )
+
+            # Copy outputs to output_dir for reference
+            for f in Path(tmpdir).glob("input*"):
+                dest = output_dir / f"whisper_diarization_{f.suffix.lstrip('.')}"
+                subprocess.run(["cp", str(f), str(dest)])
+
+        return transcript
+
+    # ------------------------------------------------------------------
+    # Parse SRT output from whisper-diarization
+    # SRT format:
+    #   1
+    #   00:00:01,000 --> 00:00:03,500
+    #   Speaker 0: Hello, how are you?
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_srt(srt_path: str) -> list[dict]:
+        with open(srt_path, encoding="utf-8") as f:
+            content = f.read()
+
+        # Split into blocks
+        blocks = re.split(r"\n\n+", content.strip())
+        segments = []
+
+        for block in blocks:
+            lines = block.strip().splitlines()
+            if len(lines) < 3:
+                continue
+
+            # Line 0: sequence number (skip)
+            # Line 1: timestamps
+            # Line 2+: "Speaker X: text"
+
+            # Parse timestamps
+            ts_match = re.match(
+                r"(\d{2}):(\d{2}):(\d{2}),(\d{3})\s*-->\s*"
+                r"(\d{2}):(\d{2}):(\d{2}),(\d{3})",
+                lines[1]
+            )
+            if not ts_match:
+                continue
+
+            g = ts_match.groups()
+            start = int(g[0])*3600 + int(g[1])*60 + int(g[2]) + int(g[3])/1000
+            end   = int(g[4])*3600 + int(g[5])*60 + int(g[6]) + int(g[7])/1000
+
+            # Parse speaker + text from remaining lines
+            text_lines = lines[2:]
+            full_text = " ".join(text_lines).strip()
+
+            speaker_match = re.match(r"^(Speaker\s+\w+)\s*:\s*(.+)$", full_text, re.DOTALL)
+            if speaker_match:
+                raw_speaker = speaker_match.group(1).strip()
+                text = speaker_match.group(2).strip()
+                # Normalise: "Speaker 0" → "SPEAKER_00", "Speaker 1" → "SPEAKER_01"
+                num_match = re.search(r"(\d+)", raw_speaker)
+                if num_match:
+                    n = int(num_match.group(1))
+                    speaker = f"SPEAKER_{n:02d}"
+                else:
+                    speaker = raw_speaker.upper().replace(" ", "_")
+            else:
+                text = full_text
+                speaker = "UNKNOWN"
+
+            if not text:
+                continue
+
+            segments.append({
+                "start":   start,
+                "end":     end,
+                "text":    text,
+                "speaker": speaker,
+                "words":   [],  # whisper-diarization txt/srt doesn't export word timestamps
+            })
+
+        return segments
+
+    # ------------------------------------------------------------------
+    # Parse plain TXT output from whisper-diarization
+    # Format: "Speaker 0: text\n Speaker 1: text\n" (no timestamps)
+    # Falls back to approximate timestamps from segment index
+    # ------------------------------------------------------------------
+    @staticmethod
+    def _parse_txt(txt_path: str) -> list[dict]:
+        with open(txt_path, encoding="utf-8") as f:
+            lines = f.readlines()
+
+        segments = []
+        t = 0.0  # approximate running time — no timestamps in txt output
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            speaker_match = re.match(r"^(Speaker\s+\w+)\s*:\s*(.+)$", line)
+            if speaker_match:
+                raw_speaker = speaker_match.group(1).strip()
+                text = speaker_match.group(2).strip()
+                num_match = re.search(r"(\d+)", raw_speaker)
+                if num_match:
+                    n = int(num_match.group(1))
+                    speaker = f"SPEAKER_{n:02d}"
+                else:
+                    speaker = raw_speaker.upper().replace(" ", "_")
+            else:
+                text = line
+                speaker = "UNKNOWN"
+
+            if not text:
+                continue
+
+            # Estimate duration from word count (~2.5 words/sec)
+            word_count = len(text.split())
+            duration = max(1.0, word_count / 2.5)
+
+            segments.append({
+                "start":   round(t, 3),
+                "end":     round(t + duration, 3),
+                "text":    text,
+                "speaker": speaker,
+                "words":   [],
+            })
+            t += duration
+
+        return segments
+
+    # ------------------------------------------------------------------
+    # Fallback: Whisper-only transcription (no diarization)
+    # ------------------------------------------------------------------
+    def _transcribe_only(self, audio_path: str, cfg: dict) -> list[dict]:
         from faster_whisper import WhisperModel
         import torch
 
@@ -145,117 +358,54 @@ class ASRStage(BaseStage):
         if device == "auto":
             device = "cuda" if torch.cuda.is_available() else "cpu"
 
-        self.logger.info(f"Loading Whisper model: {cfg['model_name']} on {device}")
-
         compute_type = cfg.get("compute_type", "float16") if device == "cuda" else "int8"
-        if device == "cpu" and compute_type == "int8":
-            self.logger.warning(
-                "Running Whisper in int8 quantized mode on CPU. Transcription quality "
-                "may be reduced, especially for domain-specific medical German. "
-                "Set compute_type='float32' in config for higher accuracy at the "
-                "cost of slower inference."
-            )
 
-        try:
-            model = WhisperModel(
-                cfg["model_name"],
-                device=device,
-                compute_type=compute_type,
-            )
-        except RuntimeError as e:
-            if "out of memory" in str(e).lower() and device == "cuda":
-                self.logger.warning(
-                    "CUDA out of memory loading Whisper model; retrying on CPU."
+        if not hasattr(self, "_whisper_model") or self._whisper_model is None:
+            self.logger.info(f"Loading Whisper model: {cfg['model_name']} on {device}")
+            try:
+                self._whisper_model = WhisperModel(
+                    cfg["model_name"], device=device, compute_type=compute_type
                 )
-                device = "cpu"
-                compute_type = "int8"
-                model = WhisperModel(
-                    cfg["model_name"],
-                    device=device,
-                    compute_type=compute_type,
-                )
-            else:
-                raise
+            except RuntimeError as e:
+                if "out of memory" in str(e).lower() and device == "cuda":
+                    self.logger.warning("CUDA OOM — retrying on CPU.")
+                    self._whisper_model = WhisperModel(
+                        cfg["model_name"], device="cpu", compute_type="int8"
+                    )
+                else:
+                    raise
 
-        segments_gen, info = model.transcribe(
+        segments_gen, info = self._whisper_model.transcribe(
             audio_path,
             language=cfg.get("language", "de"),
             beam_size=cfg.get("beam_size", 5),
             word_timestamps=True,
+            vad_filter=True,
+            vad_parameters=dict(min_silence_duration_ms=500, speech_pad_ms=200),
         )
 
         self.logger.info(
-            f"Detected language: {info.language} "
-            f"(prob={info.language_probability:.2f})"
+            f"Detected language: {info.language} (prob={info.language_probability:.2f})"
         )
 
         segments = []
         for seg in segments_gen:
+            text = seg.text.strip()
+            if not text:
+                continue
             segments.append({
                 "start": seg.start,
-                "end": seg.end,
-                "text": seg.text.strip(),
+                "end":   seg.end,
+                "text":  text,
                 "words": [
                     {
-                        "word": w.word,
-                        "start": w.start,
-                        "end": w.end,
+                        "word":        w.word,
+                        "start":       w.start,
+                        "end":         w.end,
                         "probability": w.probability,
                     }
                     for w in (seg.words or [])
                 ],
-            })
-
-        return segments
-
-    # ------------------------------------------------------------------
-    # Speaker diarization
-    # ------------------------------------------------------------------
-    def _diarize(self, audio_path: str, cfg: dict) -> list[dict] | None:
-        from pyannote.audio import Pipeline
-        import torch
-
-        hf_token = os.environ.get(cfg.get("hf_token_env", "HF_TOKEN"))
-        if not hf_token:
-            self.logger.warning("HF_TOKEN not set; skipping diarization.")
-            return None
-
-        device = cfg.get("device", "auto")
-        if device == "auto":
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-
-        self.logger.info(f"Loading diarization model: {cfg['model']} on {device}")
-
-        pipeline = Pipeline.from_pretrained(
-            cfg["model"],
-            use_auth_token=hf_token,
-        )
-
-        if device == "cuda":
-            try:
-                pipeline = pipeline.to(torch.device("cuda"))
-            except RuntimeError as e:
-                if "out of memory" in str(e).lower():
-                    self.logger.warning(
-                        "CUDA out of memory loading diarization pipeline; "
-                        "falling back to CPU."
-                    )
-                    device = "cpu"
-                else:
-                    raise
-
-        diarization = pipeline(
-            audio_path,
-            min_speakers=cfg.get("min_speakers", 2),
-            max_speakers=cfg.get("max_speakers", 5),
-        )
-
-        segments = []
-        for turn, _, speaker in diarization.itertracks(yield_label=True):
-            segments.append({
-                "start": turn.start,
-                "end": turn.end,
-                "speaker": speaker,
             })
 
         return segments
@@ -266,24 +416,12 @@ class ASRStage(BaseStage):
     def _postprocess_speakers(self, transcript: list[dict]) -> list[dict]:
         if not transcript:
             return transcript
-
-        # Fill UNKNOWN
-        for i, seg in enumerate(transcript):
-            if seg["speaker"] == "UNKNOWN":
-                prev_sp = transcript[i - 1]["speaker"] if i > 0 else None
-                next_sp = transcript[i + 1]["speaker"] if i < len(transcript) - 1 else None
-                if prev_sp and prev_sp != "UNKNOWN":
-                    seg["speaker"] = prev_sp
-                elif next_sp and next_sp != "UNKNOWN":
-                    seg["speaker"] = next_sp
-
         # Fix A-B-A glitches
         for i in range(1, len(transcript) - 1):
-            prev_sp = transcript[i - 1]["speaker"]
-            curr_sp = transcript[i]["speaker"]
-            next_sp = transcript[i + 1]["speaker"]
+            prev_sp  = transcript[i - 1]["speaker"]
+            curr_sp  = transcript[i]["speaker"]
+            next_sp  = transcript[i + 1]["speaker"]
             duration = transcript[i]["end"] - transcript[i]["start"]
-
             if prev_sp == next_sp and curr_sp != prev_sp and duration < 2.0:
                 transcript[i]["speaker"] = prev_sp
 
@@ -299,73 +437,18 @@ class ASRStage(BaseStage):
         start_s: float,
         end_s: float | None,
     ):
-        cmd = [
-            "ffmpeg", "-y",
-            "-ss", str(start_s),
-            "-i", input_audio,
-        ]
-
+        cmd = ["ffmpeg", "-y", "-ss", str(start_s), "-i", input_audio]
         if end_s is not None:
-            duration = end_s - start_s
-            cmd += ["-t", str(duration)]
-
-        cmd += [
-            "-acodec", "pcm_s16le",
-            "-ar", "16000",
-            "-ac", "1",
-            output_audio,
-        ]
-
+            cmd += ["-t", str(end_s - start_s)]
+        cmd += ["-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", output_audio]
         subprocess.run(cmd, check=True, capture_output=True)
-
 
     def cleanup(self) -> None:
         if hasattr(self, "_whisper_model"):
             del self._whisper_model
+            self._whisper_model = None
         import gc; gc.collect()
-    # ------------------------------------------------------------------
-    # Merge ASR + diarization
-    # ------------------------------------------------------------------
-    @staticmethod
-    def _merge(asr_segments: list[dict], diar_segments: list[dict] | None) -> list[dict]:
-        if not diar_segments:
-            for seg in asr_segments:
-                seg["speaker"] = "UNKNOWN"
-            return asr_segments
 
-        unknown_count = 0
-        for seg in asr_segments:
-            best_speaker = "UNKNOWN"
-            best_overlap = 0.0
-
-            for dseg in diar_segments:
-                overlap_start = max(seg["start"], dseg["start"])
-                overlap_end = min(seg["end"], dseg["end"])
-                overlap = max(0.0, overlap_end - overlap_start)
-
-                if overlap > best_overlap:
-                    best_overlap = overlap
-                    best_speaker = dseg["speaker"]
-
-            if best_speaker == "UNKNOWN":
-                unknown_count += 1
-
-            seg["speaker"] = best_speaker
-
-        if unknown_count > 0:
-            import logging
-            logging.getLogger("ASRStage").warning(
-                f"{unknown_count} ASR segment(s) had no overlap with any "
-                "diarization segment and were assigned UNKNOWN speaker. "
-                "Consider reviewing diarization quality or increasing "
-                "max_speakers in config."
-            )
-
-        return asr_segments
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
     @staticmethod
     def _fmt_time(seconds: float) -> str:
         m, s = divmod(int(seconds), 60)

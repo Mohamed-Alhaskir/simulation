@@ -55,7 +55,8 @@ from stages.s2_asr import ASRStage
 from stages.s3_features import FeatureExtractionStage
 from stages.s4_video_analysis import VideoAnalysisStage
 from stages.s5_analysis import LLMAnalysisStage
-from stages.s6_report import ReportGenerationStage
+from stages.s6_translate import TranslationStage
+from stages.s7_report import ReportGenerationStage
 from utils.freeze import FreezeManifest
 from utils.logging_setup import setup_logging
 from utils.json_utils import JSONEncoder, sanitize_for_json
@@ -76,7 +77,8 @@ STAGE_OUTPUT_DIRS: dict[str, str] = {
     "features":       "03_features",
     "video_analysis": "04_video_analysis",
     "analysis":       "05_analysis",
-    "report":         "06_report",
+    #"translate":      "06_translate",
+    "report":         "07_report",
 }
 
 # Stage execution order. features must precede video_analysis because
@@ -87,6 +89,7 @@ STAGE_ORDER = [
     "features",
     "video_analysis",
     "analysis",
+    #"translate",
     "report",
 ]
 
@@ -118,6 +121,7 @@ class Pipeline:
             "features":       FeatureExtractionStage(self.config),
             "video_analysis": VideoAnalysisStage(self.config),
             "analysis":       LLMAnalysisStage(self.config),
+            "translate":      TranslationStage(self.config),
             "report":         ReportGenerationStage(self.config),
         }
 
@@ -207,9 +211,10 @@ class Pipeline:
         input_path: str,
         session_id: str | None = None,
         force: bool = False,
+        only_stages: set[str] | None = None,
     ) -> dict:
         """
-        Execute all pipeline stages for a single simulation session.
+        Execute pipeline stages for a single simulation session.
 
         Parameters
         ----------
@@ -218,7 +223,14 @@ class Pipeline:
         session_id : str | None
             Optional override; derived from directory name if None.
         force : bool
-            If True, ignore existing checkpoints and re-run all stages.
+            If True, ignore checkpoints for the stages being run.
+            When combined with only_stages, only those stages are re-run;
+            all other stages still restore from their checkpoints.
+        only_stages : set[str] | None
+            If provided, only run stages whose names are in this set.
+            All other stages are skipped but their checkpoints are still
+            loaded so downstream stages receive the required artifacts.
+            If None, all stages run (default behaviour).
 
         Returns
         -------
@@ -232,14 +244,17 @@ class Pipeline:
         output_base = Path(self.config["paths"]["output_dir"]) / session_id
         output_base.mkdir(parents=True, exist_ok=True)
 
-        if force:
-            self.logger.info("--force: clearing existing checkpoints.")
+        if force and only_stages is None:
+            # Global force: clear every checkpoint
+            self.logger.info("--force: clearing all existing checkpoints.")
             self._clear_checkpoints(output_base)
 
         self.logger.info("=" * 70)
         self.logger.info(f"PIPELINE START — session: {session_id}")
         self.logger.info(f"Pipeline version: {PIPELINE_VERSION}")
         self.logger.info(f"Freeze manifest hash: {self.manifest.digest()}")
+        if only_stages is not None:
+            self.logger.info(f"Running only stages: {sorted(only_stages)}")
         self.logger.info("=" * 70)
 
         ctx: dict = {
@@ -254,11 +269,27 @@ class Pipeline:
 
         for stage_name in STAGE_ORDER:
             stage = self.stages[stage_name]
-            self.logger.info(f"--- Stage: {stage_name} ---")
+            stage_is_selected = only_stages is None or stage_name in only_stages
 
-            # Try checkpoint restore first
+            if stage_is_selected and force:
+                # Clear only the checkpoints of stages we are actually re-running
+                cp = self._checkpoint_path(output_base, stage_name)
+                if cp.exists():
+                    cp.unlink()
+                    self.logger.info(f"Cleared checkpoint for '{stage_name}' (--force)")
+
+            # Always attempt checkpoint restore — even for skipped stages this
+            # populates ctx with their artifacts so downstream stages work.
             if self._load_checkpoint(output_base, stage_name, ctx):
+                if not stage_is_selected:
+                    self.logger.debug(f"    ↩ '{stage_name}' restored from checkpoint (skipped)")
                 continue
+
+            if not stage_is_selected:
+                self.logger.info(f"--- Stage: {stage_name} [skipped — not in --stages] ---")
+                continue
+
+            self.logger.info(f"--- Stage: {stage_name} ---")
 
             t0 = time.perf_counter()
             try:
@@ -319,7 +350,12 @@ class Pipeline:
     # ------------------------------------------------------------------
     # Batch run
     # ------------------------------------------------------------------
-    def run_batch(self, input_dir: str, force: bool = False) -> list[dict]:
+    def run_batch(
+        self,
+        input_dir: str,
+        force: bool = False,
+        only_stages: set[str] | None = None,
+    ) -> list[dict]:
         """
         Run pipeline on all session subdirectories.
 
@@ -328,7 +364,9 @@ class Pipeline:
         input_dir : str
             Parent directory containing one subdirectory per session.
         force : bool
-            If True, ignore existing checkpoints for all sessions.
+            If True, ignore existing checkpoints for the stages being run.
+        only_stages : set[str] | None
+            If provided, only run stages whose names are in this set.
         """
         root = Path(input_dir)
         sessions = sorted([d for d in root.iterdir() if d.is_dir()])
@@ -339,7 +377,7 @@ class Pipeline:
         for session_dir in sessions:
             self.logger.info(f"\nProcessing session: {session_dir.name}")
             try:
-                result = self.run(str(session_dir), force=force)
+                result = self.run(str(session_dir), force=force, only_stages=only_stages)
                 results.append(result)
             except Exception as exc:
                 self.logger.error(
@@ -393,6 +431,19 @@ def main():
         ),
     )
     parser.add_argument(
+        "--stages",
+        nargs="+",
+        choices=list(STAGE_ORDER),
+        metavar="STAGE",
+        help=(
+            f"Run only the specified stage(s). "
+            f"All other stages are skipped but their checkpoints are loaded "
+            f"so dependent stages receive the required artifacts. "
+            f"Valid stages: {', '.join(STAGE_ORDER)}. "
+            f"Example: --stages video_analysis report"
+        ),
+    )
+    parser.add_argument(
         "--freeze-manifest",
         action="store_true",
         help="Print the freeze manifest for the current config and exit",
@@ -423,10 +474,12 @@ def main():
 
     pipe = Pipeline(args.config)
 
+    only_stages = set(args.stages) if args.stages else None
+
     if args.batch:
-        pipe.run_batch(args.input, force=args.force)
+        pipe.run_batch(args.input, force=args.force, only_stages=only_stages)
     else:
-        pipe.run(args.input, force=args.force)
+        pipe.run(args.input, force=args.force, only_stages=only_stages)
 
 
 if __name__ == "__main__":

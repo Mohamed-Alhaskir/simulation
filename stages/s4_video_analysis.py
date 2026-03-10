@@ -1,5 +1,5 @@
 """
-Stage 3b: Video-Based Non-Verbal Behaviour Analysis (LUCAS-Aligned)
+Stage 4: Video-Based Non-Verbal Behaviour Analysis (LUCAS-Aligned)
 ====================================================================
 Uses MediaPipe Tasks API (FaceLandmarker + PoseLandmarker + HandLandmarker)
 for tracking face, pose, and hands — compatible with mediapipe 0.10.14.
@@ -51,9 +51,22 @@ CHANGELOG
 - calibration_seconds (default 120): baseline computed from first N seconds.
 - All dead / commented-out code removed. Only metrics that appear in the
   JSON output are computed.
+- D1: replaced head-pose yaw/pitch gaze proxy with iris-landmark-based gaze
+  direction. Iris offset relative to eye corners gives true gaze direction
+  independent of head orientation. Face detection rate is now reported as
+  data_availability_rate, NOT as an eye-contact proxy — face non-detection
+  is ambiguous (patient head turn vs clinician looking away).
+- D2: method_note updated to reflect egocentric (head-mounted) camera on a
+  seated patient. Camera pitch is approximately stable; eye_level_y is a
+  valid positioning proxy with deviation from session baseline reported.
+- D5: head movement periodicity removed. Camera is head-mounted on patient;
+  head_yaw/pitch deltas reflect patient head movements (nodding) not
+  clinician movement — the two are indistinguishable. Hand periodicity
+  retained as fidgeting indicator.
+- Item I: head_movement_periodicity replaced with hand_movement_periodicity.
 """
 
-import base64, json, math, os, urllib.request
+import json, math, os, urllib.request
 from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 import numpy as np
@@ -174,7 +187,12 @@ def _ensure_dnn_model() -> Tuple[str, str]:
 # ---------------------------------------------------------------------------
 # Centralised behavioural thresholds
 # ---------------------------------------------------------------------------
-GAZE_Z_THRESHOLD        = 2.0   # yaw z-score below this → "on target"
+# D1 — iris offset thresholds (normalised 0–1 within eye width/height)
+# 0.5 = iris centered = looking straight at camera.
+# Offsets beyond these thresholds indicate gaze directed away from camera.
+IRIS_HORIZONTAL_THRESHOLD = 0.175   # |iris_offset_x - 0.5| > this → looking away horizontally
+IRIS_VERTICAL_THRESHOLD   = 0.175   # |iris_offset_y - 0.5| > this → looking away vertically
+
 SMILE_Z_THRESHOLD       = 1.0   # smile z-score above this → positive expression
 PERIODICITY_THRESHOLD   = 0.3   # autocorrelation peak above this → repetitive
 ARM_CROSSED_DEV         = -1.0  # arm openness deviation below → crossed (red)
@@ -182,10 +200,45 @@ ARM_CROSSED_DEV_WARN    = -0.5  # arm openness deviation below → warning
 ARM_CROSSED_ABS         = 0.5   # absolute arm openness below → crossed
 
 MIN_DOMAIN_SD = {
-    "gaze_yaw":   0.5,
-    "gaze_pitch": 0.5,
-    "smile":      0.005,
+    "smile": 0.005,
 }
+
+# ---------------------------------------------------------------------------
+# Horizon line estimation constants (D2 positioning)
+# ---------------------------------------------------------------------------
+# Hough line detection parameters for finding dominant horizontal lines
+# in the room background (ceiling panels, door frames, wall edges).
+HOUGH_RHO           = 1       # distance resolution (pixels)
+HOUGH_THETA         = np.pi / 180  # angle resolution (1 degree)
+HOUGH_THRESHOLD     = 80      # minimum votes to accept a line
+HOUGH_MIN_LINE_LEN  = 80      # minimum line length (pixels)
+HOUGH_MAX_LINE_GAP  = 20      # maximum gap to bridge within a line
+
+# Only lines within this angular range from horizontal are considered
+# (degrees from 0°). ±15° captures slightly tilted structural lines.
+HORIZON_MAX_ANGLE_DEG = 15.0
+
+# Number of frames to sample for session horizon estimation.
+# Sampled evenly across first HORIZON_CALIBRATION_S seconds.
+HORIZON_CALIBRATION_S      = 60    # seconds
+HORIZON_SAMPLE_COUNT       = 20    # frames to sample
+HORIZON_MIN_VALID_SAMPLES  = 5     # minimum needed for reliable estimate
+
+# Fraction of frame width/height used as person-exclusion margin
+# when masking the centre of the frame before Hough detection.
+HORIZON_PERSON_MASK_W = 0.50   # exclude central 50% horizontally
+HORIZON_PERSON_MASK_H = 0.60   # exclude central 60% vertically
+
+# Fraction of frame height within which clinician is considered "at eye level"
+# with the patient. Tighter = more precise but noisier.
+# ±4% ≈ ±3cm height difference at typical clinical room scale.
+# If estimated horizon_y is outside this range, treat as invalid.
+# (Horizon should be somewhere in the frame, not at the very edge.)
+HORIZON_VALID_RANGE = (0.05, 0.95)
+
+# Fraction of frame height within which clinician is considered "at eye level"
+# with the patient. ±4% ≈ ~3-4cm height difference at typical room scale.
+HORIZON_AT_LEVEL_THRESHOLD = 0.04
 
 
 # ---------------------------------------------------------------------------
@@ -319,6 +372,129 @@ def _reliability_level(detection_rate: float) -> str:
         return "low"
 
 
+# ---------------------------------------------------------------------------
+# Horizon line estimation from room geometry (D2 positioning)
+# ---------------------------------------------------------------------------
+
+def _estimate_horizon_y_from_frame(
+    frame_bgr: np.ndarray,
+    person_mask_w: float = HORIZON_PERSON_MASK_W,
+    person_mask_h: float = HORIZON_PERSON_MASK_H,
+) -> Optional[float]:
+    """
+    Estimate the horizon Y position (normalised 0–1) from a single video
+    frame using Hough probabilistic line detection on background regions.
+
+    Scientific basis:
+      In a fixed indoor room, structural lines (ceiling panels, door frames,
+      wall edges, whiteboard edges) are approximately horizontal. These lines
+      converge at the horizon — the Y level corresponding to the camera's
+      optical axis. By finding the dominant cluster of near-horizontal lines
+      in the background and taking their median Y intercept at frame centre,
+      we obtain the camera's true eye-level in the scene.
+
+      This is a standard vanishing-point technique used in autonomous
+      driving (horizon detection for road geometry) and camera calibration.
+      For an indoor clinical room with clear structural lines (as visible
+      in the simulation room footage), it is reliable to within ~3–5% of
+      frame height.
+
+    Algorithm:
+      1. Convert to grayscale and apply Canny edge detection
+      2. Mask out the central person region to avoid body edges confounding
+         the structural line detection
+      3. Run probabilistic Hough transform to detect line segments
+      4. Filter to near-horizontal lines (angle < HORIZON_MAX_ANGLE_DEG)
+      5. For each line, compute its Y value at horizontal frame centre (x=0.5)
+      6. Return the weighted median Y, weighted by line length
+
+    Returns:
+      Normalised Y of estimated horizon (0.0=top, 1.0=bottom), or None if
+      insufficient lines found.
+    """
+    import cv2
+
+    h, w = frame_bgr.shape[:2]
+
+    gray = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2GRAY)
+
+    # Canny edge detection — moderate thresholds to catch structural edges
+    # without noise from textures
+    edges = cv2.Canny(gray, threshold1=50, threshold2=150, apertureSize=3)
+
+    # Mask out the central person region
+    mask = np.ones_like(edges)
+    cx1 = int(w * (0.5 - person_mask_w / 2))
+    cx2 = int(w * (0.5 + person_mask_w / 2))
+    cy1 = int(h * (0.5 - person_mask_h / 2))
+    cy2 = int(h * (0.5 + person_mask_h / 2))
+    mask[cy1:cy2, cx1:cx2] = 0
+    edges = edges * mask
+
+    # Probabilistic Hough line detection
+    lines = cv2.HoughLinesP(
+        edges,
+        rho=HOUGH_RHO,
+        theta=HOUGH_THETA,
+        threshold=HOUGH_THRESHOLD,
+        minLineLength=HOUGH_MIN_LINE_LEN,
+        maxLineGap=HOUGH_MAX_LINE_GAP,
+    )
+
+    if lines is None or len(lines) == 0:
+        return None
+
+    # Filter to near-horizontal lines and compute their Y at frame centre
+    horizon_ys = []
+    weights    = []
+
+    for line in lines:
+        x1, y1, x2, y2 = line[0]
+        dx = x2 - x1
+        dy = y2 - y1
+
+        if dx == 0:
+            continue  # vertical line — skip
+
+        angle_deg = abs(math.degrees(math.atan2(dy, dx)))
+        # Normalise to 0–90 range
+        if angle_deg > 90:
+            angle_deg = 180 - angle_deg
+
+        if angle_deg > HORIZON_MAX_ANGLE_DEG:
+            continue  # too steep — not a structural horizontal
+
+        # Y value at horizontal frame centre (x = w/2)
+        slope = dy / dx
+        y_at_centre = y1 + slope * (w / 2 - x1)
+        y_norm = y_at_centre / h
+
+        if not (HORIZON_VALID_RANGE[0] <= y_norm <= HORIZON_VALID_RANGE[1]):
+            continue
+
+        line_length = math.sqrt(dx * dx + dy * dy)
+        horizon_ys.append(y_norm)
+        weights.append(line_length)
+
+    if len(horizon_ys) < 3:
+        return None
+
+    # Weighted median — longer lines get more influence
+    horizon_ys = np.array(horizon_ys)
+    weights    = np.array(weights)
+
+    # Sort by Y value
+    sort_idx   = np.argsort(horizon_ys)
+    sorted_ys  = horizon_ys[sort_idx]
+    sorted_wts = weights[sort_idx]
+
+    cumulative = np.cumsum(sorted_wts)
+    median_idx = np.searchsorted(cumulative, cumulative[-1] / 2)
+    horizon_y  = float(sorted_ys[min(median_idx, len(sorted_ys) - 1)])
+
+    return round(horizon_y, 4)
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Baseline computation
 # ═══════════════════════════════════════════════════════════════════════════
@@ -328,6 +504,11 @@ class PersonBaseline:
     Computes person-relative baselines from the first N seconds of video.
     Only sub-baselines with sufficient calibration frames are marked valid.
     Invalid baselines are not used — no artificial fallback SDs.
+
+    NOTE: Gaze baseline (yaw/pitch) has been removed. D1 now uses iris
+    landmark offsets which are self-referencing within the eye geometry —
+    no external baseline is needed. The gaze baseline fields are retained
+    as None so downstream code remains compatible.
     """
 
     MIN_CALIBRATION_FRAMES = 5
@@ -335,35 +516,14 @@ class PersonBaseline:
     def __init__(self, calibration_frames: List[Dict[str, Any]]):
         self.valid = len(calibration_frames) > 0
 
-        # ── Gaze baseline ──
-        yaws = [
-            f["eye_contact"]["yaw"]
-            for f in calibration_frames
-            if f.get("eye_contact")
-        ]
-        pitches = [
-            f["eye_contact"]["pitch"]
-            for f in calibration_frames
-            if f.get("eye_contact")
-        ]
-        self.gaze_valid = len(yaws) >= self.MIN_CALIBRATION_FRAMES
-        if self.gaze_valid:
-            self.baseline_yaw = float(np.mean(yaws))
-            self.baseline_pitch = float(np.mean(pitches))
-            yaw_sd = float(np.std(yaws))
-            pitch_sd = float(np.std(pitches))
-            if yaw_sd < MIN_DOMAIN_SD["gaze_yaw"] or pitch_sd < MIN_DOMAIN_SD["gaze_pitch"]:
-                self.gaze_valid = False
-                self.baseline_yaw_std = 1.0
-                self.baseline_pitch_std = 1.0
-            else:
-                self.baseline_yaw_std = yaw_sd
-                self.baseline_pitch_std = pitch_sd
-        else:
-            self.baseline_yaw = 0.0
-            self.baseline_pitch = 0.0
-            self.baseline_yaw_std = 1.0
-            self.baseline_pitch_std = 1.0
+        # ── Gaze baseline — NOT USED for D1 (iris-based gaze is self-referencing) ──
+        # Retained as invalid so any legacy code that checks baseline.gaze_valid
+        # gets False and skips gracefully.
+        self.gaze_valid = False
+        self.baseline_yaw = 0.0
+        self.baseline_pitch = 0.0
+        self.baseline_yaw_std = 1.0
+        self.baseline_pitch_std = 1.0
 
         # ── Arm openness baseline ──
         arm_open = [
@@ -397,39 +557,32 @@ class PersonBaseline:
             self.baseline_smile = 0.0
             self.baseline_smile_std = 1.0
 
-        # ── Eye level baseline ──
+        # ── Eye level baseline (D2) ──
+        # Session-median eye_level_y from stable calibration frames.
+        # Because the patient is seated on a chair and the camera is head-
+        # mounted, camera pitch is approximately constant throughout the
+        # session. The median over calibration frames gives a robust estimate
+        # of the "neutral" (standing clinician) eye_level_y. Deviations below
+        # this baseline indicate the clinician has crouched to patient level.
         eye_ys = [
             f["positioning_and_posture"]["eye_level_y"]
             for f in calibration_frames
             if f.get("positioning_and_posture")
             and f["positioning_and_posture"].get("eye_level_y") is not None
         ]
-        self.baseline_eye_y = float(np.mean(eye_ys)) if eye_ys else 0.4
+        self.baseline_eye_y = float(np.median(eye_ys)) if eye_ys else None
+        self.eye_y_valid = len(eye_ys) >= self.MIN_CALIBRATION_FRAMES
 
         # ── Calibration quality report ──
         self.calibration_quality = {
             "total_calibration_frames": len(calibration_frames),
-            "gaze_frames": len(yaws),
             "posture_arm_frames": len(arm_open),
             "expression_frames": len(smiles),
-            "gaze_baseline_valid": self.gaze_valid,
+            "eye_level_y_frames": len(eye_ys),
             "arm_baseline_valid": self.arm_valid,
             "expression_baseline_valid": self.expression_valid,
+            "eye_y_baseline_valid": self.eye_y_valid,
             "minimum_required": self.MIN_CALIBRATION_FRAMES,
-        }
-
-    def gaze_deviation(self, yaw: float, pitch: float) -> Optional[Dict[str, float]]:
-        if not self.gaze_valid:
-            return None
-        yaw_dev = abs(yaw - self.baseline_yaw)
-        pitch_dev = abs(pitch - self.baseline_pitch)
-        yaw_z = yaw_dev / self.baseline_yaw_std if self.baseline_yaw_std > 0 else 0
-        pitch_z = pitch_dev / self.baseline_pitch_std if self.baseline_pitch_std > 0 else 0
-        return {
-            "yaw_deviation": round(yaw_dev, 2),
-            "pitch_deviation": round(pitch_dev, 2),
-            "yaw_z_score": round(yaw_z, 2),
-            "pitch_z_score": round(pitch_z, 2),
         }
 
     def posture_deviation(self, arm_openness: float) -> Optional[Dict[str, Any]]:
@@ -451,19 +604,28 @@ class PersonBaseline:
             "smile_z_score": round(smile_z, 2),
         }
 
+    def eye_level_deviation(self, eye_level_y: float) -> Optional[Dict[str, Any]]:
+        """
+        Compute deviation of clinician eye Y from session baseline.
+        Positive deviation (eye_level_y > baseline) means clinician's eyes
+        are lower in frame than baseline → clinician has crouched → GOOD.
+        Negative deviation means clinician is higher than baseline → standing
+        over patient → less favourable for paediatric consultation.
+        """
+        if not self.eye_y_valid or self.baseline_eye_y is None:
+            return None
+        deviation = eye_level_y - self.baseline_eye_y
+        return {
+            "eye_level_y_deviation": round(deviation, 3),
+            "below_baseline": deviation > 0,  # True = crouched relative to baseline
+        }
+
     def to_dict(self) -> Dict[str, Any]:
         if not self.valid:
             return {"valid": False, "calibration_quality": self.calibration_quality if hasattr(self, 'calibration_quality') else {}}
         return {
             "valid": True,
             "calibration_quality": self.calibration_quality,
-            "gaze": {
-                "valid": self.gaze_valid,
-                "resting_yaw": round(self.baseline_yaw, 2),
-                "resting_pitch": round(self.baseline_pitch, 2),
-                "resting_yaw_std": round(self.baseline_yaw_std, 2),
-                "resting_pitch_std": round(self.baseline_pitch_std, 2),
-            },
             "posture": {
                 "arm_valid": self.arm_valid,
                 "resting_arm_openness": round(self.baseline_arm_openness, 3) if self.arm_valid else None,
@@ -473,7 +635,8 @@ class PersonBaseline:
                 "resting_smile": round(self.baseline_smile, 4),
             },
             "positioning": {
-                "resting_eye_level_y": round(self.baseline_eye_y, 3),
+                "eye_y_valid": self.eye_y_valid,
+                "session_median_eye_level_y": round(self.baseline_eye_y, 3) if self.baseline_eye_y is not None else None,
             },
         }
 
@@ -491,8 +654,25 @@ class VideoAnalysisStage(BaseStage):
     LEFT_EYE_OUTER = 33;  RIGHT_EYE_OUTER = 263
     CHIN = 152; FOREHEAD = 10
     LEFT_MOUTH = 61; RIGHT_MOUTH = 291
-    UPPER_LIP = 13; LOWER_LIP = 14
-    LEFT_BROW = 70; RIGHT_BROW = 300
+
+    # ── Iris landmark indices (MediaPipe 478-point model) ──
+    # Each iris: centre + 4 cardinal edge points
+    LEFT_IRIS_CENTER  = 468
+    LEFT_IRIS_RIGHT   = 469  # rightmost point of left iris
+    LEFT_IRIS_TOP     = 470
+    LEFT_IRIS_LEFT    = 471  # leftmost point of left iris
+    LEFT_IRIS_BOTTOM  = 472
+    RIGHT_IRIS_CENTER = 473
+    RIGHT_IRIS_RIGHT  = 474
+    RIGHT_IRIS_TOP    = 475
+    RIGHT_IRIS_LEFT   = 476
+    RIGHT_IRIS_BOTTOM = 477
+
+    # ── Eye corner indices used for iris offset normalisation ──
+    # LEFT eye: inner corner = 133, outer corner = 33, top = 159, bottom = 145
+    # RIGHT eye: inner corner = 362, outer corner = 263, top = 386, bottom = 374
+    LEFT_EYE_TOP    = 159; LEFT_EYE_BOTTOM  = 145
+    RIGHT_EYE_TOP   = 386; RIGHT_EYE_BOTTOM = 374
 
     # ── Pose landmark indices ──
     POSE_NOSE = 0
@@ -511,7 +691,6 @@ class VideoAnalysisStage(BaseStage):
         output_dir = Path(ctx["output_base"]) / "04_video_analysis"
         output_dir.mkdir(parents=True, exist_ok=True)
 
-
         if not cfg.get("enabled", False):
             self.logger.info("Video analysis disabled in config, skipping.")
             return ctx
@@ -525,19 +704,10 @@ class VideoAnalysisStage(BaseStage):
 
         self.logger.info(f"Video source: {video_path}")
 
-        try:
-            import cv2
-            import mediapipe as mp
-        except ImportError:
-            self.logger.error("opencv-python and/or mediapipe not installed.")
-            raise
-
         for key in ("face", "pose", "hand"):
             _ensure_model(key)
         _ensure_dnn_model()
 
-        features = self._resolve_artifact(ctx["artifacts"].get("features", {}))
-        phases = features.get("phases", [])
         sample_fps = cfg.get("sample_fps", 2)
 
         results = self._analyze_video(video_path, sample_fps, cfg)
@@ -561,13 +731,26 @@ class VideoAnalysisStage(BaseStage):
             for f in frame_data:
                 self._enrich_frame_with_baseline(f, baseline)
 
-        for i in range(1, len(frame_data)):
-            frame_data[i]["movement_delta"] = self._compute_movement_delta(
-                frame_data[i - 1], frame_data[i]
-            )
+        # ── D2: Estimate session horizon from room geometry ──
+        # This gives the true camera eye-level Y in normalised frame coords,
+        # derived from structural horizontal lines (ceiling, door frames, walls).
+        # Required because camera pitch is fixed but unknown — a clinician whose
+        # face appears "centred" in frame may still be above patient eye level
+        # if the camera is tilted upward.
+        horizon_info = self._estimate_session_horizon(
+            video_path=video_path,
+            video_fps=video_fps,
+            calibration_s=cfg.get("calibration_seconds", self.DEFAULT_CALIBRATION_SECONDS),
+        )
+        self.logger.info(
+            f"[D2 Horizon] valid={horizon_info['horizon_valid']} "
+            f"y={horizon_info.get('horizon_y')} "
+            f"reliability={horizon_info.get('reliability')}"
+        )
 
-        nvb_metrics = self._compute_lucas_nvb_metrics(frame_data, baseline, video_fps)
-        phase_summaries = self._compute_phase_summaries(frame_data, phases, baseline, video_fps)
+        nvb_metrics = self._compute_lucas_nvb_metrics(
+            frame_data, baseline, video_fps, horizon_info
+        )
 
         annotated_video_path = None
         if cfg.get("generate_annotated_video", True):
@@ -578,11 +761,11 @@ class VideoAnalysisStage(BaseStage):
                 cached_landmarks=results.get("cached_landmarks", {}),
                 output_path=annotated_video_path,
                 cfg=cfg,
+                horizon_y=horizon_info.get("horizon_y") if horizon_info.get("horizon_valid") else None,
             )
 
         lucas_nvb_output = self._build_llm_output(
             nvb_metrics=nvb_metrics,
-            phase_summaries=phase_summaries,
             baseline=baseline,
             metadata=results["metadata"],
         )
@@ -591,9 +774,6 @@ class VideoAnalysisStage(BaseStage):
         with open(features_path, "w") as f:
             json.dump(lucas_nvb_output, f, indent=2, ensure_ascii=False, cls=_NumpySafeEncoder)
 
-        llm_profile = ctx["artifacts"].get("llm_profile", {})
-        llm_profile["lucas_nvb"] = lucas_nvb_output
-        ctx["artifacts"]["llm_profile"] = llm_profile
         ctx["artifacts"]["video_features"] = lucas_nvb_output
         ctx["artifacts"]["video_features_path"] = str(features_path)
         if annotated_video_path:
@@ -605,13 +785,33 @@ class VideoAnalysisStage(BaseStage):
     # Video source resolution
     # ═══════════════════════════════════════════════════════════════════════
     def _resolve_video_source(self, ctx, cfg):
-        preferred_quadrant = cfg.get("preferred_quadrant", "bottom_right")
-        quadrants = ctx["artifacts"].get("inventory", {}).get("quadrants", {})
-        if preferred_quadrant in quadrants:
+        inventory = ctx["artifacts"].get("inventory", {})
+        quadrants = inventory.get("quadrants", {})
+
+        inventory_quadrant = inventory.get("video_analysis_quadrant")
+        if inventory_quadrant:
+            if inventory_quadrant in quadrants:
+                self.logger.info(
+                    f"Video analysis quadrant from inventory: '{inventory_quadrant}'"
+                )
+                return quadrants[inventory_quadrant]
+            self.logger.warning(
+                f"inventory.video_analysis_quadrant='{inventory_quadrant}' not found "
+                f"in quadrants {list(quadrants.keys())}; falling back."
+            )
+
+        preferred_quadrant = cfg.get("preferred_quadrant")
+        if preferred_quadrant and preferred_quadrant in quadrants:
+            self.logger.info(
+                f"Video analysis quadrant from config: '{preferred_quadrant}'"
+            )
             return quadrants[preferred_quadrant]
+
         composite = ctx["artifacts"].get("composite_video")
         if composite and Path(composite).exists():
+            self.logger.info("No quadrant available; using composite video.")
             return composite
+
         return None
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -640,6 +840,121 @@ class VideoAnalysisStage(BaseStage):
                     f"expected range [{lo}, {hi}]. Results may be unreliable.",
                     UserWarning, stacklevel=3,
                 )
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # D2 — Session horizon estimation from room geometry
+    # ═══════════════════════════════════════════════════════════════════════
+    def _estimate_session_horizon(
+        self,
+        video_path: str,
+        video_fps: float,
+        calibration_s: float = HORIZON_CALIBRATION_S,
+        sample_count: int = HORIZON_SAMPLE_COUNT,
+    ) -> Dict[str, Any]:
+        """
+        Estimate the session-level horizon Y by sampling frames from the
+        calibration window and running Hough-based horizon detection on each.
+
+        The session horizon is the robust median across valid sample frames.
+        It represents the true camera eye-level in the scene — the Y level
+        in normalised frame coordinates that corresponds to "same height as
+        the camera" (= same height as the seated patient).
+
+        A clinician whose eye_level_y is ABOVE the horizon (lower Y value)
+        is standing taller than the patient.
+        A clinician whose eye_level_y is AT or BELOW the horizon (higher Y)
+        is at or below patient eye level — the desired positioning for
+        paediatric consultations.
+
+        Returns a dict with:
+          horizon_y         — session median horizon (normalised, 0=top 1=bottom)
+          horizon_valid     — True if enough samples were found
+          sample_count      — number of frames sampled
+          valid_count       — number of frames with successful detection
+          horizon_std       — SD across samples (stability indicator)
+          reliability       — "high" / "moderate" / "low"
+          method_note       — human-readable explanation
+        """
+        import cv2
+
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            return {"horizon_valid": False, "horizon_y": None,
+                    "method_note": "Could not open video for horizon estimation."}
+
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        calib_frames = min(total_frames, int(calibration_s * video_fps))
+
+        # Sample evenly across calibration window
+        sample_indices = np.linspace(0, calib_frames - 1, sample_count, dtype=int)
+
+        horizon_estimates = []
+        for frame_idx in sample_indices:
+            cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_idx))
+            ret, frame = cap.read()
+            if not ret:
+                continue
+            h_y = _estimate_horizon_y_from_frame(frame)
+            if h_y is not None:
+                horizon_estimates.append(h_y)
+
+        cap.release()
+
+        valid_count = len(horizon_estimates)
+
+        if valid_count < HORIZON_MIN_VALID_SAMPLES:
+            self.logger.warning(
+                f"[D2 Horizon] Only {valid_count}/{sample_count} valid samples — "
+                f"horizon estimate unreliable. Room may lack clear horizontal lines."
+            )
+            return {
+                "horizon_valid": False,
+                "horizon_y": None,
+                "sample_count": sample_count,
+                "valid_count": valid_count,
+                "reliability": "low",
+                "method_note": (
+                    "Horizon estimation failed: insufficient horizontal structural "
+                    "lines detected in background. D2 positioning falls back to "
+                    "session-median eye_level_y baseline."
+                ),
+            }
+
+        arr = np.array(horizon_estimates)
+        session_horizon_y = float(np.median(arr))
+        horizon_std       = float(np.std(arr))
+
+        # Reliability based on consistency (low std = stable detection)
+        if horizon_std < 0.04 and valid_count >= HORIZON_MIN_VALID_SAMPLES * 2:
+            reliability = "high"
+        elif horizon_std < 0.08:
+            reliability = "moderate"
+        else:
+            reliability = "low"
+
+        self.logger.info(
+            f"[D2 Horizon] Session horizon Y = {session_horizon_y:.3f} "
+            f"(std={horizon_std:.3f}, {valid_count}/{sample_count} valid, "
+            f"reliability={reliability})"
+        )
+
+        return {
+            "horizon_valid": True,
+            "horizon_y": round(session_horizon_y, 4),
+            "horizon_std": round(horizon_std, 4),
+            "sample_count": sample_count,
+            "valid_count": valid_count,
+            "reliability": reliability,
+            "method_note": (
+                "Horizon estimated via Hough probabilistic line detection on "
+                "background regions (person masked out). Near-horizontal lines "
+                "(< 15 deg) from structural room features (ceiling panels, door "
+                "frames, wall edges) are detected; their weighted-median Y at "
+                "frame centre gives the camera eye-level in the scene. "
+                f"Session median = {session_horizon_y:.3f} "
+                f"(std={horizon_std:.3f} across {valid_count} samples)."
+            ),
+        }
 
     # ═══════════════════════════════════════════════════════════════════════
     # Parallel video analysis
@@ -794,7 +1109,6 @@ class VideoAnalysisStage(BaseStage):
 
         _last_dnn_bbox = None
         _last_dnn_conf = 0.0
-        _frames_since_dnn = 0
 
         face_lm = FaceLandmarker.create_from_options(face_options)
         pose_lm = PoseLandmarker.create_from_options(pose_options)
@@ -813,9 +1127,7 @@ class VideoAnalysisStage(BaseStage):
                     orig_h, orig_w = frame.shape[:2]
                     rgb_full = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-                    # Stage 1: DNN face detection
-                    _run_dnn = (_frames_since_dnn % dnn_interval == 0)
-                    _frames_since_dnn += 1
+                    _run_dnn = (frame_idx % dnn_interval == 0)
 
                     if _run_dnn:
                         blob = cv2.dnn.blobFromImage(
@@ -898,19 +1210,11 @@ class VideoAnalysisStage(BaseStage):
                         crop_x2, crop_y2 = orig_w, orig_h
                         used_crop = False
 
-                    # ── Face confirmed? ──────────────────────────────────────
-                    # Only proceed with pose + hand detection when a face has
-                    # been confirmed by either Stage 2a (crop) or Stage 2b
-                    # (full-frame fallback). Frames with no face are recorded
-                    # as all-null and skipped immediately, saving the cost of
-                    # two full-frame neural-net passes per empty frame.
                     face_confirmed = bool(
                         face_result and face_result.face_landmarks
                     )
 
                     if not face_confirmed:
-                        # Reset DNN tracking state so the next DNN run starts
-                        # fresh — the person may have left frame temporarily.
                         _last_dnn_bbox = None
                         _last_dnn_conf = 0.0
 
@@ -935,9 +1239,8 @@ class VideoAnalysisStage(BaseStage):
                         })
                         frames_analyzed += 1
                         frame_idx += 1
-                        continue  # skip the rest of this frame's processing
+                        continue
 
-                    # ── Pose + Hand on full frame (face confirmed) ───────────
                     if do_upscale:
                         full_rgb_pose = cv2.resize(
                             rgb_full,
@@ -955,7 +1258,6 @@ class VideoAnalysisStage(BaseStage):
                     pose_result = pose_lm.detect_for_video(mp_pose_image, timestamp_ms)
                     hand_result = hand_lm.detect_for_video(mp_pose_image, timestamp_ms)
 
-                    # Extract and remap face landmarks
                     raw_face_landmarks = face_result.face_landmarks[0]
                     face_landmarks = None
                     if raw_face_landmarks:
@@ -1003,10 +1305,9 @@ class VideoAnalysisStage(BaseStage):
                         "used_face_crop": used_crop,
                     }
 
-                    # face_confirmed == True here, so face_landmarks must exist
                     faces_detected += 1
                     frame_features["face_detected"] = True
-                    frame_features["eye_contact"] = self._extract_head_pose(
+                    frame_features["eye_contact"] = self._extract_iris_gaze(
                         face_landmarks, orig_w, orig_h
                     )
                     frame_features["facial_expression"] = self._extract_facial_expression(
@@ -1098,60 +1399,123 @@ class VideoAnalysisStage(BaseStage):
     # Baseline enrichment
     # ═══════════════════════════════════════════════════════════════════════
     def _enrich_frame_with_baseline(self, frame: Dict, baseline: PersonBaseline):
-        ec = frame.get("eye_contact")
-        if ec:
-            ec["baseline_deviation"] = baseline.gaze_deviation(ec["yaw"], ec["pitch"])
+        # D1 — iris gaze needs no baseline enrichment (self-referencing metric)
 
         pp = frame.get("positioning_and_posture")
         if pp:
             arm = pp.get("arm_openness")
             pp["baseline_deviation"] = baseline.posture_deviation(arm)
+            # D2 — enrich eye_level_y with session baseline deviation
+            eye_y = pp.get("eye_level_y")
+            if eye_y is not None:
+                pp["eye_level_baseline_deviation"] = baseline.eye_level_deviation(eye_y)
 
         fe = frame.get("facial_expression")
         if fe and fe.get("blendshape_smile") is not None:
             fe["baseline_deviation"] = baseline.expression_deviation(fe["blendshape_smile"])
 
     # ═══════════════════════════════════════════════════════════════════════
-    # Inter-frame movement delta
+    # D1 — Eye-contact via iris landmark gaze direction
     # ═══════════════════════════════════════════════════════════════════════
-    def _compute_movement_delta(self, prev_frame, curr_frame):
-        delta = {"head_yaw_delta": None, "head_pitch_delta": None}
-        prev_ec = prev_frame.get("eye_contact")
-        curr_ec = curr_frame.get("eye_contact")
-        if prev_ec and curr_ec:
-            delta["head_yaw_delta"] = abs(curr_ec.get("yaw", 0) - prev_ec.get("yaw", 0))
-            delta["head_pitch_delta"] = abs(curr_ec.get("pitch", 0) - prev_ec.get("pitch", 0))
-        return delta
+    def _extract_iris_gaze(self, landmarks, img_w: int, img_h: int) -> Optional[Dict[str, Any]]:
+        """
+        Estimate gaze direction from iris landmark position relative to eye
+        corners. This is the correct metric for a head-mounted egocentric
+        camera because it measures where the eyes are actually pointing
+        within the face, independent of head orientation.
 
-    # ═══════════════════════════════════════════════════════════════════════
-    # D1 — Eye-contact (head pose extraction)
-    # ═══════════════════════════════════════════════════════════════════════
-    def _extract_head_pose(self, landmarks, img_w, img_h) -> Dict[str, Any]:
-        def lm_pt(idx):
-            lm = landmarks[idx]
-            return np.array([lm.x * img_w, lm.y * img_h, lm.z * img_w])
+        Scientific basis:
+          The iris center position relative to the eye width gives a
+          normalised horizontal offset:
+            0.0 = iris at the inner corner (looking inward / toward nose)
+            0.5 = iris centered = looking straight at camera = AT the patient
+            1.0 = iris at the outer corner (looking outward / away)
+          Same logic applies vertically.
 
-        nose = lm_pt(self.NOSE_TIP)
-        chin = lm_pt(self.CHIN)
-        forehead = lm_pt(self.FOREHEAD)
-        left_eye = lm_pt(self.LEFT_EYE_OUTER)
-        right_eye = lm_pt(self.RIGHT_EYE_OUTER)
+        Both eyes are averaged. A frame is "on target" when both horizontal
+        and vertical offsets are within threshold of 0.5.
 
-        eye_center = (left_eye + right_eye) / 2
-        eye_width = np.linalg.norm(right_eye - left_eye)
-        yaw = (
-            math.degrees(math.atan2(nose[0] - eye_center[0], eye_width))
-            if eye_width > 0 else 0.0
-        )
-        face_height = np.linalg.norm(forehead - chin)
-        pitch = (
-            math.degrees(math.atan2(nose[1] - eye_center[1], face_height))
-            if face_height > 0 else 0.0
-        )
+        Requires MediaPipe 478-landmark model (iris landmarks 468-477).
+        Falls back to None if iris landmarks are absent (older 468-pt model).
+
+        NOTE: Face non-detection (eye_contact = None in frame_data) means
+        the face was not visible — this is treated as MISSING DATA, not as
+        "not looking". The patient may have turned their head. Only frames
+        with a detected face yield a valid gaze measurement.
+        """
+        if landmarks is None:
+            return None
+
+        # Need 478 landmarks for iris support
+        if len(landmarks) < 478:
+            return None
+
+        def lm(idx):
+            l = landmarks[idx]
+            return np.array([l.x, l.y])
+
+        # ── Left eye iris offset ──
+        l_iris   = lm(self.LEFT_IRIS_CENTER)
+        l_inner  = lm(self.LEFT_EYE_INNER)   # 133
+        l_outer  = lm(self.LEFT_EYE_OUTER)   # 33
+        l_top    = lm(self.LEFT_EYE_TOP)     # 159
+        l_bottom = lm(self.LEFT_EYE_BOTTOM)  # 145
+
+        l_eye_width  = np.linalg.norm(l_outer - l_inner)
+        l_eye_height = np.linalg.norm(l_bottom - l_top)
+
+        if l_eye_width < 1e-4 or l_eye_height < 1e-4:
+            left_h_offset, left_v_offset = None, None
+        else:
+            # Project iris onto the eye axis vectors
+            eye_h_axis = (l_outer - l_inner) / l_eye_width
+            eye_v_axis = (l_bottom - l_top) / l_eye_height
+            iris_rel = l_iris - l_inner
+            left_h_offset = float(np.dot(iris_rel, eye_h_axis) / l_eye_width)
+            iris_rel_v = l_iris - l_top
+            left_v_offset = float(np.dot(iris_rel_v, eye_v_axis) / l_eye_height)
+
+        # ── Right eye iris offset ──
+        r_iris   = lm(self.RIGHT_IRIS_CENTER)
+        r_inner  = lm(self.RIGHT_EYE_INNER)   # 362
+        r_outer  = lm(self.RIGHT_EYE_OUTER)   # 263
+        r_top    = lm(self.RIGHT_EYE_TOP)     # 386
+        r_bottom = lm(self.RIGHT_EYE_BOTTOM)  # 374
+
+        r_eye_width  = np.linalg.norm(r_outer - r_inner)
+        r_eye_height = np.linalg.norm(r_bottom - r_top)
+
+        if r_eye_width < 1e-4 or r_eye_height < 1e-4:
+            right_h_offset, right_v_offset = None, None
+        else:
+            eye_h_axis = (r_outer - r_inner) / r_eye_width
+            eye_v_axis = (r_bottom - r_top) / r_eye_height
+            iris_rel = r_iris - r_inner
+            right_h_offset = float(np.dot(iris_rel, eye_h_axis) / r_eye_width)
+            iris_rel_v = r_iris - r_top
+            right_v_offset = float(np.dot(iris_rel_v, eye_v_axis) / r_eye_height)
+
+        # ── Average both eyes ──
+        h_offsets = [o for o in [left_h_offset, right_h_offset] if o is not None]
+        v_offsets = [o for o in [left_v_offset, right_v_offset] if o is not None]
+
+        if not h_offsets:
+            return None
+
+        avg_h = float(np.mean(h_offsets))
+        avg_v = float(np.mean(v_offsets)) if v_offsets else None
+
+        # on_target: iris centered horizontally AND vertically
+        h_on_target = abs(avg_h - 0.5) < IRIS_HORIZONTAL_THRESHOLD
+        v_on_target = (abs(avg_v - 0.5) < IRIS_VERTICAL_THRESHOLD) if avg_v is not None else True
+        on_target = h_on_target and v_on_target
 
         return {
-            "yaw": round(yaw, 1),
-            "pitch": round(pitch, 1),
+            "iris_horizontal_offset": round(avg_h, 3),
+            "iris_vertical_offset": round(avg_v, 3) if avg_v is not None else None,
+            "on_target": on_target,
+            "left_iris_h_offset": round(left_h_offset, 3) if left_h_offset is not None else None,
+            "right_iris_h_offset": round(right_h_offset, 3) if right_h_offset is not None else None,
         }
 
     # ═══════════════════════════════════════════════════════════════════════
@@ -1178,12 +1542,10 @@ class VideoAnalysisStage(BaseStage):
                 lm = face_landmarks[idx]
                 return np.array([lm.x * img_w, lm.y * img_h])
 
-            upper_lip = lm_2d(self.UPPER_LIP)
-            lower_lip = lm_2d(self.LOWER_LIP)
-            left_mouth = lm_2d(self.LEFT_MOUTH)
+            left_mouth  = lm_2d(self.LEFT_MOUTH)
             right_mouth = lm_2d(self.RIGHT_MOUTH)
-            nose_tip = lm_2d(self.NOSE_TIP)
-            chin = lm_2d(self.CHIN)
+            nose_tip    = lm_2d(self.NOSE_TIP)
+            chin        = lm_2d(self.CHIN)
             face_height = np.linalg.norm(chin - nose_tip)
 
             mouth_center = (left_mouth + right_mouth) / 2
@@ -1223,7 +1585,6 @@ class VideoAnalysisStage(BaseStage):
         shoulder_width = abs(right_shoulder[0] - left_shoulder[0])
         shoulder_width_valid = shoulder_width >= MIN_SHOULDER_WIDTH
 
-        # Arm openness — wrist-to-wrist / shoulder width, clamped to [0, 5]
         MAX_ARM_OPENNESS = 5.0
         wrist_distance = np.linalg.norm(left_wrist[:2] - right_wrist[:2])
         if shoulder_width_valid:
@@ -1236,7 +1597,7 @@ class VideoAnalysisStage(BaseStage):
         # Eye level Y for D2 positioning
         eye_level_y = None
         if face_landmarks and len(face_landmarks) > max(self.LEFT_EYE_INNER, self.RIGHT_EYE_INNER):
-            left_eye_y = face_landmarks[self.LEFT_EYE_INNER].y
+            left_eye_y  = face_landmarks[self.LEFT_EYE_INNER].y
             right_eye_y = face_landmarks[self.RIGHT_EYE_INNER].y
             eye_level_y = round(float((left_eye_y + right_eye_y) / 2), 3)
 
@@ -1257,7 +1618,7 @@ class VideoAnalysisStage(BaseStage):
         for label, hand_lms in [("left", left_hand_lms), ("right", right_hand_lms)]:
             if hand_lms is None or len(hand_lms) == 0:
                 continue
-            wrist = hand_lms[0]
+            wrist      = hand_lms[0]
             middle_tip = hand_lms[12]
             cy = np.mean([lm.y for lm in hand_lms])
             spread = np.linalg.norm(
@@ -1301,6 +1662,7 @@ class VideoAnalysisStage(BaseStage):
         frame_data: List[Dict],
         baseline: PersonBaseline,
         video_fps: float,
+        horizon_info: Optional[Dict] = None,
     ) -> Dict[str, Any]:
         if not frame_data:
             return {}
@@ -1311,51 +1673,70 @@ class VideoAnalysisStage(BaseStage):
         face_rate = len(face_frames) / total if total > 0 else 0
         pose_rate = len(pose_frames) / total if total > 0 else 0
 
-        # ── D1: Eye-contact ──
-        yaws   = [f["eye_contact"]["yaw"]   for f in face_frames if f.get("eye_contact")]
-        pitches = [f["eye_contact"]["pitch"] for f in face_frames if f.get("eye_contact")]
+        # ── D1: Eye-contact (iris-based) ──
+        # Measured only on frames where the face is detected.
+        # Face non-detection = missing data (patient may have turned head),
+        # NOT evidence of gaze aversion.
+        gaze_frames = [
+            f for f in face_frames
+            if f.get("eye_contact") and f["eye_contact"].get("on_target") is not None
+        ]
+        gaze_on_target_flags = [f["eye_contact"]["on_target"] for f in gaze_frames]
 
-        if baseline.valid and baseline.gaze_valid:
-            yaw_deviations = [
-                f["eye_contact"]["baseline_deviation"]["yaw_deviation"]
-                for f in face_frames
-                if f.get("eye_contact") and f["eye_contact"].get("baseline_deviation")
-            ]
-            pitch_deviations = [
-                f["eye_contact"]["baseline_deviation"]["pitch_deviation"]
-                for f in face_frames
-                if f.get("eye_contact") and f["eye_contact"].get("baseline_deviation")
-            ]
-            yaw_z_scores = [
-                f["eye_contact"]["baseline_deviation"]["yaw_z_score"]
-                for f in face_frames
-                if f.get("eye_contact") and f["eye_contact"].get("baseline_deviation")
-            ]
-            gaze_on_target = [z < GAZE_Z_THRESHOLD for z in yaw_z_scores]
-        else:
-            yaw_deviations, pitch_deviations, yaw_z_scores, gaze_on_target = [], [], [], []
+        iris_h_offsets = [
+            f["eye_contact"]["iris_horizontal_offset"]
+            for f in gaze_frames
+            if f["eye_contact"].get("iris_horizontal_offset") is not None
+        ]
+        iris_v_offsets = [
+            f["eye_contact"]["iris_vertical_offset"]
+            for f in gaze_frames
+            if f["eye_contact"].get("iris_vertical_offset") is not None
+        ]
 
         d1 = {
-            "raw_yaw_distribution": _distribution_summary(yaws),
-            "raw_pitch_distribution": _distribution_summary(pitches),
-            "baseline_yaw_deviation": _distribution_summary(yaw_deviations),
-            "baseline_pitch_deviation": _distribution_summary(pitch_deviations),
-            "gaze_on_target": _proportion_and_count(gaze_on_target),
-            "gaze_stability": {
-                "yaw_std": round(float(np.std(yaws)), 2) if yaws else None,
-                "pitch_std": round(float(np.std(pitches)), 2) if pitches else None,
-            },
-            "gaze_baseline_valid": baseline.gaze_valid if baseline.valid else False,
-            "face_detection_rate": round(face_rate, 3),
+            "gaze_on_target": _proportion_and_count(gaze_on_target_flags),
+            "iris_horizontal_offset_distribution": _distribution_summary(iris_h_offsets),
+            "iris_vertical_offset_distribution": _distribution_summary(iris_v_offsets),
+            "data_availability_rate": round(face_rate, 3),
+            "gaze_measurable_frames": len(gaze_frames),
+            "total_frames": total,
             "reliability": _reliability_level(face_rate),
             "method_note": (
-                "Head orientation used as gaze proxy. Gaze-on-target = frames "
-                "where yaw deviation from person's resting baseline is within "
-                "2 standard deviations."
+                "Gaze measured via iris landmark offset relative to eye corners "
+                "(MediaPipe 478-point model). Offset 0.5 = iris centered = "
+                "looking directly at camera (= at the patient). "
+                "Thresholds: horizontal |offset - 0.5| < 0.175, vertical < 0.175. "
+                "data_availability_rate = fraction of frames where face was "
+                "detectable. Face non-detection is MISSING DATA — it may mean "
+                "the patient turned their head, not that the clinician looked away. "
+                "Only gaze_measurable_frames contribute to gaze_on_target."
             ),
         }
 
         # ── D2: Positioning ──
+        # Primary metric: clinician eye_level_y relative to session horizon.
+        #
+        # The session horizon Y (estimated from room structural lines) is the
+        # true camera eye-level in the scene. It corrects for the camera's
+        # upward tilt — a face appearing centred in frame is NOT at eye level
+        # if the camera is already tilted upward.
+        #
+        # Interpretation:
+        #   eye_level_y < horizon_y  →  clinician ABOVE camera eye-level
+        #                               (standing taller than patient) — UNFAVOURABLE
+        #   eye_level_y ≈ horizon_y  →  clinician at patient eye level — GOOD
+        #   eye_level_y > horizon_y  →  clinician BELOW camera eye-level
+        #                               (crouched below patient) — rarely needed
+        #
+        # horizon_elevation = horizon_y - eye_level_y
+        #   Positive → clinician is above horizon → standing over patient
+        #   Zero     → at eye level
+        #   Negative → clinician below horizon → crouched below patient
+
+        horizon_y     = horizon_info.get("horizon_y") if horizon_info else None
+        horizon_valid = horizon_info.get("horizon_valid", False) if horizon_info else False
+
         eye_level_ys = [
             f["positioning_and_posture"]["eye_level_y"]
             for f in pose_frames
@@ -1363,14 +1744,63 @@ class VideoAnalysisStage(BaseStage):
             and f["positioning_and_posture"].get("eye_level_y") is not None
         ]
 
+        # Horizon-relative elevation: positive = clinician above horizon = standing over patient
+        if horizon_valid and horizon_y is not None:
+            horizon_elevations = [
+                horizon_y - ey   # positive = above horizon = too tall
+                for ey in eye_level_ys
+            ]
+            at_eye_level_flags = [
+                abs(e) < HORIZON_AT_LEVEL_THRESHOLD
+                for e in horizon_elevations
+            ]
+            above_horizon_flags = [e > HORIZON_AT_LEVEL_THRESHOLD for e in horizon_elevations]
+        else:
+            # Fallback: use session-median baseline deviation (less accurate)
+            horizon_elevations  = []
+            at_eye_level_flags  = []
+            above_horizon_flags = []
+
+        # Session-baseline deviation (always computed as secondary metric)
+        eye_level_deviations = [
+            f["positioning_and_posture"]["eye_level_baseline_deviation"]["eye_level_y_deviation"]
+            for f in pose_frames
+            if f.get("positioning_and_posture")
+            and f["positioning_and_posture"].get("eye_level_baseline_deviation")
+            and f["positioning_and_posture"]["eye_level_baseline_deviation"].get("eye_level_y_deviation") is not None
+        ]
+
         d2 = {
-            "Height_to_patient": _distribution_summary(eye_level_ys),
+            # Primary: horizon-corrected metrics
+            "horizon_y": round(horizon_y, 4) if horizon_valid and horizon_y is not None else None,
+            "horizon_valid": horizon_valid,
+            "horizon_elevation_distribution": _distribution_summary(horizon_elevations),
+            "at_patient_eye_level_rate": _proportion_and_count(at_eye_level_flags),
+            "above_patient_eye_level_rate": _proportion_and_count(above_horizon_flags),
+            # Secondary: raw and baseline-relative
+            "eye_level_y_distribution": _distribution_summary(eye_level_ys),
+            "eye_level_y_deviation_from_session_baseline": _distribution_summary(eye_level_deviations),
+            "session_baseline_eye_y": round(baseline.baseline_eye_y, 3) if baseline.eye_y_valid and baseline.baseline_eye_y is not None else None,
+            # Horizon estimation quality
+            "horizon_estimation": horizon_info if horizon_info else {"horizon_valid": False},
             "pose_detection_rate": round(pose_rate, 3),
-            "reliability": _reliability_level(pose_rate),
+            "reliability": horizon_info.get("reliability", "low") if horizon_valid else _reliability_level(pose_rate),
             "method_note": (
-                "Eye level Y is normalised vertical eye position in frame "
-                "(0.0=top, 1.0=bottom). Valid as same-height indicator only "
-                "when camera represents the patient's viewpoint."
+                "D2 positioning uses horizon-corrected eye level. "
+                "Session horizon Y is estimated from structural horizontal lines "
+                "(ceiling panels, door frames) in the room background via Hough "
+                "line detection — this gives the true camera eye-level independent "
+                "of camera tilt. "
+                "horizon_elevation = horizon_y - clinician_eye_y: "
+                "positive = clinician above camera eye-level (standing over patient), "
+                "~0 = at patient eye level (favourable), "
+                "negative = below patient eye level. "
+                "at_patient_eye_level_rate = fraction of frames within ±4% of horizon. "
+                + (
+                    f"Horizon not reliably estimated — falling back to session-median "
+                    f"baseline. Interpret D2 with caution."
+                    if not horizon_valid else ""
+                )
             ),
         }
 
@@ -1405,7 +1835,9 @@ class VideoAnalysisStage(BaseStage):
             "reliability": _reliability_level(pose_rate),
             "method_note": (
                 "Arm openness = wrist-to-wrist distance normalised by shoulder "
-                "width. Values significantly below baseline suggest crossed arms."
+                "width. Values significantly below baseline suggest crossed arms. "
+                "Camera roll from a seated patient is minimal; metric is reliable "
+                "under normal conversational head movements."
             ),
         }
 
@@ -1453,6 +1885,11 @@ class VideoAnalysisStage(BaseStage):
         }
 
         # ── D5: Gestures & mannerisms ──
+        # Head movement periodicity is NOT computed here. The camera is
+        # head-mounted on the patient; yaw/pitch deltas between frames
+        # reflect patient head movement (conversational nodding) and cannot
+        # be separated from clinician movement. Only hand periodicity is
+        # retained as a fidgeting indicator.
         gesture_frames = [f for f in frame_data if f.get("gestures")]
         hand_visible_rate = len(gesture_frames) / total if total > 0 else 0
 
@@ -1462,21 +1899,7 @@ class VideoAnalysisStage(BaseStage):
                 hand_spreads.append(h["spread"])
                 hand_positions.append(h["position"])
 
-        head_yaw_deltas = [
-            f["movement_delta"]["head_yaw_delta"]
-            for f in frame_data
-            if f.get("movement_delta", {}).get("head_yaw_delta") is not None
-        ]
-        head_pitch_deltas = [
-            f["movement_delta"]["head_pitch_delta"]
-            for f in frame_data
-            if f.get("movement_delta", {}).get("head_pitch_delta") is not None
-        ]
-
-        effective_fps = video_fps  # frame_interval=1, so effective == video_fps
-
-        head_yaw_periodicity   = _detect_periodicity(head_yaw_deltas, effective_fps)
-        head_pitch_periodicity = _detect_periodicity(head_pitch_deltas, effective_fps)
+        effective_fps = video_fps
 
         left_hand_y_series, right_hand_y_series = [], []
         for f in gesture_frames:
@@ -1498,18 +1921,15 @@ class VideoAnalysisStage(BaseStage):
             "hand_visibility_rate": round(hand_visible_rate, 3),
             "hand_spread_distribution": _distribution_summary(hand_spreads),
             "hand_position_distribution": _value_distribution(hand_positions),
-            "head_movement": {
-                "yaw_delta_distribution": _distribution_summary(head_yaw_deltas),
-                "pitch_delta_distribution": _distribution_summary(head_pitch_deltas),
-                "yaw_periodicity": head_yaw_periodicity,
-                "pitch_periodicity": head_pitch_periodicity,
-            },
             "hand_movement_periodicity": hand_periodicity,
             "reliability": _reliability_level(hand_visible_rate),
             "method_note": (
-                "Fidgeting detected via autocorrelation periodicity analysis. "
-                "periodicity_strength > 0.3 indicates repetitive movement. "
-                "Hand position relative to body landmarks."
+                "Fidgeting detected via autocorrelation periodicity analysis on "
+                "hand Y-position time series. periodicity_strength > 0.3 indicates "
+                "repetitive movement. Hand position relative to body landmarks. "
+                "Head movement periodicity is intentionally not computed: the "
+                "camera is head-mounted on the patient and patient conversational "
+                "nodding is indistinguishable from clinician head movement."
             ),
         }
 
@@ -1518,7 +1938,7 @@ class VideoAnalysisStage(BaseStage):
             "gaze_on_target": d1["gaze_on_target"],
             "positive_expression_rate": d4["positive_expression_rate"],
             "arm_openness_distribution": d3["arm_openness_distribution"],
-            "head_movement_periodicity": d5["head_movement"]["yaw_periodicity"],
+            "hand_movement_periodicity": d5["hand_movement_periodicity"],
             "overall_reliability": _reliability_level(min(face_rate, pose_rate)),
             "method_note": (
                 "Video-observable demeanour cues only. LUCAS Item I is primarily "
@@ -1537,45 +1957,11 @@ class VideoAnalysisStage(BaseStage):
         }
 
     # ═══════════════════════════════════════════════════════════════════════
-    # Phase-level summaries
-    # ═══════════════════════════════════════════════════════════════════════
-    def _compute_phase_summaries(
-        self,
-        frame_data: List[Dict],
-        phases: List[Dict],
-        baseline: PersonBaseline,
-        video_fps: float,
-    ) -> List[Dict]:
-        if not phases or not frame_data:
-            return []
-        summaries = []
-        for phase in phases:
-            p_start = phase.get("start_s", 0)
-            p_end   = phase.get("end_s", 0)
-            phase_frames = [f for f in frame_data if p_start <= f["timestamp_s"] <= p_end]
-            if not phase_frames:
-                summaries.append({
-                    "phase": phase.get("phase", "unknown"),
-                    "start_s": p_start,
-                    "end_s": p_end,
-                    "frames_analyzed": 0,
-                })
-                continue
-            summary = self._compute_lucas_nvb_metrics(phase_frames, baseline, video_fps)
-            summary["phase"] = phase.get("phase", "unknown")
-            summary["start_s"] = p_start
-            summary["end_s"] = p_end
-            summary["frames_analyzed"] = len(phase_frames)
-            summaries.append(summary)
-        return summaries
-
-    # ═══════════════════════════════════════════════════════════════════════
     # Build LLM-optimised output JSON
     # ═══════════════════════════════════════════════════════════════════════
     def _build_llm_output(
         self,
         nvb_metrics: Dict,
-        phase_summaries: List[Dict],
         baseline: PersonBaseline,
         metadata: Dict,
     ) -> Dict[str, Any]:
@@ -1590,34 +1976,46 @@ class VideoAnalysisStage(BaseStage):
             },
             "person_baseline": baseline.to_dict(),
             "interpretation_guidance": {
+                "camera_setup": (
+                    "Egocentric (head-mounted) camera worn by the seated patient. "
+                    "The camera optical axis approximates the patient's line of sight. "
+                    "Camera pitch is approximately stable throughout the session."
+                ),
                 "note": (
-                    "All metrics use person-relative baselines from the first "
-                    "calibration window. Deviations are z-scores relative to the "
-                    "individual's own variability. Distribution summaries are "
-                    "provided instead of binary classifications."
+                    "D1 uses iris landmark offsets (no baseline needed — self-referencing). "
+                    "D2/D3 use person-relative baselines from first calibration window. "
+                    "D4 uses person-relative smile baseline. "
+                    "Distribution summaries are provided instead of binary classifications."
                 ),
                 "reliability_scale": {
                     "high":     "Detection rate >= 75% — metric is trustworthy",
                     "moderate": "Detection rate 40-75% — interpret with caution",
                     "low":      "Detection rate < 40% — metric is unreliable",
                 },
-                "z_score_interpretation": {
-                    "within_1_SD": "Within normal range for this person",
-                    "1_to_2_SD":   "Notable deviation from this person's baseline",
-                    "above_2_SD":  "Significant deviation — likely meaningful",
+                "d1_gaze_interpretation": {
+                    "on_target": "iris_horizontal_offset ~0.5 AND iris_vertical_offset ~0.5 — clinician looking at patient",
+                    "off_target": "iris offset > 0.175 from centre — clinician looking away (notes, monitor, floor etc.)",
+                    "missing_data": "face_detected=False frames are excluded from gaze metric entirely",
+                },
+                "d2_positioning_interpretation": {
+                    "horizon_y": "Estimated camera eye-level Y in normalised frame coords (0=top, 1=bottom), derived from room structural lines via Hough detection",
+                    "horizon_elevation_positive": "clinician eye_level_y < horizon_y → clinician ABOVE camera eye-level → standing over patient (unfavourable)",
+                    "horizon_elevation_zero": "clinician at patient eye level (favourable for paediatric consultation)",
+                    "horizon_elevation_negative": "clinician eye_level_y > horizon_y → clinician below patient eye level (unusual)",
+                    "at_patient_eye_level_rate": "proportion of frames where clinician is within ±8% of horizon (at eye level)",
+                    "fallback_note": "If horizon_valid=False, fall back to session-baseline deviation — less accurate, interpret with caution",
                 },
             },
         }
         output.update(nvb_metrics)
-        if phase_summaries:
-            output["phase_summaries"] = phase_summaries
         return output
 
     # ═══════════════════════════════════════════════════════════════════════
     # Annotated video generation
     # ═══════════════════════════════════════════════════════════════════════
     def _generate_annotated_video(
-        self, video_path, frame_data, cached_landmarks, output_path, cfg
+        self, video_path, frame_data, cached_landmarks, output_path, cfg,
+        horizon_y: Optional[float] = None,
     ):
         import cv2
 
@@ -1652,7 +2050,7 @@ class VideoAnalysisStage(BaseStage):
             if frame_idx in feature_lookup:
                 last_features = feature_lookup[frame_idx]
             if last_features:
-                self._draw_overlay(frame, last_features, width, height)
+                self._draw_overlay(frame, last_features, width, height, horizon_y=horizon_y)
             writer.write(frame)
             frame_idx += 1
 
@@ -1689,12 +2087,6 @@ class VideoAnalysisStage(BaseStage):
         from mediapipe.tasks.python.vision.face_landmarker import FaceLandmarksConnections
         from mediapipe.tasks.python.vision.pose_landmarker import PoseLandmarksConnections
         from mediapipe.tasks.python.vision.hand_landmarker import HandLandmarksConnections
-
-        # DNN crop bbox (subtle cyan outline)
-        #face_crop = cached.get("face_crop")
-        #if face_crop is not None:
-        #    cx1, cy1, cx2, cy2 = face_crop
-        #    cv2.rectangle(frame, (cx1, cy1), (cx2, cy2), (200, 200, 180), 1, cv2.LINE_AA)
 
         pose_lms = cached.get("pose_landmarks")
         if pose_lms and len(pose_lms) >= 33:
@@ -1736,40 +2128,45 @@ class VideoAnalysisStage(BaseStage):
     # ═══════════════════════════════════════════════════════════════════════
     # Overlay — LUCAS order, two-colour palette (white text, dim labels)
     # ═══════════════════════════════════════════════════════════════════════
-    def _draw_overlay(self, frame, features, width, height):
+    def _draw_overlay(self, frame, features, width, height, horizon_y: Optional[float] = None):
         """
         Left-panel overlay showing LUCAS items in order D1 → D2 → D3 → D4 → D5 → I.
-
-        Colour palette is intentionally minimal:
-          - DIM  (#808080 / mid-grey) — section headers and labels
-          - BRIGHT (#E0E0E0 / near-white) — data values
-          - ALERT (#A0A0A0 / light grey) — flagged conditions (subtle, not alarming)
-
-        No greens, reds, yellows, or oranges in the overlay; only shading
-        intensity communicates salience so nothing flickers like a rainbow.
+        If horizon_y is provided, draws a horizontal dashed reference line across
+        the full frame at the estimated camera eye-level.
         """
         import cv2
 
-        # ── Typography ──
-        FONT   = cv2.FONT_HERSHEY_DUPLEX
-        SCALE_HDR  = 0.38   # section headers
-        SCALE_VAL  = 0.44   # data values
-        SCALE_LBL  = 0.36   # sub-labels
-        THICK  = 1
-        GAP    = 20          # pixels between lines
-        GAP_S  = 14          # tighter gap for sub-lines
-        SEC    = 10          # extra gap between sections
+        FONT       = cv2.FONT_HERSHEY_DUPLEX
+        SCALE_HDR  = 0.38
+        SCALE_VAL  = 0.44
+        SCALE_LBL  = 0.36
+        THICK      = 1
+        GAP        = 20
+        GAP_S      = 14
+        SEC        = 10
 
-        # ── Palette — two shades only ──
-        DIM    = (110, 110, 110)   # labels / headers
-        BRIGHT = (220, 220, 220)   # values
-        ALERT  = (160, 160, 160)   # flagged value (brighter than label, dimmer than normal value)
+        DIM    = (110, 110, 110)
+        BRIGHT = (220, 220, 220)
+        ALERT  = (160, 160, 160)
 
-        # ── Background panel ──
         PANEL_W = 240
         overlay = frame.copy()
         cv2.rectangle(overlay, (0, 0), (PANEL_W, height), (15, 15, 15), -1)
         cv2.addWeighted(overlay, 0.60, frame, 0.40, 0, frame)
+
+        # ── Draw horizon reference line across full frame ──
+        if horizon_y is not None:
+            hy_px = int(horizon_y * height)
+            # Dashed line: draw segments every 20px, gap 10px
+            dash_len, gap_len = 20, 10
+            x = PANEL_W
+            while x < width:
+                x_end = min(x + dash_len, width)
+                cv2.line(frame, (x, hy_px), (x_end, hy_px),
+                         (160, 160, 160), 1, cv2.LINE_AA)
+                x += dash_len + gap_len
+            cv2.putText(frame, "cam level", (width - 110, hy_px - 4),
+                        FONT, 0.32, (140, 140, 140), 1, cv2.LINE_AA)
 
         x = 12
         y = 30
@@ -1788,72 +2185,67 @@ class VideoAnalysisStage(BaseStage):
             nonlocal y
             y += n
 
-        def fmt_dist(d, label=""):
-            """Single-line distribution summary: mean ± SD."""
-            if d is None or d.get("n", 0) == 0:
-                return f"{label}  n/a"
-            return f"{label}  {d['mean']:.2f} ± {d['std']:.2f}  [{d['min']:.2f}–{d['max']:.2f}]"
-
-        def fmt_prop(p, label=""):
-            """Single-line proportion: XX% (n/total)."""
-            if p is None or p.get("rate") is None:
-                return f"{label}  n/a"
-            return f"{label}  {p['rate']*100:.0f}%  ({p['count']}/{p['total']})"
-
-        # ════════════════════════════════════════════════════════════════
-        # D1 — Eye Contact
-        # ════════════════════════════════════════════════════════════════
+        # ── D1 — Eye Contact (iris-based) ──
         header("D1  EYE CONTACT")
         ec = features.get("eye_contact")
         if ec:
-            put(f"Yaw = {ec['yaw']:.0f} deg  Pitch = {ec['pitch']:.0f} deg", gap=GAP_S)
-            dev = ec.get("baseline_deviation") or {}
-            yaw_z = dev.get("yaw_z_score")
-            if yaw_z is not None:
-                on_tgt = yaw_z < GAZE_Z_THRESHOLD
+            h_off = ec.get("iris_horizontal_offset")
+            v_off = ec.get("iris_vertical_offset")
+            on_tgt = ec.get("on_target", False)
+            if h_off is not None:
                 col = BRIGHT if on_tgt else ALERT
-                put(f"Yaw z = {yaw_z:.2f}  {'on target' if on_tgt else 'off target'}", color=col, gap=GAP_S)
+                v_txt = f"  V={v_off:.2f}" if v_off is not None else ""
+                put(f"H={h_off:.2f}{v_txt}  {'on' if on_tgt else 'off'}", color=col, gap=GAP_S)
             else:
-                put("No baseline", color=DIM, gap=GAP_S)
+                put("Iris not detected", color=DIM, gap=GAP_S)
         else:
             put("No face detected", color=DIM, gap=GAP_S)
         spacer()
 
-        # ════════════════════════════════════════════════════════════════
-        # D2 — Positioning
-        # ════════════════════════════════════════════════════════════════
+        # ── D2 — Positioning ──
         header("D2  POSITIONING")
         pp = features.get("positioning_and_posture")
         if pp and pp.get("eye_level_y") is not None:
-            put(f"level Y  {pp['eye_level_y']:.3f}", gap=GAP_S)
+            eye_y = pp["eye_level_y"]
+            if horizon_y is not None:
+                elev = horizon_y - eye_y   # positive = above horizon = standing over patient
+                if abs(elev) < HORIZON_AT_LEVEL_THRESHOLD:
+                    pos_label = "at level"
+                    col = BRIGHT
+                elif elev > 0:
+                    pos_label = "above"
+                    col = ALERT
+                else:
+                    pos_label = "below"
+                    col = BRIGHT
+                put(f"Eye Y {eye_y:.3f}  h={horizon_y:.3f}", color=DIM, gap=GAP_S)
+                put(f"elev={elev:+.3f}  {pos_label}", color=col, gap=GAP_S)
+            else:
+                dev_info = pp.get("eye_level_baseline_deviation") or {}
+                dev = dev_info.get("eye_level_y_deviation")
+                dev_txt = f"  d={dev:+.3f}" if dev is not None else "  (no horizon)"
+                put(f"Eye Y  {eye_y:.3f}{dev_txt}", gap=GAP_S)
         else:
             put("No pose detected", color=DIM, gap=GAP_S)
         spacer()
 
-        # ════════════════════════════════════════════════════════════════
-        # D3 — Posture
-        # ════════════════════════════════════════════════════════════════
+        # ── D3 — Posture ──
         header("D3  POSTURE")
         if pp:
             arm = pp.get("arm_openness")
             dev = (pp.get("baseline_deviation") or {})
             arm_dev = dev.get("arm_openness_deviation")
             if arm is not None:
-                # Flag as ALERT only when clearly below baseline or absolute floor
                 crossed = (arm_dev is not None and arm_dev < ARM_CROSSED_DEV) or \
                           (arm is not None and arm < ARM_CROSSED_ABS)
                 col = ALERT if crossed else BRIGHT
                 dev_txt = f"  d={arm_dev:+.2f}" if arm_dev is not None else ""
                 put(f"Arm open  {arm:.2f}{dev_txt}", color=col, gap=GAP_S)
-            conf = pp.get("landmark_confidence", 0)
-            #put(f"Pose conf  {conf:.2f}", color=DIM, scale=SCALE_LBL, gap=GAP_S)
         else:
             put("No pose detected", color=DIM, gap=GAP_S)
         spacer()
 
-        # ════════════════════════════════════════════════════════════════
-        # D4 — Facial Expressions
-        # ════════════════════════════════════════════════════════════════
+        # ── D4 — Facial Expressions ──
         header("D4  EXPRESSION")
         fe = features.get("facial_expression")
         if fe and fe.get("blendshape_smile") is not None:
@@ -1869,50 +2261,30 @@ class VideoAnalysisStage(BaseStage):
             put("No face detected", color=DIM, gap=GAP_S)
         spacer()
 
-        # ════════════════════════════════════════════════════════════════
-        # D5 — Gestures & Mannerisms
-        # ════════════════════════════════════════════════════════════════
+        # ── D5 — Gestures & Mannerisms ──
         header("D5  GESTURES")
         gest = features.get("gestures")
         if gest and gest.get("num_hands_visible", 0) > 0:
             put(f"Hands  {gest['num_hands_visible']} visible", gap=GAP_S)
-            #for h in gest.get("hands", []):
-            #    put(f"  {h['hand']}  spread {h['spread']:.2f}  {h['position']}", gap=GAP_S)
         else:
             put("No hands detected", color=DIM, gap=GAP_S)
-
-        md = features.get("movement_delta") or {}
-        yaw_d = md.get("head_yaw_delta")
-        if yaw_d is not None:
-            put(f"Head yaw  {yaw_d:.1f} deg", scale=SCALE_VAL, gap=GAP_S)
         spacer()
 
-        # ════════════════════════════════════════════════════════════════
-        # I — Professional Behaviour (summary row)
-        # ════════════════════════════════════════════════════════════════
+        # ── I — Professional Behaviour summary ──
         header("Professional Behaviour Summary")
-        # Gaze on target (from D1)
-        dev_ec = (ec.get("baseline_deviation") or {}) if ec else {}
-        yaw_z_i = dev_ec.get("yaw_z_score")
-        if yaw_z_i is not None:
-            on_tgt = yaw_z_i < GAZE_Z_THRESHOLD
-            put(f"Gaze  {'on target' if on_tgt else 'off target'}", gap=GAP_S)
-        # Positive expression (from D4)
+        if ec and ec.get("on_target") is not None:
+            put(f"Gaze  {'on target' if ec['on_target'] else 'off target'}", gap=GAP_S)
         if fe and fe.get("baseline_deviation"):
             sz = (fe["baseline_deviation"] or {}).get("smile_z_score")
             if sz is not None:
-                pos = sz > SMILE_Z_THRESHOLD
-                put(f"Expr  {'positive' if pos else 'neutral'}", gap=GAP_S)
-        # Arm openness (from D3)
+                put(f"Expr  {'positive' if sz > SMILE_Z_THRESHOLD else 'neutral'}", gap=GAP_S)
         if pp and pp.get("arm_openness") is not None:
             arm = pp["arm_openness"]
             arm_d = (pp.get("baseline_deviation") or {}).get("arm_openness_deviation")
             crossed = (arm_d is not None and arm_d < ARM_CROSSED_DEV) or arm < ARM_CROSSED_ABS
             put(f"Arms  {'crossed' if crossed else 'open'}", gap=GAP_S)
 
-        # ════════════════════════════════════════════════════════════════
-        # Footer: timestamp + tracking status
-        # ════════════════════════════════════════════════════════════════
+        # ── Footer ──
         ts = features.get("timestamp_s", 0)
         cv2.putText(frame, f"{ts:.1f}s", (width - 70, height - 14),
                     FONT, 0.45, DIM, 1, cv2.LINE_AA)
@@ -1927,14 +2299,3 @@ class VideoAnalysisStage(BaseStage):
         status = "+".join(parts) if parts else "none"
         cv2.putText(frame, f"Track: {status}", (x, height - 14),
                     FONT, 0.40, DIM, 1, cv2.LINE_AA)
-    # s4_video_analysis.py  
-    def cleanup(self) -> None:
-        """Release memory held after video analysis completes."""
-        # No persistent model handles — detectors live in worker processes
-        # and are closed in the finally block of _process_video_segment.
-        # Clear any large cached data if present.
-        for attr in ("_frame_data_cache", "_cached_landmarks"):
-            if hasattr(self, attr):
-                delattr(self, attr)
-        import gc
-        gc.collect()

@@ -18,7 +18,6 @@ class BaseStage(ABC):
             with open(artifact, encoding="utf-8") as f:
                 return json.load(f)
         return artifact
-        ...
 
     def _get_stage_config(self, key: str) -> dict:
         """Retrieve this stage's section from the global config."""

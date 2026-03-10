@@ -1,0 +1,86 @@
+{
+  "id": "Bauchschmerzen",
+  "name": "Bauchschmerzen – Anamnese bei akutem abdominalem Schmerz",
+  "description": "Anamnesegespräch mit einem Patienten, der sich mit Bauchschmerzen vorstellt. Ziel ist eine strukturierte Schmerzanamnese, das Erkennen möglicher Red Flags und die Einordnung der Beschwerden zur weiteren Diagnostik. Das Gespräch findet in der Notaufnahme oder Ambulanz statt.",
+  "scenario_type": "history_consultation",
+  "core_item_overrides": {
+    "CC02": "NA",
+    "CC08": "NA"
+  },
+  "_override_rationale": {
+    "CC02": "Primary survey: not applicable — patient is clinically stable and scenario focuses on structured history rather than ABCDE assessment",
+    "CC08": "Immediate stabilisation: not applicable — no resuscitative intervention expected in this communication-focused station"
+  },
+  "items": [
+    {
+      "id": "CS01",
+      "name": "Schmerzlokalisation erfragt",
+      "category": "Schmerzanamnese",
+      "description": "Fragt nach der genauen Lokalisation der Bauchschmerzen (z.B. Oberbauch, Unterbauch, rechts/links, diffus). Kann den Patienten bitten, mit dem Finger auf die schmerzhafteste Stelle zu zeigen.",
+      "critical": true
+    },
+    {
+      "id": "CS02",
+      "name": "Beginn und zeitlicher Verlauf geklärt",
+      "category": "Schmerzanamnese",
+      "description": "Erfragt Beginn der Schmerzen (plötzlich vs. schleichend), Dauer und zeitlichen Verlauf. Klärt, ob sich die Schmerzen verschlimmern, gleich bleiben oder episodisch auftreten.",
+      "critical": true
+    },
+    {
+      "id": "CS03",
+      "name": "Schmerzcharakter beschrieben",
+      "category": "Schmerzanamnese",
+      "description": "Erfragt den Charakter der Schmerzen (z.B. stechend, krampfartig, dumpf, kolikartig) und lässt den Patienten den Schmerz in eigenen Worten beschreiben.",
+      "critical": true
+    },
+    {
+      "id": "CS04",
+      "name": "Schmerzstärke erfasst",
+      "category": "Schmerzanamnese",
+      "description": "Erfasst die Intensität der Schmerzen, z.B. mittels numerischer Ratingskala (0–10).",
+      "critical": false
+    },
+    {
+      "id": "CS05",
+      "name": "Ausstrahlung der Schmerzen erfragt",
+      "category": "Schmerzanamnese",
+      "description": "Fragt, ob die Schmerzen in andere Regionen ausstrahlen (z.B. Rücken, Schulter, Leiste).",
+      "critical": false
+    },
+    {
+      "id": "CS06",
+      "name": "Begleitsymptome erhoben",
+      "category": "Systemanamnese",
+      "description": "Erfragt relevante Begleitsymptome wie Übelkeit, Erbrechen, Fieber, Durchfall, Obstipation, Appetitverlust oder Blähungen.",
+      "critical": true
+    },
+    {
+      "id": "CS07",
+      "name": "Urogenitale / gynäkologische Symptome erfragt",
+      "category": "Differenzialdiagnostik",
+      "description": "Erfragt mögliche urogenitale Symptome (Dysurie, Hämaturie) sowie – bei entsprechender Patientengruppe – gynäkologische Aspekte wie letzte Menstruation, Schwangerschaftsmöglichkeit oder vaginalen Ausfluss.",
+      "critical": true
+    },
+    {
+      "id": "CS08",
+      "name": "Vorherige Episoden und Vorerkrankungen erfragt",
+      "category": "Vorgeschichte",
+      "description": "Fragt nach ähnlichen früheren Beschwerden, bekannten gastrointestinalen Erkrankungen (z.B. Gallensteine, Gastritis, Appendizitis) oder vorausgegangenen Operationen im Bauchraum.",
+      "critical": true
+    },
+    {
+      "id": "CS09",
+      "name": "Medikamentenanamnese erhoben",
+      "category": "Vorgeschichte",
+      "description": "Erfragt aktuelle Medikamente (z.B. NSAR), die Bauchschmerzen verursachen oder beeinflussen könnten.",
+      "critical": false
+    },
+    {
+      "id": "CS10",
+      "name": "Zusammenfassung und weiterer Plan erklärt",
+      "category": "Strukturierung",
+      "description": "Fasst die wichtigsten Punkte der Anamnese zusammen und erklärt dem Patienten die nächsten diagnostischen Schritte (z.B. körperliche Untersuchung, Bluttests, Bildgebung).",
+      "critical": true
+    }
+  ]
+}

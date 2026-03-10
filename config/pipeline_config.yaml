@@ -16,7 +16,8 @@ pipeline:
 paths:
   output_dir: "data/reports"
   processed_dir: "data/processed"
-  template_dir: "templates"
+  scenario_catalog: "templates/scenario_catalog.json"
+  clinical_modules_dir: "templates/clinical_modules"
 
 # --------------------------------------------------------------------------
 # Stage 1: Data Ingestion
@@ -41,6 +42,11 @@ ingest:
   composite_video:
     enabled: true
     layout: "2x2"                 # 4-quadrant grid
+    # Which quadrant to run video analysis on (NVB / MediaPipe).
+    # Recorded into inventory.json during ingestion so it's auditable.
+    # Override per-session by adding "video_analysis_quadrant" to metadata.json.
+    # Valid values: top_left | top_right | bottom_left | bottom_right
+    video_analysis_quadrant: "bottom_right"   # side camera — clinician visible
     quadrants:
       top_left: "overhead_camera"
       top_right: "patient_monitor"
@@ -56,19 +62,44 @@ ingest:
 # Stage 2: ASR (Whisper)
 # --------------------------------------------------------------------------
 asr:
-  model_type: "Whisper"   
-  model_name: "large-v3"          # Whisper model variant
-  device: "cuda"                  # "cpu", "cuda", "auto"
-  compute_type: "float16"         # "float16", "int8", "float32"
-  beam_size: 5
-  language: "de"
-  # Diarization via pyannote
+  model_name: large-v3
+  language: de
+  batch_size: 8
+  device: cuda
+  suppress_numerals: false
   diarization:
     enabled: true
-    model: "pyannote/speaker-diarization-3.1"
-    min_speakers: 2
-    max_speakers: 3
+    repo_path: /home/malhaskir/projects/whisper-diarization
+    no_stem: false   # set true to skip Demucs separation (faster but worse)
+
+    # Set num_speakers to the exact expected count for best accuracy.
+    # When set, min_speakers / max_speakers are ignored by pyannote.
+    # For clinician + parent/guardian scenarios this is always 2.
+    num_speakers: 2
+    min_speakers: 2           # fallback if num_speakers is removed
+    max_speakers: 2
     hf_token_env: "HF_TOKEN"
+    # ECAPA-TDNN re-clustering after pyannote.
+    # Disabled: notebook experiments showed both speakers occupy the same
+    # region in ECAPA embedding space (room mic reverb, similar female voices).
+    # K-means overrides pyannote with a worse split. Keep false unless
+    # you have close-talk microphones or clearly different-gender speakers.
+    ecapa_recluster: false
+    # Optional pyannote internal hyperparameters.
+    # Uncomment and tune if diarization is still poor after setting num_speakers.
+    # segmentation.threshold: lower value → more segments detected (default ~0.5)exp
+    # clustering.threshold:   lower value → stricter speaker separation (default ~0.7)
+    # hyperparameters:
+    #   segmentation:
+    #     threshold: 0.4
+    #   clustering:
+    #     threshold: 0.65
+
+  # LLM-based speaker relabeling: maps SPEAKER_XX → ARZT / BEGLEITUNG using
+  # conversational context (who introduces themselves, who explains procedures).
+  # Runs after diarization merge, reuses the top-level `llm` backend config.
+  speaker_relabeling:
+    enabled: true
 
 # --------------------------------------------------------------------------
 # Stage 3: Feature Extraction
@@ -94,6 +125,9 @@ features:
 video_analysis:
   enabled: true
   sample_fps: 10
+  # Fallback quadrant if inventory.json does not specify one.
+  # Rarely needed — prefer setting video_analysis_quadrant under ingest.composite_video.
+  preferred_quadrant: "bottom_left"
 
 # --------------------------------------------------------------------------
 # Stage 4: LLM Analysis
@@ -101,19 +135,21 @@ video_analysis:
 llm:
   # Model configuration — local inference via llama-cpp-python or vLLM
   backend: "llama_cpp"            # "llama_cpp" or "vllm"
-  model_path: "/home/malhaskir/projects/simulation/models/qwen2.5-32b-instruct-q8_0-00001-of-00009.gguf"
-
+  model_path: "/data/malhaskir/simdata/models/qwen2.5-32b-instruct-q8_0-00001-of-00009.gguf"
+  #model_path: "/data/malhaskir/simdata/models/Qwen2.5-72B-Instruct-IQ4_XS.gguf"
+  #model_path: "/data/malhaskir/simdata/models/Meta-Llama-3.1-70B-Instruct-IQ4_XS.gguf"
+  enabled: true
   #model_path: "models/qwen2.5-32b-instruct-q8_0-00001-of-00009.gguf"  # Path to local model weights
   #model_path: "models/qwen2.5-32b-instruct-q8_0-00001-of-00009.gguf"  # Path to local model weights
 
   # For vLLM backend:
   # model_name: "meta-llama/Llama-3.1-8B-Instruct"
-  context_length: 35000
+  context_length: 32768 # 35000 20000
   temperature: 0.0                # Deterministic output
   enforce_eager: true 
   top_p: 1.0
   seed: 42
-  max_tokens: 4096
+  max_tokens: 10000
 
   # Assessment domains (mapped to LUCAS scale)
   domains:
@@ -156,8 +192,10 @@ llm:
           5: "Excellent"
       weight: 0.8
 
-  # Prompt template file (Jinja2)
-  prompt_template: "templates/LUCAS.j2"
+  # Prompt template files (Jinja2) — tracked in freeze manifest
+  spikes_template: "templates/spikes_prompt.j2"
+  lucas_template: "templates/lucas_prompt.j2"
+  clinical_content_template: "templates/clinical_content_prompt.j2"
 
 # --------------------------------------------------------------------------
 # Stage 5: Report Generation
@@ -185,3 +223,13 @@ evaluation:
     scale: [0, 100]
     noninferiority_margin: -15
     alpha: 0.025
+
+
+stages:
+  translate:
+    enabled: true
+    max_tokens: 10000
+    min_length: 10
+    fields_to_skip: []   # uses built-in skip list; add custom keys here if needed
+    backend: "llama_cpp"            # "llama_cpp" or "vllm"
+    model_path: "/data/malhaskir/simdata/models/qwen2.5-32b-instruct-q8_0-00001-of-00009.gguf"
