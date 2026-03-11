@@ -197,6 +197,27 @@ GESPRÄCHSKONTEXT:
 - SPEAKER_01 = Bezugsperson / Angehöriger (nicht bewertet)
 - Das Gespräch findet mit der Bezugsperson statt, NICHT direkt mit dem Patienten.
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EVIDENCE-FORMAT-REGEL — gilt für ALLE Items, keine Ausnahmen:
+
+Jeder evidence-Eintrag ist ein wörtliches Transkriptzitat in einem der beiden Formate:
+
+  Format A (Einzelaussage):
+    "[MM:SS] SPEAKER_00: 'Zitat'"
+
+  Format B (Interaktionspaar — bevorzugt bei F, G, H):
+    "[MM:SS] SPEAKER_01: 'Stimulus' → SPEAKER_00: 'Reaktion'"
+
+VERBOTEN in evidence-Einträgen (gehört ausschließlich in justification):
+  ✗ Kriterium-Checklisten   (z.B. "Kriterium 1 — D1: gaze=...")
+  ✗ Scan-Ergebnisse         (z.B. "Fachbegriff-Scan: X → proaktiv")
+  ✗ Elementprüfungen        (z.B. "i) Begrüßung: vorhanden — Beleg: ...")
+  ✗ Analytische Bewertungen (z.B. "fehlt — kein Identifikator")
+  ✗ Platzhalter             (z.B. "[x]", "<Wert>")
+
+Die justification enthält die Analyse; evidence enthält nur saubere Transkriptzitate.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown, kein Text davor/danach.
 """
 
@@ -306,7 +327,7 @@ Antworte mit:
       "rating": <0 oder 1>,
       "rating_label": "<Competent|Unacceptable>",
       "justification": "<Vier-Elemente-Format zwingend>",
-      "evidence": ["<[MM:SS] Zitat>"],
+      "evidence": ["<[MM:SS] SPEAKER_00: 'Zitat'>"],
       "strengths": [],
       "gaps": [],
       "next_steps": [],
@@ -317,7 +338,7 @@ Antworte mit:
       "rating": <0 oder 1>,
       "rating_label": "<Competent|Unacceptable>",
       "justification": "...",
-      "evidence": [],
+      "evidence": ["<[MM:SS] SPEAKER_00: 'Zitat für i)'>", "<[MM:SS] SPEAKER_00: 'Zitat für ii)'>"],
       "strengths": [],
       "gaps": [],
       "next_steps": [],
@@ -472,14 +493,16 @@ arm_deviation_median ≤ -0.5 → nicht erfüllt
 - Ein Kriterium nicht erfüllt → D:1
 - reliability=low → D:1 maximum
 
-PFLICHT-Justification-Format:
+PFLICHT-Justification-Format (ersetze alle Platzhalter durch tatsächliche Werte aus den NVB-Daten):
 ```
-Kriterium 1 — D1: gaze=[x]%, data_availability=[x]% → [erfüllt / nicht erfüllt (< 75% → D:2 gesperrt)]
-Kriterium 2 — D2: horizon_valid=[x], D2_reliability=[x], at_eye_level=[x]%, above=[x]% → [erfüllt / nicht erfüllt / nicht anwendbar]
-Kriterium 3 — D3: arm_deviation_median=[x] → [erfüllt / nicht erfüllt]
-Gesamtreliability: [x]
-Rating-Entscheidung: [Begründung] → D:[x]
+Kriterium 1 — D1: gaze=<konkreter Prozentwert>%, data_availability=<konkreter Prozentwert>% → <erfüllt ODER nicht erfüllt>
+Kriterium 2 — D2: horizon_valid=<true/false>, D2_reliability=<Wert>, at_eye_level=<Wert>%, above=<Wert>% → <erfüllt / nicht erfüllt / nicht anwendbar>
+Kriterium 3 — D3: arm_deviation_median=<Wert> → <erfüllt ODER nicht erfüllt>
+Gesamtreliability: <Wert>
+Rating-Entscheidung: <Begründung> → D:<0/1/2>
 ```
+
+⚠ Wenn die NVB-Daten "Keine Videodaten verfügbar" sind: Schreibe in justification: "Keine Videodaten verfügbar — Item D nicht beurteilbar." und vergib D:1. Verwende NIEMALS Platzhalter wie [x] im Output.
 
 ---
 
@@ -523,11 +546,11 @@ Antworte mit:
       "item": "D",
       "rating": <0, 1 oder 2>,
       "rating_label": "<Competent|Borderline|Unacceptable>",
-      "justification": "<Pflicht-Format zwingend>",
+      "justification": "<Kriterien-Analyse mit konkreten Metrikwerten — Pflicht-Format zwingend>",
       "evidence": [
-        "<D1 Blickkontakt Metrik-String>",
-        "<D2 Positionierung Metrik-String>",
-        "<D3 Haltung Metrik-String>"
+        "[video] D1: gaze=<Wert>%, data_availability=<Wert>%, reliability=<Wert>",
+        "[video] D2: at_eye_level=<Wert>%, above=<Wert>%, reliability=<Wert>",
+        "[video] D3: arm_deviation_median=<Wert>, reliability=<Wert>"
       ],
       "strengths": [],
       "gaps": [],

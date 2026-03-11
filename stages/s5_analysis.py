@@ -649,7 +649,11 @@ class LLMAnalysisStage(BaseStage):
             return None
 
         if len(loaded) == 1:
-            return loaded[0]
+            m = loaded[0]
+            label = m.get("name") or m.get("id", "?")
+            for item in m.get("items", []):
+                item.setdefault("_source_module", label)
+            return m
 
         merged: dict = {
             "id":              scenario_id,

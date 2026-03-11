@@ -482,77 +482,111 @@ class ReportGenerationStage(BaseStage):
                     '</div>'
                 )
 
-            # Score boxes
-            miss_cls = "has-miss" if has_miss else ""
-            score_boxes = (
-                f'<div class="cc-score-box {miss_cls}">'
-                f'<div class="cc-score-label">Clinical Score</div>'
-                f'<div class="cc-score-num">{raw_score}/{max_score}</div>'
-                f'<div class="cc-score-pct">{pct}%</div>'
-                '</div>'
-            )
-            for cat, cpct in cat_pcts.items():
-                score_boxes += (
-                    f'<div class="cc-score-box">'
-                    f'<div class="cc-score-label">{cat}</div>'
-                    f'<div class="cc-score-num">{cpct}%</div>'
-                    '</div>'
-                )
-
-            # Item table — group by category
             from itertools import groupby
+
             def _cc_rating_cls(r):
                 if r == "NA": return "cc-rating-na"
                 if r == 2:    return "cc-rating-2"
                 if r == 1:    return "cc-rating-1"
                 return "cc-rating-0"
 
-            cc_items_sorted = sorted(cc_items, key=lambda x: x.get("category",""))
-            table_rows = ""
-            for cat_name, grp in groupby(cc_items_sorted, key=lambda x: x.get("category","")):
-                table_rows += (
-                    f'<tr class="cc-cat-header">'
-                    f'<td colspan="4">{cat_name}</td></tr>'
+            # Compute per-category raw / max scores from items directly
+            cat_raw: dict[str, int] = {}
+            cat_max: dict[str, int] = {}
+            for item in cc_items:
+                cat = item.get("category", "")
+                if item.get("rating") not in (None, "NA"):
+                    cat_raw[cat] = cat_raw.get(cat, 0) + int(item["rating"])
+                    cat_max[cat] = cat_max.get(cat, 0) + 2
+
+            # Build one section block per category (preserving insertion order)
+            seen_cats: list[str] = []
+            for item in cc_items:
+                c = item.get("category", "")
+                if c not in seen_cats:
+                    seen_cats.append(c)
+
+            module_blocks = ""
+            for cat_name in seen_cats:
+                cat_items = [i for i in cc_items if i.get("category", "") == cat_name]
+                c_raw  = cat_raw.get(cat_name, 0)
+                c_max  = cat_max.get(cat_name, 0)
+                c_pct  = round(c_raw / c_max * 100, 1) if c_max else "—"
+                c_miss = has_miss and any(
+                    i.get("critical") and i.get("rating") == 0
+                    for i in cat_items
                 )
-                for item in grp:
+                miss_cls = "has-miss" if c_miss else ""
+
+                rows = ""
+                for item in cat_items:
                     r         = item["rating"]
                     r_cls     = _cc_rating_cls(r)
                     r_str     = str(r) if r != "NA" else "NA"
+                    max_pts   = "2" if r != "NA" else "—"
                     is_crit   = item.get("critical", False)
-                    is_miss   = is_crit and r == 0
+                    is_miss_i = is_crit and r == 0
                     is_wrong  = item.get("wrong", False)
-                    row_cls   = "cc-critical-miss" if is_miss else ("cc-wrong" if is_wrong else "")
+                    row_cls   = "cc-critical-miss" if is_miss_i else ("cc-wrong" if is_wrong else "")
                     crit_badge = '<span class="cc-crit-badge">CRITICAL</span>' if is_crit else ""
                     ev_text   = "; ".join(item.get("evidence", [])[:2]) or "—"
-                    table_rows += (
+                    rows += (
                         f'<tr class="{row_cls}">'
                         f'<td><strong>{item["id"]}</strong>{crit_badge}</td>'
                         f'<td>{item["name"]}</td>'
-                        f'<td class="{r_cls}" style="text-align:center;white-space:nowrap;">{r_str}/2</td>'
-                        f'<td>{item["justification"]} <em style="color:#94a3b8;font-size:11px;">{ev_text}</em></td>'
+                        f'<td class="{r_cls}" style="text-align:center;white-space:nowrap;">'
+                        f'{r_str}/{max_pts}</td>'
+                        f'<td>{item["justification"]} '
+                        f'<em style="color:#94a3b8;font-size:11px;">{ev_text}</em></td>'
                         '</tr>'
                     )
+
+                module_blocks += f"""
+              <div class="section-block" style="margin-bottom:24px;">
+                <div class="section-header">
+                  <span class="section-title">{cat_name}</span>
+                </div>
+                <div class="card-plain">
+                  <div class="cc-score-panel">
+                    <div class="cc-score-box {miss_cls}">
+                      <div class="cc-score-label">Score</div>
+                      <div class="cc-score-num">{c_raw}/{c_max}</div>
+                      <div class="cc-score-pct">{c_pct}%</div>
+                    </div>
+                  </div>
+                  <table class="cc-item-table">
+                    <thead><tr>
+                      <th style="width:70px">ID</th>
+                      <th>Item</th>
+                      <th style="width:60px;text-align:center">Score</th>
+                      <th>Justification &amp; Evidence</th>
+                    </tr></thead>
+                    <tbody>{rows}</tbody>
+                  </table>
+                </div>
+              </div>"""
+
+            # Combined summary line
+            miss_cls_total = "has-miss" if has_miss else ""
+            combined_summary = (
+                f'<div class="cc-score-panel" style="margin-bottom:8px;">'
+                f'<div class="cc-score-box {miss_cls_total}" style="opacity:0.85;">'
+                f'<div class="cc-score-label">Total Clinical Score</div>'
+                f'<div class="cc-score-num">{raw_score}/{max_score}</div>'
+                f'<div class="cc-score-pct">{pct}%</div>'
+                f'</div></div>'
+            )
 
             cc_html = f"""
             <div class="section-block">
               <div class="section-header">
                 <span class="section-title">Clinical Content Assessment</span>
               </div>
-              <div class="card-plain">
-                {banner_html}
-                <div class="cc-score-panel">{score_boxes}</div>
-                <p style="margin:0 0 12px;font-size:13px;color:#374151;">{overall_note}</p>
-                <table class="cc-item-table">
-                  <thead><tr>
-                    <th style="width:70px">ID</th>
-                    <th>Item</th>
-                    <th style="width:60px;text-align:center">Score</th>
-                    <th>Justification &amp; Evidence</th>
-                  </tr></thead>
-                  <tbody>{table_rows}</tbody>
-                </table>
-              </div>
-            </div>"""
+              {banner_html}
+              {combined_summary}
+              <p style="margin:0 0 16px;font-size:13px;color:#374151;">{overall_note}</p>
+            </div>
+            {module_blocks}"""
 
         # ── blank log lines ───────────────────────────────────────────────
         log_lines = "".join(
