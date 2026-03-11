@@ -437,5 +437,5 @@ This repository is made available for **research and academic use** under the te
 ---
 
 <p align="center">
-  RWTH Aachen University· Medical Informatics · Aachen<br/>
+  RWTH Aachen University · Medical Informatics · Aachen<br/>
 </p>
