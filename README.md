@@ -16,7 +16,7 @@ We present a deterministic, reproducible pipeline for automated assessment of co
 
 The pipeline integrates automatic speech recognition with speaker diarization (Whisper large-v3 + Pyannote), non-verbal behaviour analysis (MediaPipe computer vision), and multi-pass large language model inference (Qwen2.5-32B-Instruct, temperature = 0, seed = 42). All model weights, prompts, configuration, and random seeds are cryptographically locked in a **freeze manifest** prior to confirmatory analysis, ensuring full auditability and reproducibility in a clinical research context.
 
-> **Study context:** Prospective evaluation at the **RWTH Aachen Universtiy** (Department of Paediatrics, Wuppertal). Ethics committee reference: **S-44/2025**. The pipeline augments — but does not replace — instructor-led debriefings.
+> **Study context:** Prospective evaluation at the **RWTH Aachen Universtiy** (Medical Informatics). Ethics committee reference: **S-44/2025**. The pipeline augments — but does not replace — instructor-led debriefings.
 
 ---
 
