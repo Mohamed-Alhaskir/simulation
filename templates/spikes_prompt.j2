@@ -1,124 +1,340 @@
-Du bist ein Experte für medizinische Ausbildung und analysierst eine pädiatrische Simulationsübung anhand des **SPIKES-Protokolls** (Baile et al., 2000) für die Übermittlung schlechter Nachrichten. Deine Aufgabe ist es, das Transkript strukturiert gegen die sechs SPIKES-Schritte zu annotieren.
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES — Diagnoseübermittlung Diabetes Mellitus Typ 1** (Version 1.0, 09-10-2025). Deine Aufgabe ist es, das Transkript strukturiert gegen die 24 SPIKES-Checklistenpunkte zu bewerten.
 
-## SPIKES-Protokoll: Sechs Schritte
+## ⚠ GESPRÄCHSKONTEXT — BITTE ZUERST LESEN
 
-**S1 – Setting up (Vorbereitung)**
-Kliniker bereitet die Gesprächsumgebung **aktiv und nachweislich** vor. Erforderliche Belege im Transkript oder Video: explizite Sicherstellung von Privatsphäre (z.B. Tür schließen, Vorhang ziehen), Positionierung auf Augenhöhe des Patienten, Herstellen von Augenkontakt vor Gesprächsbeginn, Minimierung von Unterbrechungen (z.B. Handy stumm, Kollegen wegschicken), Kommunikation des Zeitrahmens.
-⚠ WICHTIG: S1 gilt NUR als vorhanden, wenn mindestens eines dieser Verhaltensweisen im Transkript oder in zuverlässigen Videometriken (reliability ≥ moderate) positiv belegt ist. Die bloße Abwesenheit von Hinweisen auf eine schlechte Umgebung genügt NICHT. Eine Selbstvorstellung des Klinikers ist kein Beleg für S1.
+Das Gespräch findet **NICHT** direkt mit dem Patienten statt.
+Der Kliniker (SPEAKER_00) spricht ausschließlich mit einer **Bezugsperson des Patienten** (SPEAKER_01) — in der Regel einem Elternteil oder Angehörigen.
+Der Patient selbst ist **abwesend** oder nicht gesprächsfähig.
 
-**P – Patient's Perception (Patientenwahrnehmung)**
-Vor der Mitteilung: offene Fragen, um zu verstehen, was der Patient bereits weiß oder erwartet (z.B. „Was wurde Ihnen bisher über Ihren Zustand mitgeteilt?"). Klärt Missverständnisse und Verleugnung.
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
 
-**I – Invitation (Einladung)**
-Kliniker holt die explizite oder implizite Erlaubnis des Patienten ein, Informationen zu teilen; erkundigt sich, wie viel Detail der Patient möchte (z.B. „Möchten Sie, dass ich Ihnen alle Details erkläre?").
+---
 
-**K – Knowledge (Wissensvermittlung)**
-Ankündigung vor der schlechten Nachricht (z.B. „Leider muss ich Ihnen mitteilen…"); verständliche Sprache ohne Fachjargon; Information in kleinen Schritten; regelmäßige Verständniskontrolle; keine falsche Beruhigung.
+## Bewertungsmaßstab
 
-**E – Exploring Emotions / Empathy (Empathie)**
-Kliniker erkennt emotionale Äußerungen des Patienten (Angst, Trauer, Wut, Überwältigung), benennt sie explizit, identifiziert den Grund und macht eine empathische Aussage. Setzt validierende und explorative Reaktionen ein. Lässt Stille zu. Übergeht emotionale Reaktionen NICHT.
-⚠ WICHTIG: Suche im Transkript aktiv nach allen Stellen, an denen der Patient Emotionen äußert (z.B. Angst vor Nadeln, Sorge um Kind, Überwältigung). Notiere für jede solche Stelle: a) den Zeitstempel und das Zitat, b) ob der Kliniker empathisch reagiert hat oder nicht. Nur wenn der Kliniker auf die Emotionen eingeht (benennt, validiert, exploriert) gilt E als vorhanden. Eine rein sachliche Antwort auf eine emotionale Äußerung gilt NICHT als E.
+⚠ **Szenariospezifische Bewertungshinweise — haben Vorrang vor den allgemeinen Regeln:**
 
-**S2 – Strategy and Summary (Strategie und Zusammenfassung)**
-Prüft Bereitschaft des Patienten für die Besprechung nächster Schritte; präsentiert Behandlungsoptionen; überprüft auf Missverständnisse; lädt den Patienten ein, Fragen zu stellen; fasst das Gespräch zusammen.
+{{ scoring_preamble }}
+
+**Allgemeine Skala:**
+- **2** = Verhalten klar und vollständig im Transkript belegt
+- **1** = Verhalten erkennbar angedeutet, aber unvollständig oder nur teilweise umgesetzt
+- **0** = Verhalten fehlt oder nicht erkennbar
+- **NA** = Nur bei konditionalen Items wenn die Bedingung im Gespräch NICHT eingetreten ist
+
+**Im Zweifel zwischen zwei Stufen wähle die niedrigere.**
+Score 2 erfordert einen positiven Transkriptbeleg — nicht nur die Abwesenheit eines Fehlers.
+
+---
+
+## Bewertungsitems
+
+{{ items_block }}
 
 ---
 
 ## Diarisiertes Transkript
 
-{{ transcript }}
+Sprecher-Legende:
+- SPEAKER_00 = Kliniker (wird bewertet)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht bewertet)
 
-## Diarisierte Interaktionsmetriken
+⚠ **Diarisierungshinweis:** Kurze Ein-Wort-Segmente wie „Genau", „Mhm", „Ja", „Okay" sind häufig falsch zugeordnet. Prüfe immer den Kontext des umgebenden Dialogs.
 
-{{ interaction }}
-
-## Gesprächsphasen
-
-{{ conversation_phases }}
-
-## Video-Analyse des non-verbalen Verhaltens
-
-{{ video_nvb_section }}
+{{ transcript_text }}
 
 ---
 
-## Aufgabe
+## Pflichtprozesse — ZWINGEND vor der Bewertung durchführen
 
-Für jeden der sechs SPIKES-Schritte:
-1. Bestimme, ob er durchgeführt wurde (present: true/false)
-2. Falls vorhanden: geschätzter Zeitbereich und konkrete Gesprächswendung(en) als Beleg
-3. Konkretes Zitat aus dem Transkript mit Zeitstempel als Nachweis (oder null wenn fehlend)
-4. Falls fehlend: Benenne die spezifischen Patientenäußerungen oder Situationen, auf die der Kliniker hätte reagieren sollen (mit Zeitstempeln)
-5. Beurteilung, ob die Schritte in korrekter Reihenfolge erfolgten (S1 → P → I → K → E → S2)
+### Emotionsscan (für Items DM_E_15 bis DM_E_19)
+Durchsuche das GESAMTE Transkript nach allen Äußerungen von SPEAKER_01, die Emotionen signalisieren (Angst, Sorge, Schock, Überwältigung, Ablehnung, Trauer). Notiere jeden Moment mit Zeitstempel. Prüfe für jeden Moment die unmittelbare Reaktion von SPEAKER_00:
+- **vollständig** — Emotion benannt/gespiegelt UND Raum gelassen
+- **teilweise** — Emotion kurz quittiert, sofort weitergemacht
+- **fehlend** — Emotion vollständig übergangen oder rein sachlich beantwortet
 
-Kritische Regeln:
-- **Beweispflicht**: present: true erfordert einen positiven Beleg im Transkript oder in zuverlässigen Videometriken. Fehlen von Gegenbeweisen reicht NICHT aus.
-- **S1**: Selbstvorstellung ≠ Setting up. Nur aktive Umgebungsvorbereitung zählt.
-- **E**: Suche explizit nach allen emotionalen Patientenäußerungen und prüfe, ob der Kliniker jeweils empathisch (nicht nur sachlich) reagiert hat. Zitiere alle übersehenen emotionalen Momente im note-Feld.
-- **overall_spikes_note**: Bewerte die Gesamtadhärenz realistisch. Fehlende Schritte sollen klar benannt werden, ohne das Gespräch zu beschönigen.
-- Unterscheide klar zwischen den Sprechern.
-- Sei präzise: ein teilweise erfüllter Schritt gilt nicht als vollständig vorhanden.
+Schreibe das Ergebnis in das note-Feld der betroffenen Items im Format:
+`Emotionsscan: [MM:SS] SPEAKER_01: "[Zitat]" → SPEAKER_00: "[Reaktion]" → vollständig/teilweise/fehlend`
 
-Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein zusätzlicher Text):
+### Konditionale Items
+Prüfe für jedes Item mit `type: conditional` ZUERST ob die Bedingung eingetreten ist:
+- Wenn die Bedingung NICHT eingetreten ist → rating: "NA", justification: "Bedingung nicht eingetreten: [kurze Erklärung]"
+- Wenn die Bedingung eingetreten ist → normal bewerten
+
+---
+
+## Anweisungen
+
+Bewerte jedes der 24 Items auf der 0/1/2/NA-Skala.
+
+Für jedes Item:
+- **rating**: 0, 1, 2 oder "NA"
+- **justification**: Ein bis zwei Sätze. Bei Score 0: beginne mit "Fehlt:" oder "FALSCH:" (wenn aktiv falsch). Bei Score 1: benenne explizit was vorhanden war UND was fehlte. Bei NA: "Bedingung nicht eingetreten."
+- **evidence**: 1-2 Transkriptzitate mit Zeitstempel [MM:SS]. Bei Score 0: "kein Beleg — nicht erwähnt". Bei NA: leer lassen.
+
+⚠ **Transkriptbindung:** Jedes evidence-Zitat MUSS einem tatsächlichen Segment im Transkript entsprechen. Interpoliere KEINE Zeitstempel. Wenn kein direktes Zitat gefunden werden kann: `"kein direktes Zitat — [kurze Beschreibung was inhaltlich gesagt wurde]"`.
+
+⚠ **Beweispflicht:** Score 2 erfordert einen positiven Transkriptbeleg. Die bloße Abwesenheit eines negativen Signals genügt nicht.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 
 {
-  "steps": [
+  "items": [
     {
-      "id": "S1",
-      "name": "Setting up",
-      "present": <true|false>,
-      "start_s": <Sekunden als Dezimalzahl oder null>,
-      "end_s": <Sekunden als Dezimalzahl oder null>,
-      "evidence": "<Zitat oder Paraphrase aus dem Transkript, oder null>",
-      "note": "<Was wurde gut gemacht, was fehlte oder war unvollständig>"
+      "id": "DM_S_1",
+      "item_no": 1,
+      "phase": "S",
+      "name": "Ungestörtheit sicherstellen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
     },
     {
-      "id": "P",
-      "name": "Patient's Perception",
-      "present": <true|false>,
-      "start_s": <float oder null>,
-      "end_s": <float oder null>,
-      "evidence": "<Zitat oder Paraphrase, oder null>",
-      "note": "<Bewertung>"
+      "id": "DM_S_2",
+      "item_no": 2,
+      "phase": "S",
+      "name": "Angehörige einbeziehen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
     },
     {
-      "id": "I",
-      "name": "Invitation",
-      "present": <true|false>,
-      "start_s": <float oder null>,
-      "end_s": <float oder null>,
-      "evidence": "<Zitat oder Paraphrase, oder null>",
-      "note": "<Bewertung>"
+      "id": "DM_S_3",
+      "item_no": 3,
+      "phase": "S",
+      "name": "Hinsetzen / Barrieren beseitigen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
     },
     {
-      "id": "K",
-      "name": "Knowledge",
-      "present": <true|false>,
-      "start_s": <float oder null>,
-      "end_s": <float oder null>,
-      "evidence": "<Zitat oder Paraphrase, oder null>",
-      "note": "<Bewertung>"
+      "id": "DM_S_4",
+      "item_no": 4,
+      "phase": "S",
+      "name": "Verbindung herstellen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
     },
     {
-      "id": "E",
-      "name": "Exploring Emotions / Empathy",
-      "present": <true|false>,
-      "start_s": <float oder null>,
-      "end_s": <float oder null>,
-      "evidence": "<Zitat oder Paraphrase, oder null>",
-      "note": "<Bewertung>"
+      "id": "DM_S_5",
+      "item_no": 5,
+      "phase": "S",
+      "name": "Zeitmanagement kommunizieren",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
     },
     {
-      "id": "S2",
-      "name": "Strategy and Summary",
-      "present": <true|false>,
-      "start_s": <float oder null>,
-      "end_s": <float oder null>,
-      "evidence": "<Zitat oder Paraphrase, oder null>",
-      "note": "<Bewertung>"
+      "id": "DM_P_6",
+      "item_no": 6,
+      "phase": "P",
+      "name": "Offene Frage zur Wahrnehmung",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_P_7",
+      "item_no": 7,
+      "phase": "P",
+      "name": "Missverständnisse erkennen und korrigieren",
+      "type": "conditional",
+      "condition": "Missverständnisse treten im Gespräch auf",
+      "rating": "<0, 1, 2 oder 'NA'>",
+      "justification": "<Begründung oder 'Bedingung nicht eingetreten'>",
+      "evidence": ["<[MM:SS] 'Zitat' oder leer bei NA>"]
+    },
+    {
+      "id": "DM_P_8",
+      "item_no": 8,
+      "phase": "P",
+      "name": "Unrealistische Erwartungen erkennen und korrigieren",
+      "type": "conditional",
+      "condition": "Unrealistische Erwartungen treten im Gespräch auf",
+      "rating": "<0, 1, 2 oder 'NA'>",
+      "justification": "<Begründung oder 'Bedingung nicht eingetreten'>",
+      "evidence": ["<[MM:SS] 'Zitat' oder leer bei NA>"]
+    },
+    {
+      "id": "DM_I_9",
+      "item_no": 9,
+      "phase": "I",
+      "name": "Informationswunsch besprechen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_K_10",
+      "item_no": 10,
+      "phase": "K",
+      "name": "Warnung vor schlechter Nachricht",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_K_11",
+      "item_no": 11,
+      "phase": "K",
+      "name": "Keine Fachbegriffe / angemessene Sprache",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_K_12",
+      "item_no": 12,
+      "phase": "K",
+      "name": "Keine drastische Wortwahl",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_K_13",
+      "item_no": 13,
+      "phase": "K",
+      "name": "Informationen in kleinen Schritten",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_K_14",
+      "item_no": 14,
+      "phase": "K",
+      "name": "Keine hoffnungslosen Phrasen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_E_15",
+      "item_no": 15,
+      "phase": "E",
+      "name": "Emotionen benennen oder erfragen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung mit Emotionsscan-Ergebnis>",
+      "evidence": ["<[MM:SS] SPEAKER_01: '[Emotion]' → SPEAKER_00: '[Reaktion]'>"]
+    },
+    {
+      "id": "DM_E_16",
+      "item_no": 16,
+      "phase": "E",
+      "name": "Grund der Emotionen identifizieren",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_E_17",
+      "item_no": 17,
+      "phase": "E",
+      "name": "Angemessene Pausen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_E_18",
+      "item_no": 18,
+      "phase": "E",
+      "name": "Connecting Statement",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_E_19",
+      "item_no": 19,
+      "phase": "E",
+      "name": "Empathische Reaktion bei anhaltender Trauer",
+      "type": "conditional",
+      "condition": "SP ist weiterhin traurig oder zeigt anhaltende Emotion",
+      "rating": "<0, 1, 2 oder 'NA'>",
+      "justification": "<Begründung oder 'Bedingung nicht eingetreten'>",
+      "evidence": ["<[MM:SS] 'Zitat' oder leer bei NA>"]
+    },
+    {
+      "id": "DM_S2_20",
+      "item_no": 20,
+      "phase": "S2",
+      "name": "Bereitschaft für Behandlungsplanung erfragen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_S2_21",
+      "item_no": 21,
+      "phase": "S2",
+      "name": "Statement gemeinsames Handeln",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_S2_22",
+      "item_no": 22,
+      "phase": "S2",
+      "name": "Verständnisfrage stellen",
+      "type": "standard",
+      "rating": "<0, 1 oder 2>",
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    },
+    {
+      "id": "DM_S2_23",
+      "item_no": 23,
+      "phase": "S2",
+      "name": "Unrealistische Erwartungen im Summary ansprechen",
+      "type": "conditional",
+      "condition": "Unrealistische Erwartungen treten im Abschlussteil auf",
+      "rating": "<0, 1, 2 oder 'NA'>",
+      "justification": "<Begründung oder 'Bedingung nicht eingetreten'>",
+      "evidence": ["<[MM:SS] 'Zitat' oder leer bei NA>"]
+    },
+    {
+      "id": "DM_S2_24",
+      "item_no": 24,
+      "phase": "S2",
+      "name": "Subjektive Ziele des SP aufgreifen",
+      "type": "conditional",
+      "condition": "Subjektive Ziele des SP kommen zur Sprache",
+      "rating": "<0, 1, 2 oder 'NA'>",
+      "justification": "<Begründung oder 'Bedingung nicht eingetreten'>",
+      "evidence": ["<[MM:SS] 'Zitat' oder leer bei NA>"]
     }
   ],
-  "sequence_correct": <true|false>,
-  "sequence_note": "<Beschreibung von Reihenfolgefehlern oder 'Korrekte Reihenfolge eingehalten'>",
-  "overall_spikes_note": "<2-3 Sätze Gesamtbewertung der SPIKES-Adhärenz>"
+  "conditional_items_triggered": {
+    "DM_P_7": "<true|false — Missverständnisse aufgetreten?>",
+    "DM_P_8": "<true|false — Unrealistische Erwartungen aufgetreten?>",
+    "DM_E_19": "<true|false — SP anhaltend traurig?>",
+    "DM_S2_23": "<true|false — Unrealistische Erwartungen im Summary?>",
+    "DM_S2_24": "<true|false — Subjektive Ziele zur Sprache gekommen?>"
+  },
+  "total_standard_items": 19,
+  "total_conditional_items": 5,
+  "overall_spikes_structure_note": "<2-3 Sätze Gesamtbewertung der SPIKES-Gesprächsstruktur>"
 }
