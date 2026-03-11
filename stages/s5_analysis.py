@@ -12,10 +12,11 @@ Pass 1 — SPIKES structural annotation  [scenario-conditional]
     Skipped for consent_conversation and history_consultation scenarios.
     When skipped, an empty stub is written so downstream passes remain stable.
 
-Pass 2 — LUCAS scoring
+Pass 2 — LUCAS scoring (multi-pass)
     Scores all ten LUCAS items (A-J) using the transcript, verbal features,
     video NVB features, and (when available) the SPIKES annotation from Pass 1.
-    Output: lucas_analysis.json.
+    Uses LucasMultipassScorer (7 sequential sub-passes) instead of a single
+    monolithic prompt. Output: lucas_analysis.json.
 
     LUCAS applies to ALL scenario types.
 
@@ -72,21 +73,6 @@ from utils.artifact_io import save_artifact, load_artifact
 # ------------------------------------------------------------------
 # Scenario registry
 # ------------------------------------------------------------------
-# Declares which passes apply to each scenario_id and which clinical
-# module files to load (merged in listed order).
-#
-# uses_spikes:
-#   True  → bad_news_delivery: SPIKES annotation runs as Pass 1 and its
-#            output feeds into LUCAS (items F, G, H) and the analysis.
-#   False → consent_conversation / history_consultation: SPIKES is skipped;
-#            a null stub is written to spikes_annotation.json so downstream
-#            code and report generation never need to branch on file existence.
-#
-# module_ids:
-#   List of filenames (without .json) under templates/clinical_modules/.
-#   Multiple entries are merged into a single item list for Pass 3.
-#   Empty list → Pass 3 is skipped entirely (no module, nothing to score).
-# ------------------------------------------------------------------
 
 _SCENARIO_CONFIG: dict[str, dict] = {
     "Diabetes": {
@@ -106,16 +92,12 @@ _SCENARIO_CONFIG: dict[str, dict] = {
     },
 }
 
-# Fallback config for unknown / unregistered scenario_ids.
-# No SPIKES, no module → Pass 3 will be skipped with a warning.
 _DEFAULT_SCENARIO_CONFIG: dict = {
     "uses_spikes": False,
     "module_ids": [],
     "display_name": "Unbekanntes Szenario",
 }
 
-# Null SPIKES stub — written when Pass 1 is skipped so downstream code
-# can always load spikes_annotation.json without branching.
 _SPIKES_NULL_STUB: dict = {
     "skipped": True,
     "reason": "SPIKES not applicable for this scenario type",
@@ -125,9 +107,6 @@ _SPIKES_NULL_STUB: dict = {
     "overall_spikes_note": "SPIKES pass was not run for this scenario.",
 }
 
-# Null Clinical Content stub — written when Pass 3 is skipped (no module
-# declared for the scenario) so downstream report generation never needs
-# to branch on file existence.
 _CC_NULL_STUB: dict = {
     "skipped": True,
     "reason": "No clinical content module declared for this scenario",
@@ -356,6 +335,7 @@ class LLMAnalysisStage(BaseStage):
     Pass routing is controlled by the scenario registry (_SCENARIO_CONFIG).
     SPIKES only runs for bad_news_delivery scenarios. Clinical content loads
     one or more scenario-specific modules and merges them before scoring.
+    LUCAS uses LucasMultipassScorer (7 sequential sub-passes).
     """
 
     def __init__(self, config: dict):
@@ -380,19 +360,12 @@ class LLMAnalysisStage(BaseStage):
         output_dir.mkdir(parents=True, exist_ok=True)
 
         # ── 1. Resolve scenario config ─────────────────────────────────
-        # Resolution order:
-        #   a) metadata["scenario"]["id"]  — set by Stage 1 at ingest
-        #   b) session_scenario_map.json   — fallback if Stage 1 didn't inject it
-        #      (also handles the case where Stage 1 ran before the map existed)
-        # In both cases the raw value is normalised to canonical casing so that
-        # "diabetes" and "Diabetes" both resolve to the same registry entry.
         _metadata = self._resolve_artifact(
             ctx.get("artifacts", {}).get("metadata")
         ) or {}
         scenario_id = _metadata.get("scenario", {}).get("id", "").strip()
 
         if not scenario_id:
-            # Stage 1 didn't inject a scenario_id — fall back to the mapping file.
             from utils.scenario_map import resolve_scenario_id
             session_id  = ctx.get("session_id", "")
             scenario_id = resolve_scenario_id(session_id)
@@ -407,7 +380,6 @@ class LLMAnalysisStage(BaseStage):
                     "Running with _DEFAULT_SCENARIO_CONFIG (SPIKES off, no modules)."
                 )
         else:
-            # Normalise whatever Stage 1 injected (guards against casing drift)
             from utils.scenario_map import _canonicalise
             canonical = _canonicalise(scenario_id)
             if canonical != scenario_id:
@@ -464,8 +436,6 @@ class LLMAnalysisStage(BaseStage):
                 f"{n_present}/{len(SPIKES_STEPS)} steps identified"
             )
         else:
-            # Write null stub so downstream code / report stage never needs
-            # to branch on whether the file exists.
             self.logger.info(
                 f"Pass 1: SPIKES skipped "
                 f"(scenario '{scenario_id}' is not a bad-news delivery)"
@@ -479,17 +449,13 @@ class LLMAnalysisStage(BaseStage):
             description="spikes_annotation", logger_instance=self.logger
         )
 
-        # ── 4. Pass 2 — LUCAS (always runs) ───────────────────────────
-        self.logger.info("Pass 2: LUCAS scoring")
-        lucas_prompt = self._build_lucas_prompt(context, spikes_annotation)
-        (output_dir / "lucas_prompt.txt").write_text(
-            lucas_prompt, encoding="utf-8"
-        )
-        lucas_raw = backend.generate(lucas_prompt, cfg)
-        (output_dir / "lucas_raw_output.txt").write_text(
-            lucas_raw, encoding="utf-8"
-        )
-        lucas_analysis = self._parse_output(lucas_raw, "lucas")
+        # ── 4. Pass 2 — LUCAS (multi-pass scorer) ─────────────────────
+        self.logger.info("Pass 2: LUCAS scoring (multipass)")
+        from stages.lucas_multipass import LucasMultipassScorer
+        lucas_scorer = LucasMultipassScorer(backend=backend, cfg=cfg)
+        lucas_context = dict(context)
+        lucas_context["spikes_annotation"] = spikes_annotation
+        lucas_analysis = lucas_scorer.score(lucas_context)
         self._validate_lucas(lucas_analysis)
 
         lucas_path = output_dir / "lucas_analysis.json"
@@ -503,14 +469,11 @@ class LLMAnalysisStage(BaseStage):
         # ── 5. Pass 3 — Clinical Content ───────────────────────────────
         self.logger.info("Pass 3: Clinical Content scoring")
 
-        # Load and merge all modules declared for this scenario.
-        # Returns None if no modules are declared or none could be loaded.
         merged_module = self._load_and_merge_modules(
             scenario_cfg["module_ids"], scenario_id
         )
 
         if merged_module is None:
-            # No module available — skip Pass 3 and write null stub.
             self.logger.warning(
                 f"Pass 3: skipped — no clinical content module found "
                 f"for scenario '{scenario_id}'"
@@ -568,7 +531,6 @@ class LLMAnalysisStage(BaseStage):
             description="analysis", logger_instance=self.logger
         )
 
-        # Propagate all artifacts into ctx
         ctx["artifacts"].update({
             "assembled_context":          context,
             "assembled_context_path":     str(context_path),
@@ -636,18 +598,6 @@ class LLMAnalysisStage(BaseStage):
         module_ids: list[str],
         scenario_id: str,
     ) -> dict | None:
-        """
-        Load one or more clinical module JSON files and merge them into a
-        single module dict for use in Pass 3.
-
-        Merge rules:
-        - `items` arrays are concatenated in declaration order.
-        - `name`, `description`, and `scenario_type` are taken from the first module.
-        - `_source_modules` records which files were loaded (for audit).
-        - Each item is tagged with `_source_module` for traceability.
-
-        Returns None if no module files could be loaded.
-        """
         if not module_ids:
             self.logger.info(
                 f"No module_ids declared for scenario '{scenario_id}'. "
@@ -688,7 +638,6 @@ class LLMAnalysisStage(BaseStage):
         if len(loaded) == 1:
             return loaded[0]
 
-        # ── Merge multiple modules ─────────────────────────────────────
         merged: dict = {
             "id":              scenario_id,
             "name":            loaded[0].get("name", scenario_id),
@@ -698,13 +647,11 @@ class LLMAnalysisStage(BaseStage):
             "items":           [],
         }
 
-        # Concatenate items — deduplicate by id (first occurrence wins)
         seen_ids: set[str] = set()
         for m in loaded:
             for item in m.get("items", []):
                 iid = item.get("id")
                 if iid and iid not in seen_ids:
-                    # Tag each item with its source module for traceability
                     tagged = dict(item)
                     tagged["_source_module"] = m.get("id", "?")
                     merged["items"].append(tagged)
@@ -717,7 +664,8 @@ class LLMAnalysisStage(BaseStage):
         return merged
 
     # ------------------------------------------------------------------
-    # Prompt builders
+    # Prompt builders (SPIKES and Clinical Content only)
+    # _build_lucas_prompt is superseded by LucasMultipassScorer.
     # ------------------------------------------------------------------
 
     def _build_spikes_prompt(self, context: dict) -> str:
@@ -750,53 +698,12 @@ class LLMAnalysisStage(BaseStage):
             video_nvb_section=video_nvb_section,
         )
 
-    def _build_lucas_prompt(
-        self, context: dict, spikes_annotation: dict
-    ) -> str:
-        transcript_text = self._format_transcript(context["diarized_transcript"])
-        verbal_summary  = json.dumps(
-            context["verbal_features"], indent=2, ensure_ascii=False
-        )
-        phases_summary  = json.dumps(
-            context["conversation_phases"], indent=2, ensure_ascii=False
-        )
-        spikes_summary  = json.dumps(spikes_annotation, indent=2, ensure_ascii=False)
-
-        if context.get("video_nvb"):
-            video_nvb_section = self._summarise_video_for_llm(context["video_nvb"])
-        else:
-            video_nvb_section = (
-                "## Nonverbale Verhaltensmetriken\n\n"
-                "_Videoanalyse nicht verfügbar. "
-                "Item D ausschließlich auf Basis des Transkripts bewerten. "
-                "Keine Aussagen über nonverbales Verhalten machen, die nicht "
-                "textuell belegbar sind._\n"
-            )
-
-        return self._render_template(
-            "lucas_prompt.j2",
-            transcript=transcript_text,
-            interaction=verbal_summary,
-            conversation_phases=phases_summary,
-            spikes_annotation=spikes_summary,
-            video_nvb_section=video_nvb_section,
-        )
-
     def _build_clinical_content_prompt(
         self, context: dict, merged_module: dict
     ) -> str:
-        """
-        Build Pass 3 prompt for clinical content scoring.
-
-        Scores only the items declared in the scenario module(s). There is
-        no generic core checklist — all items come from the PDF-derived
-        module files for this scenario. Only called when merged_module is
-        not None (caller guarantees this).
-        """
         module_items   = merged_module.get("items", [])
         source_modules = merged_module.get("_source_modules", [])
 
-        # ── Items block ────────────────────────────────────────────────
         if source_modules:
             items_block = (
                 f"## Bewertungsitems: {merged_module.get('name', '')}\n"
@@ -826,11 +733,9 @@ class LLMAnalysisStage(BaseStage):
                 )
             items_block += "\n"
 
-        # ── Transcript (capped at 300 segments to save tokens) ─────────
         transcript_segs = context["diarized_transcript"][:300]
         transcript_text = self._format_transcript(transcript_segs)
 
-        # ── JSON output schema — one entry per module item ─────────────
         schema_items = ""
         for item in module_items:
             schema_items += (
@@ -852,202 +757,6 @@ class LLMAnalysisStage(BaseStage):
             schema_items=schema_items,
             scoring_preamble=merged_module.get("scoring_preamble", ""),
         )
-
-    # ------------------------------------------------------------------
-    # Video NVB summariser
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _summarise_video_for_llm(video_features: dict) -> str:
-        """
-        Pre-interpret raw video metric dicts into concise German prose.
-        Prevents the LLM from hallucinating nonverbal observations.
-        """
-        lines = ["## Nonverbale Verhaltensmetriken (vorinterpretierte Videoanalyse)\n"]
-        lines.append(
-            "Die folgenden Metriken sind bereits interpretiert. "
-            "Sie sind die PRIMÄRE und einzige valide Evidenzquelle für Item D. "
-            "Am Ende dieses Abschnitts stehen vorformatierte evidence-Strings, "
-            "die direkt ins evidence-Feld von Item D kopiert werden sollen. "
-            "Für Item F (Empathie) und I (Professionelles Verhalten) dienen "
-            "sie als ergänzende Belege neben Transkriptzitaten.\n"
-        )
-
-        d1       = video_features.get("D1_eye_contact", {})
-        gaze     = d1.get("gaze_on_target", {})
-        gaze_rate = gaze.get("rate")
-        gaze_rel = d1.get("reliability", "unbekannt")
-        pct = level = None
-        if gaze_rate is not None:
-            pct = round(gaze_rate * 100)
-            level = "gut" if gaze_rate >= 0.75 else ("moderat" if gaze_rate >= 0.50 else "niedrig")
-            lines.append(
-                f"**Augenkontakt (D1):** {pct}% der detektierten Frames auf "
-                f"Gesprächspartner gerichtet → {level} (Zuverlässigkeit: {gaze_rel})"
-            )
-
-        d2      = video_features.get("D2_positioning", {})
-        h2p     = d2.get("Height_to_patient", {})
-        h2p_mean = h2p.get("mean")
-        d2_rel  = d2.get("reliability", "unbekannt")
-        if h2p_mean is not None:
-            pos_interp = (
-                "ungefähr auf Augenhöhe der Bezugsperson (günstige Positionierung)"
-                if h2p_mean <= 0.35
-                else "tendenziell höher als die Bezugsperson positioniert"
-            )
-            lines.append(
-                f"**Positionierung (D2):** Augenhöhe normalisiert = {round(h2p_mean, 3)} "
-                f"→ {pos_interp} (Zuverlässigkeit: {d2_rel})"
-            )
-
-        d3      = video_features.get("D3_posture", {})
-        arm_dev = d3.get("baseline_arm_deviation", {}).get("mean")
-        d3_rel  = d3.get("reliability", "unbekannt")
-        posture = None
-        if arm_dev is not None:
-            if abs(arm_dev) < 0.3:
-                posture = "offen/entspannt (nahe am individuellen Ruhewert)"
-            elif arm_dev < -0.3:
-                posture = "leicht geschlossen/angespannt (unter individuellem Ruhewert)"
-            else:
-                posture = "weit offen (über individuellem Ruhewert)"
-            lines.append(
-                f"**Körperhaltung / Armoffenheit (D3):** {posture} "
-                f"(mittlere Abweichung vom Ruhewert: {round(arm_dev, 2)}, "
-                f"Zuverlässigkeit: {d3_rel})"
-            )
-
-        d4         = video_features.get("D4_facial_expressions", {})
-        pos_expr   = d4.get("positive_expression_rate", {})
-        expr_rate  = pos_expr.get("rate")
-        d4_rel     = d4.get("reliability", "unbekannt")
-        pct_e = expr_level = None
-        if expr_rate is not None:
-            pct_e = round(expr_rate * 100)
-            expr_level = (
-                "erkennbar positiv/freundlich" if expr_rate >= 0.15
-                else ("überwiegend neutral" if expr_rate >= 0.05
-                      else "kaum positive Mimik")
-            )
-            lines.append(
-                f"**Mimik (D4):** positive Gesichtsausdruck-Rate = {pct_e}% "
-                f"→ {expr_level} (Zuverlässigkeit: {d4_rel})"
-            )
-
-        d5            = video_features.get("D5_gestures_and_mannerisms", {})
-        fidget        = d5.get("hand_movement_periodicity", {})
-        is_repetitive = fidget.get("is_repetitive", False)
-        fidget_strength = fidget.get("periodicity_strength")
-        d5_rel        = d5.get("reliability", "unbekannt")
-        fidget_str    = (
-            f"ja (Stärke: {round(fidget_strength, 2)})" if is_repetitive else "nein"
-        )
-        lines.append(
-            f"**Wiederholende Handbewegungen / Fidgeting (D5):** {fidget_str} "
-            f"(Zuverlässigkeit: {d5_rel})"
-        )
-
-        lines.append("")
-        if (gaze_rate is not None and gaze_rate >= 0.75
-                and arm_dev is not None and abs(arm_dev) < 0.3
-                and not is_repetitive):
-            lines.append(
-                "**Gesamteinschätzung NVB:** Alle Hauptindikatoren im positiven Bereich "
-                "→ nonverbales Verhalten ist förderlich für das Engagement. "
-                "Entspricht LUCAS D:2 (Competent), sofern keine konkreten "
-                "Transkripthinweise auf ablenkende Signale vorliegen."
-            )
-        elif (gaze_rate is not None and gaze_rate < 0.50) or is_repetitive:
-            lines.append(
-                "**Gesamteinschätzung NVB:** Mindestens ein Indikator deutlich auffällig "
-                "→ nonverbales Verhalten möglicherweise ablenkend. "
-                "Prüfe Transkript auf konkrete Hinweise vor Bewertung."
-            )
-        else:
-            lines.append(
-                "**Gesamteinschätzung NVB:** Gemischtes Bild — überwiegend positiv "
-                "mit einzelnen auffälligen Werten. "
-                "Transkriptkontext für D-Bewertung heranziehen."
-            )
-
-        # Phase-level flags
-        phase_summaries = video_features.get("phase_summaries", [])
-        phase_flags = []
-        for ph in phase_summaries:
-            ph_name    = ph.get("phase", "?")
-            ph_d5      = ph.get("D5_gestures_and_mannerisms", {})
-            ph_hmp     = ph_d5.get("hand_movement_periodicity", {})
-            ph_pitch   = ph_d5.get("head_movement", {}).get("pitch_periodicity", {})
-            ph_rel     = ph_d5.get("reliability", "unbekannt")
-            ph_d3      = ph.get("D3_posture", {})
-            ph_arm_dev = ph_d3.get("baseline_arm_deviation", {}).get("mean")
-            issues = []
-            if ph_hmp.get("is_repetitive"):
-                issues.append(
-                    f"Wiederholende Handbewegungen "
-                    f"(Stärke: {round(ph_hmp.get('periodicity_strength', 0), 2)})"
-                )
-            if ph_pitch.get("is_repetitive"):
-                issues.append(
-                    f"Wiederholende Kopfbewegungen/Pitch "
-                    f"(Stärke: {round(ph_pitch.get('periodicity_strength', 0), 2)})"
-                )
-            if ph_arm_dev is not None and ph_arm_dev < -0.5:
-                issues.append(
-                    f"Geschlossene Körperhaltung "
-                    f"(Armabweichung: {round(ph_arm_dev, 2)} SD)"
-                )
-            if issues:
-                phase_flags.append(
-                    f"  ⚠ Phase '{ph_name}': "
-                    + ", ".join(issues)
-                    + f" (Zuverlässigkeit: {ph_rel})"
-                )
-        if phase_flags:
-            lines.append("")
-            lines.append(
-                "**Phasenspezifische NVB-Auffälligkeiten** "
-                "(auch wenn Globalwert unauffällig ist):"
-            )
-            lines.extend(phase_flags)
-            lines.append(
-                "  → Phasenspezifische Signale in D-Bewertung berücksichtigen; "
-                "bei Dauer < 60s oder Stärke < 0.4 als Grenzfall behandeln."
-            )
-
-        # Pre-formatted evidence strings
-        lines.append("")
-        lines.append("## Vorformatierte evidence-Strings für Item D")
-        lines.append(
-            "Kopiere die folgenden Strings DIREKT in das evidence-Feld von Item D. "
-            "Ersetze sie NICHT durch Transkriptzitate. "
-            "Transkriptzitate sind für Item D UNGÜLTIG."
-        )
-        ev_lines = []
-        if pct is not None:
-            ev_lines.append(
-                f'- "Augenkontakt (D1): {pct}% der Frames auf Gesprächspartner '
-                f'gerichtet → {level} (Zuverlässigkeit: {gaze_rel})"'
-            )
-        if posture is not None:
-            ev_lines.append(
-                f'- "Körperhaltung (D3): {posture} '
-                f'(Abweichung vom Ruhewert: {round(arm_dev, 2)} SD, '
-                f'Zuverlässigkeit: {d3_rel})"'
-            )
-        ev_lines.append(
-            f'- "Wiederholende Handbewegungen / Fidgeting (D5): {fidget_str} '
-            f'(Zuverlässigkeit: {d5_rel})"'
-        )
-        if pct_e is not None:
-            ev_lines.append(
-                f'- "Mimik (D4): positive Ausdrucksrate {pct_e}% '
-                f'→ {expr_level} (Zuverlässigkeit: {d4_rel})"'
-            )
-        lines.extend(ev_lines)
-
-        return "\n".join(lines) + "\n"
 
     # ------------------------------------------------------------------
     # Shared helpers
@@ -1112,28 +821,34 @@ class LLMAnalysisStage(BaseStage):
         text = raw.strip()
         text = re.sub(r"^```(?:json)?\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-        text = self._take_first_json_object(text)
 
-        try:
-            return self._normalise_timestamps(self._cap_evidence(json.loads(text)))
-        except json.JSONDecodeError:
-            pass
-
-        match = re.search(r"\{[\s\S]*\}", text)
-        if match:
+        # Try every JSON object found in the raw text, in order.
+        # The LLM sometimes regenerates its response, producing two back-to-back
+        # objects; the first may be truncated while the second is complete.
+        # Brace-matching alone fails when the first object contains a literal
+        # "[...]" placeholder (unbalanced braces), so we also split on "} {"
+        # boundaries and try each segment independently.
+        candidates = list(self._iter_json_objects(text))
+        for boundary in re.finditer(r"\}\s*\{", text):
+            candidates.append(text[boundary.start() + 1:].lstrip())
+        for candidate in candidates:
             try:
-                return self._normalise_timestamps(
-                    self._cap_evidence(json.loads(match.group()))
-                )
+                return self._normalise_timestamps(self._cap_evidence(json.loads(candidate)))
             except json.JSONDecodeError:
-                pass
+                continue
 
-        try:
-            salvaged = self._salvage_corrupt_json(text, pass_name)
-            if salvaged:
+        # Salvage the first object as a last resort
+        first = self._take_first_json_object(text)
+        salvaged = self._salvage_corrupt_json(first, pass_name)
+        if salvaged:
+            try:
                 return self._normalise_timestamps(self._cap_evidence(salvaged))
-        except Exception:
-            pass
+            except Exception as exc:
+                self.logger.warning(
+                    f"{pass_name}: post-salvage processing failed ({exc}); "
+                    "returning salvaged dict unprocessed"
+                )
+                return salvaged
 
         self.logger.error(f"Failed to parse {pass_name} LLM output as JSON")
         return {"parse_error": True, "pass": pass_name, "raw_output": raw}
@@ -1162,6 +877,42 @@ class LLMAnalysisStage(BaseStage):
                 if depth == 0:
                     return text[: i + 1]
         return text
+
+    @staticmethod
+    def _iter_json_objects(text: str):
+        """Yield each top-level JSON object found in *text*, left to right."""
+        i = 0
+        while i < len(text):
+            if text[i] != "{":
+                i += 1
+                continue
+            depth = 0
+            in_string = False
+            escape_next = False
+            start = i
+            for j in range(i, len(text)):
+                ch = text[j]
+                if escape_next:
+                    escape_next = False
+                    continue
+                if ch == "\\" and in_string:
+                    escape_next = True
+                    continue
+                if ch == '"' and not escape_next:
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        yield text[start: j + 1]
+                        i = j + 1
+                        break
+            else:
+                break
 
     def _salvage_corrupt_json(self, text: str, pass_name: str) -> dict | None:
         import re as _re
@@ -1211,7 +962,6 @@ class LLMAnalysisStage(BaseStage):
         items_key = "items" if pass_name == "clinical_content" else "lucas_items"
         note_key  = "overall_clinical_note" if pass_name == "clinical_content" else "overall_summary"
 
-        # Strategy 1 — corrupt item removal
         arr_content = (
             _extract_array_content(text, "lucas_items")
             or _extract_array_content(text, "items")
@@ -1225,15 +975,15 @@ class LLMAnalysisStage(BaseStage):
                 return {
                     items_key: good_items,
                     "total_score": sum(
-                        i.get("rating", i.get("score", 0))
-                        for i in good_items
-                        if str(i.get("rating", "NA")).upper() != "NA"
+                        int(r) for i in good_items
+                        for r in [i.get("rating") if i.get("rating") is not None
+                                  else i.get("score", 0)]
+                        if r is not None and str(r).upper() != "NA"
                     ),
                     note_key: "[Salvaged — corrupt items removed]",
                     "_salvaged": True,
                 }
 
-        # Strategy 2 — truncation recovery
         for pattern, suffix in [
             (r"\}\s*,\s*\n", "\n  ]\n}"),
             (r"\}", "\n  ]\n}"),
@@ -1254,7 +1004,6 @@ class LLMAnalysisStage(BaseStage):
                 except json.JSONDecodeError:
                     continue
 
-        # Strategy 3 — pattern extraction
         item_matches = _re.findall(
             r'\{\s*"item"\s*:\s*"[A-J]"[\s\S]{20,500}?\}', text
         )
@@ -1392,16 +1141,9 @@ class LLMAnalysisStage(BaseStage):
     def _score_clinical_content(
         self, parsed: dict, merged_module: dict
     ) -> dict:
-        """
-        Post-process LLM clinical content output.
-
-        Scores only the items declared in the merged scenario module.
-        There is no generic core — all expected items come from the module.
-        """
         items = parsed.get("items") or parsed.get("lucas_items", [])
         scored_by_id = {i.get("id"): i for i in items if i.get("id")}
 
-        # Expected items are exactly what the module declares
         expected = [
             {
                 "id":       m["id"],

@@ -18,12 +18,13 @@
 8. [Stage 03 — Feature Extraction](#8-stage-03--feature-extraction)
 9. [Stage 04 — Video Analysis](#9-stage-04--video-analysis)
 10. [Stage 05 — LLM Analysis](#10-stage-05--llm-analysis)
-11. [Stage 07 — Report Generation](#11-stage-07--report-generation)
-12. [Assessment Frameworks](#12-assessment-frameworks)
-13. [LLM Backends](#13-llm-backends)
-14. [Configuration Reference](#14-configuration-reference)
-15. [Running the Pipeline](#15-running-the-pipeline)
-16. [Output File Structure](#16-output-file-structure)
+11. [Stage 06 — Translation (Optional)](#11-stage-06--translation-optional)
+12. [Stage 07 — Report Generation](#12-stage-07--report-generation)
+13. [Assessment Frameworks](#13-assessment-frameworks)
+14. [LLM Backends](#14-llm-backends)
+15. [Configuration Reference](#15-configuration-reference)
+16. [Running the Pipeline](#16-running-the-pipeline)
+17. [Output File Structure](#17-output-file-structure)
 
 ---
 
@@ -440,19 +441,32 @@ The LLM identifies whether each of the six SPIKES steps was performed, provides 
 - S1: Self-introduction ≠ Setting up; only active environment preparation counts
 - E: Must check every emotional patient utterance and whether the clinician responded empathically (not just factually)
 
-### Pass 2 — LUCAS Scoring
+### Pass 2 — LUCAS Scoring (Multi-pass)
 
-**Template:** [templates/lucas_prompt.j2](templates/lucas_prompt.j2)
+**Module:** [stages/lucas_multipass.py](stages/lucas_multipass.py) (`LucasMultipassScorer`)
+**Template:** [templates/lucas_prompt.j2](templates/lucas_prompt.j2) (default), alternative: [templates/lucas_prompt1.j2](templates/lucas_prompt1.j2)
 **Output:** `lucas_analysis.json`, `lucas_prompt.txt`, `lucas_raw_output.txt`
 
-The LLM scores all 10 LUCAS items (A–J) using the transcript, verbal features, phase data, SPIKES annotation from Pass 1, and NVB metrics.
+Instead of a single monolithic LLM call, LUCAS scoring is decomposed into **7 focused sub-passes** by `LucasMultipassScorer`. Passes 1–6 run independently (parallelisable); Pass 7 runs serially as the aggregation step.
 
-**Template variables:**
-- `{{ transcript }}` — same formatted transcript
-- `{{ interaction }}` — verbal features JSON
-- `{{ conversation_phases }}` — phase segmentation JSON
-- `{{ spikes_annotation }}` — Pass 1 result (provides sequencing evidence)
-- `{{ video_nvb_section }}` — pre-interpreted NVB prose
+| Sub-pass | Items | Scope |
+|----------|-------|-------|
+| 1 | A, B | Introductions only; first 3 minutes of transcript |
+| 2 | C, E | Fachbegriff (terminology) + Explorations scan; full transcript |
+| 3 | D | Video/NVB metrics only; no transcript used |
+| 4 | F, G | Emotion scan + Summarising/Clarification; full transcript |
+| 5 | H | Consulting style & organisation; full transcript + verbal metrics |
+| 6 | I, J | Professional conduct; full transcript |
+| 7 | All | Aggregation: compute total\_score, overall\_summary, dedup evidence |
+
+**Hard-rule validators** run after each sub-pass to correct threshold violations regardless of LLM output:
+
+| Item | Rule | Action |
+|------|------|--------|
+| D | Gaze rate < 75% → cannot score D:2 | Forced to D:1 with validator note in justification |
+| D | Overall video reliability = low → cannot score D:2 | Forced to D:1 |
+| G | Explicit "no clarification" marker in evidence → cannot score G > 0 | Forced to G:0 |
+| G | All evidence is reactive Q&A (Item E material) → cannot score G > 0 | Forced to G:0 |
 
 **LLM output schema:**
 ```json
@@ -461,8 +475,8 @@ The LLM scores all 10 LUCAS items (A–J) using the transcript, verbal features,
     {
       "item": "A",
       "name": "Greeting and introduction",
-      "score": 1,
-      "rating_label": "competent",
+      "rating": 1,
+      "rating_label": "Competent",
       "justification": "...",
       "evidence": ["[00:05] SPEAKER_00: Guten Tag, ich bin Dr. Müller..."],
       "strengths": ["..."],
@@ -476,9 +490,9 @@ The LLM scores all 10 LUCAS items (A–J) using the transcript, verbal features,
 }
 ```
 
-**Item-specific rules in the prompt:**
+**Item-specific rules enforced in prompts:**
 - Item D: NVB video metrics are the **primary and only valid evidence source**; the pre-formatted evidence string from the video summariser must be used verbatim
-- Item I: All evidence strings must cite only `SPEAKER_00` turns; no borderline — score is 0 or 2 only
+- Item I: All evidence strings must cite only `SPEAKER_00` turns; binary (0 or 2) — no borderline
 - Item J: Same binary scoring (0 or 2)
 
 ### Pass 3 — Clinical Content
@@ -552,7 +566,26 @@ After each LLM call, `_extract_json()` uses a regex to find the first valid JSON
 
 ---
 
-## 11. Stage 07 — Report Generation
+## 11. Stage 06 — Translation (Optional)
+
+**File:** [stages/s6_translate.py](stages/s6_translate.py)
+**Output dir:** `06_translate/` (when enabled)
+
+Translates LLM analysis outputs (LUCAS, SPIKES, clinical content) to other languages using the same LLM backend. Configured via `stages.translate` in the config:
+
+```yaml
+stages:
+  translate:
+    enabled: true         # Set false to skip entirely
+    max_tokens: 10000
+    backend: "llama_cpp"
+    model_path: "..."
+    fields_to_skip: []    # Custom keys to exclude from translation
+```
+
+---
+
+## 12. Stage 07 — Report Generation
 
 **File:** [stages/s7_report.py](stages/s7_report.py)
 **Output dir:** `07_report/`
@@ -591,7 +624,7 @@ Renders the LLM analysis into a standardised, blinded feedback report.
 
 ---
 
-## 12. Assessment Frameworks
+## 13. Assessment Frameworks
 
 ### LUCAS Scale (University of Liverpool Communication Assessment Scale)
 
@@ -642,7 +675,7 @@ Six-step framework for delivering bad news.
 
 ---
 
-## 13. LLM Backends
+## 14. LLM Backends
 
 **File:** [utils/llm_backends.py](utils/llm_backends.py)
 
@@ -653,7 +686,8 @@ Two backends are supported, selected via `llm.backend` in config.
 - Uses `llama-cpp-python` for local CPU/GPU inference
 - Loads GGUF model files (e.g., Qwen2.5-32B-Instruct Q8_0)
 - Model is lazy-loaded on first call and cached
-- Parameters: `n_ctx` (context window), `n_gpu_layers=-1` (all layers on GPU), `seed`
+- Parameters: `n_ctx` (context window), `n_gpu_layers=-1` (all layers on GPU), `seed`, flash attention enabled (saves ~10–15% VRAM)
+- **VRAM fallback ladder:** If the requested context length causes OOM, automatically retries at 16384 → 8192 → 4096 tokens
 - Cleanup: calls `model.close()` to release memory
 
 ### vllm
@@ -671,17 +705,19 @@ Two backends are supported, selected via `llm.backend` in config.
 | `seed` | 42 | Reproducibility |
 | `max_tokens` | 10000 | Sufficient for all three passes |
 | `context_length` | 32768 | Handles long transcripts + prompts |
+| `repetition_penalty` | 1.05 | Mild penalty to suppress repetitive LLM output |
+| `enforce_eager` | true | Disables CUDA graph capture in vLLM (improves stability) |
 
 ---
 
-## 14. Configuration Reference
+## 15. Configuration Reference
 
 All settings live in [config/pipeline_config.yaml](config/pipeline_config.yaml). This file is part of the freeze manifest — any change requires a version bump.
 
 ### `pipeline`
 ```yaml
 pipeline:
-  version: "0.1.0-dev"
+  version: "0.3.0"
   seed: 42
   language: "de"
 ```
@@ -698,29 +734,48 @@ paths:
 ```yaml
 ingest:
   accepted_video_formats: [".mp4", ".avi", ".mkv", ".mov"]
+  accepted_audio_formats: [".wav", ".mp3", ".flac", ".m4a"]
   min_duration_s: 30
   max_duration_s: 3600
   composite_video:
     enabled: true
     layout: "2x2"
+    video_analysis_quadrant: "top_right"   # Which quadrant MediaPipe runs on
+    quadrants:                              # Labels recorded to inventory.json
+      top_left: "overhead_camera"
+      top_right: "patient_monitor"
+      bottom_left: "side_camera"
+      bottom_right: "parent_eyetracking"
+  physio:
+    enabled: false
+  eyetracking:
+    enabled: false
 ```
+
+`video_analysis_quadrant` is recorded in `inventory.json` during ingestion (auditable). Can be overridden per-session by adding `"video_analysis_quadrant"` to that session's `metadata.json`.
 
 ### `asr`
 ```yaml
 asr:
-  model_type: "Whisper"
   model_name: "large-v3"
-  device: "cuda"
-  compute_type: "float16"
-  beam_size: 5
   language: "de"
+  batch_size: 8
+  device: "cuda"
+  suppress_numerals: false
   diarization:
     enabled: true
-    model: "pyannote/speaker-diarization-3.1"
+    repo_path: "/path/to/whisper-diarization"   # External whisper-diarization repo
+    no_stem: false          # true = skip Demucs source separation (faster but worse)
+    num_speakers: 2         # Set exact count for best accuracy; overrides min/max
     min_speakers: 2
-    max_speakers: 3
+    max_speakers: 2
     hf_token_env: "HF_TOKEN"
+    ecapa_recluster: false  # ECAPA-TDNN re-clustering; disabled by default (see config)
+  speaker_relabeling:
+    enabled: true           # LLM-based SPEAKER_XX → ARZT / BEGLEITUNG remapping
 ```
+
+**Speaker relabeling:** When enabled, a lightweight LLM call after diarization maps `SPEAKER_00`/`SPEAKER_01` to semantic labels (`ARZT`, `BEGLEITUNG`) using conversational context (who introduces themselves, who explains procedures). Reuses the top-level `llm` backend config.
 
 ### `features`
 ```yaml
@@ -730,25 +785,30 @@ features:
     pause_threshold_s: 2.0
     compute_interruptions: true
   monitor_ocr:
-    enabled: true      # Placeholder — not yet implemented
+    enabled: false     # NOT YET IMPLEMENTED — placeholder only
 ```
 
 ### `video_analysis`
 ```yaml
 video_analysis:
   enabled: true
-  sample_fps: 10       # Frames per second sampled for MediaPipe
+  sample_fps: 10           # Frames per second sampled for MediaPipe
+  preferred_quadrant: "bottom_left"  # Fallback if inventory.json has no quadrant set
 ```
 
 ### `llm`
 ```yaml
 llm:
-  backend: "llama_cpp"
-  model_path: "/data/.../qwen2.5-32b-instruct-q8_0.gguf"
+  backend: "llama_cpp"           # "llama_cpp" or "vllm"
+  model_path: "/path/to/model.gguf"
+  enabled: true
   context_length: 32768
-  temperature: 0.0
+  temperature: 0.0               # Deterministic output (greedy decoding)
+  top_p: 1.0
   seed: 42
   max_tokens: 10000
+  repetition_penalty: 1.05       # Mild repetition penalty
+  enforce_eager: true            # Disables CUDA graph capture (vLLM)
   spikes_template: "templates/spikes_prompt.j2"
   lucas_template: "templates/lucas_prompt.j2"
   clinical_content_template: "templates/clinical_content_prompt.j2"
@@ -777,7 +837,7 @@ evaluation:
 
 ---
 
-## 15. Running the Pipeline
+## 16. Running the Pipeline
 
 ### Prerequisites
 
@@ -855,7 +915,7 @@ If `metadata.json` is absent, the pipeline auto-generates one from `templates/sc
 
 ---
 
-## 16. Output File Structure
+## 17. Output File Structure
 
 ```
 data/reports/session_001/

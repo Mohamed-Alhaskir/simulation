@@ -6,13 +6,7 @@ Extracts structured features from the diarized transcript:
   - Pause analysis (meaningful silences)
   - Interruption detection
   - Speaker ratios and conversation dynamics
-  - Conversation phase segmentation
 
-Optionally extracts vitals from the patient monitor quadrant via OCR
-(top-right quadrant of the composite video).
-
-Note: No separate physio or eye-tracking CSV files exist in this setup.
-      Eye-tracking is only visible in the bottom-right video quadrant.
 
 Profile assembly (combining transcript, verbal features, and video features
 into a single LLM-ready context) is handled by Stage 5 (LLMAnalysisStage),
@@ -47,31 +41,6 @@ class FeatureExtractionStage(BaseStage):
             f"Verbal features: {features['verbal']['summary']['total_turns']} turns, "
             f"{features['verbal']['summary']['total_speakers']} speakers"
         )
-
-        # ---- Conversation phase segmentation ----
-        # Phases are computed here so Stage 3b (video analysis) can use them
-        # for per-phase NVB summaries via ctx["artifacts"]["features"]["phases"].
-        features["phases"] = self._segment_conversation_phases(
-            features["verbal"]["turns"]
-        )
-        self.logger.info(
-            f"Conversation phases: {len(features['phases'])} phases detected"
-        )
-
-        # ---- Patient monitor OCR (optional) ----
-        monitor_cfg = cfg.get("monitor_ocr", {})
-        if monitor_cfg.get("enabled", False):
-            quadrants = ctx["artifacts"].get("inventory", {}).get("quadrants", {})
-            monitor_video = quadrants.get("top_right")
-            if monitor_video:
-                features["vitals"] = self._extract_vitals_ocr(monitor_video)
-                if features["vitals"]:
-                    self.logger.info("Patient monitor vitals extracted via OCR")
-            else:
-                self.logger.info("No monitor quadrant available, skipping OCR")
-                features["vitals"] = None
-        else:
-            features["vitals"] = None
 
         # ---- Save features ----
         features_path = output_dir / "features.json"
@@ -208,71 +177,3 @@ class FeatureExtractionStage(BaseStage):
             "interruptions": interruptions,
             "summary": summary,
         }
-
-    # ------------------------------------------------------------------
-    # Conversation phase segmentation
-    # ------------------------------------------------------------------
-    def _segment_conversation_phases(self, turns: list[dict]) -> list[dict]:
-        """
-        Simple heuristic segmentation of conversation into phases:
-        opening, main_consultation, summary_and_plan, closing.
-
-        Based on temporal position within the conversation.
-
-        Note: This is a time-based heuristic, not content-based. It is
-        deterministic and auditable but may not reflect actual clinical
-        structure for atypically short or long consultations. Phase labels
-        should be treated as approximate in downstream analysis.
-        """
-        if not turns:
-            return []
-
-        total_duration = turns[-1]["end"] - turns[0]["start"]
-        if total_duration <= 0:
-            return []
-
-        phases = []
-        for turn in turns:
-            relative_pos = (turn["start"] - turns[0]["start"]) / total_duration
-
-            if relative_pos < 0.10:
-                phase = "opening"
-            elif relative_pos < 0.70:
-                phase = "main_consultation"
-            elif relative_pos < 0.90:
-                phase = "summary_and_plan"
-            else:
-                phase = "closing"
-
-            if not phases or phases[-1]["phase"] != phase:
-                phases.append({
-                    "phase": phase,
-                    "start_s": round(turn["start"], 2),
-                    "end_s": round(turn["end"], 2),
-                    "turn_count": 1,
-                })
-            else:
-                phases[-1]["end_s"] = round(turn["end"], 2)
-                phases[-1]["turn_count"] += 1
-
-        for phase in phases:
-            phase["duration_s"] = round(phase["end_s"] - phase["start_s"], 2)
-
-        return phases
-
-    # ------------------------------------------------------------------
-    # Patient monitor OCR (placeholder)
-    # ------------------------------------------------------------------
-    def _extract_vitals_ocr(self, monitor_video_path: str) -> dict | None:
-        """
-        Extract vital signs from the patient monitor quadrant video.
-
-        Placeholder — implement with Tesseract or a specialised reader
-        for Philips IntelliVue displays. Target values: HR, BP (NIBP),
-        SpO2, Temp sampled at regular intervals (e.g. every 30s).
-        """
-        self.logger.info(
-            "Monitor OCR: placeholder — implement with Tesseract or "
-            "specialised reader for Philips IntelliVue displays"
-        )
-        return None
