@@ -390,7 +390,7 @@ class ReportGenerationStage(BaseStage):
         # ── SPIKES table ─────────────────────────────────────────────────
         spikes_html = ""
         spikes = report.get("spikes_annotation")
-        if spikes and not spikes.get("parse_error"):
+        if spikes and not spikes.get("parse_error") and not spikes.get("skipped"):
             rows = ""
             for step in spikes.get("steps", []):
                 present = step.get("present", False)

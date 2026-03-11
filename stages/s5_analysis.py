@@ -82,7 +82,7 @@ _SCENARIO_CONFIG: dict[str, dict] = {
     },
     "LP_Aufklaerung": {
         "uses_spikes": False,
-        "module_ids": ["LP_Aufklaerung"],
+        "module_ids": ["GSLP", "LP_Aufklaerung"],
         "display_name": "LP-Aufklärung bei V.a. Meningitis",
     },
     "Bauchschmerzen": {
@@ -466,32 +466,45 @@ class LLMAnalysisStage(BaseStage):
         total = lucas_analysis.get("total_score", 0)
         self.logger.info(f"LUCAS scoring complete: {total}/{LUCAS_MAX_SCORE}")
 
-        # ── 5. Pass 3 — Clinical Content ───────────────────────────────
+        # ── 5. Pass 3 — Clinical Content (one LLM call per module) ────
         self.logger.info("Pass 3: Clinical Content scoring")
 
-        merged_module = self._load_and_merge_modules(
-            scenario_cfg["module_ids"], scenario_id
-        )
+        module_ids = scenario_cfg.get("module_ids", [])
+        cc_module_results: list[dict] = []
 
-        if merged_module is None:
-            self.logger.warning(
-                f"Pass 3: skipped — no clinical content module found "
-                f"for scenario '{scenario_id}'"
-            )
-            cc_scored = dict(_CC_NULL_STUB)
-            cc_scored["scenario_id"] = scenario_id
-        else:
-            cc_prompt = self._build_clinical_content_prompt(context, merged_module)
-            (output_dir / "clinical_content_prompt.txt").write_text(
+        for mid in module_ids:
+            single_module = self._load_and_merge_modules([mid], scenario_id)
+            if single_module is None:
+                self.logger.warning(f"Pass 3: module '{mid}' not found, skipping")
+                continue
+
+            mod_label = single_module.get("id", mid)
+            self.logger.info(f"Pass 3: scoring module '{mod_label}'")
+
+            cc_prompt = self._build_clinical_content_prompt(context, single_module)
+            (output_dir / f"clinical_content_{mod_label}_prompt.txt").write_text(
                 cc_prompt, encoding="utf-8"
             )
             cc_raw = backend.generate(cc_prompt, cfg)
-            (output_dir / "clinical_content_raw_output.txt").write_text(
+            (output_dir / f"clinical_content_{mod_label}_raw_output.txt").write_text(
                 cc_raw, encoding="utf-8"
             )
-            cc_parsed = self._parse_output(cc_raw, "clinical_content")
-            cc_scored = self._score_clinical_content(cc_parsed, merged_module)
-            self._validate_clinical_content(cc_scored)
+            cc_parsed = self._parse_output(cc_raw, f"clinical_content_{mod_label}")
+            cc_scored_mod = self._score_clinical_content(cc_parsed, single_module)
+            cc_module_results.append(cc_scored_mod)
+
+        if not cc_module_results:
+            self.logger.warning(
+                f"Pass 3: skipped — no clinical modules found for '{scenario_id}'"
+            )
+            cc_scored = dict(_CC_NULL_STUB)
+            cc_scored["scenario_id"] = scenario_id
+        elif len(cc_module_results) == 1:
+            cc_scored = cc_module_results[0]
+        else:
+            cc_scored = self._combine_cc_results(cc_module_results)
+
+        self._validate_clinical_content(cc_scored)
 
         cc_path = output_dir / "clinical_content.json"
         save_artifact(
@@ -653,7 +666,7 @@ class LLMAnalysisStage(BaseStage):
                 iid = item.get("id")
                 if iid and iid not in seen_ids:
                     tagged = dict(item)
-                    tagged["_source_module"] = m.get("id", "?")
+                    tagged["_source_module"] = m.get("name") or m.get("id", "?")
                     merged["items"].append(tagged)
                     seen_ids.add(iid)
 
@@ -1232,6 +1245,52 @@ class LLMAnalysisStage(BaseStage):
             "overall_clinical_note":    parsed.get("overall_clinical_note", ""),
             "_source_modules":          source_modules,
             "_salvaged":                parsed.get("_salvaged", False),
+        }
+
+    @staticmethod
+    def _combine_cc_results(results: list[dict]) -> dict:
+        """Merge per-module clinical content scored dicts into one combined result."""
+        all_items: list[dict] = []
+        raw_score = max_applicable = 0
+        category_scores: dict[str, dict] = {}
+        critical_misses: list[dict] = []
+        critical_fps: list[dict] = []
+        notes: list[str] = []
+        source_modules: list[str] = []
+
+        for r in results:
+            all_items.extend(r.get("items", []))
+            raw_score      += r.get("raw_score", 0)
+            max_applicable += r.get("max_applicable_score", 0)
+            critical_misses.extend(r.get("critical_misses", []))
+            critical_fps.extend(r.get("critical_false_positives", []))
+            if r.get("overall_clinical_note"):
+                notes.append(r["overall_clinical_note"])
+            source_modules.extend(r.get("_source_modules", []))
+            # re-aggregate category scores from items (exact integers, no rounding loss)
+            for item in r.get("items", []):
+                if item.get("rating") not in (None, "NA"):
+                    cat = item.get("category", "")
+                    cs = category_scores.setdefault(cat, {"raw": 0, "max": 0})
+                    cs["raw"] += int(item["rating"])
+                    cs["max"] += 2
+
+        norm_pct = round(raw_score / max_applicable * 100, 1) if max_applicable else None
+        cat_pct  = {k: round(v["raw"] / v["max"] * 100, 1) if v["max"] else None
+                    for k, v in category_scores.items()}
+
+        return {
+            "items":                    all_items,
+            "raw_score":                raw_score,
+            "max_applicable_score":     max_applicable,
+            "normalised_score_pct":     norm_pct,
+            "category_scores_pct":      cat_pct,
+            "critical_misses":          critical_misses,
+            "critical_false_positives": critical_fps,
+            "has_critical_miss":        bool(critical_misses),
+            "overall_clinical_note":    " | ".join(notes),
+            "_source_modules":          source_modules,
+            "_salvaged":                any(r.get("_salvaged") for r in results),
         }
 
     def _validate_clinical_content(self, cc: dict) -> None:

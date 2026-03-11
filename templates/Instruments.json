@@ -1,0 +1,811 @@
+{
+  "study": {
+    "title": "Künstliche Intelligenz (KI) in der medizinischen Weiterbildung: Eine explorative Studie zur Integration KI-gestützter personalisierter Simulationsszenarien in der pädiatrischen Ausbildung",
+    "instruments": [
+      {
+        "id": "checklist_spikes_diabetes",
+        "title": "Checkliste Gesprächsstruktur SPIKES Diagnoseübermittlung Diabetes Mellitus Typ 1",
+        "case": "Diabetes",
+        "version": "1.0",
+        "effective_date": "2025-10-09",
+        "scoring": {
+          "nicht_erfüllt": 0,
+          "bedingt_erfüllt": 1,
+          "voll_erfüllt": 2
+        },
+        "sections": [
+          {
+            "id": "S",
+            "label": "S – Setting",
+            "items": [
+              {
+                "item_no": 1,
+                "type": "standard",
+                "description": "Der Studierende sorgt für Ungestörtheit.",
+                "reference_quote": "Arrange for some privacy.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 2,
+                "type": "standard",
+                "description": "Der Studierende fragt den SP (Elternteil) oder gibt einen Hinweis auf miteinzubeziehende Angehörige oder Freunde. Fragt ob der Vater ebenfalls anwesend sein soll.",
+                "reference_quote": "Involve significant others. Most patient want to have someone else with them but this should be the patient's choice.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 3,
+                "type": "standard",
+                "description": "Der Studierende setzt sich bzw. beseitigt Barrieren.",
+                "reference_quote": "Sit down. (…) When you sit, try not to have barriers between you and the patient.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 4,
+                "type": "standard",
+                "description": "Der Studierende stellt durch Augenkontakt oder Berührung Verbindung mit dem SP her.",
+                "reference_quote": "Make connection with the patient. Maintaining eye contact may be uncomfortable but is an important way of establishing rapport. Touching the patient on the arm or holding a hand (if the patient is comfortable with this) is another way to accomplish this.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 5,
+                "type": "standard",
+                "description": "Der Studierende gibt Informationen zum Zeitmanagement und/oder zu möglichen Unterbrechungen.",
+                "reference_quote": "Manage the constraints and interruptions. Inform the patients of any time constrains you may have or interruptions you expect.",
+                "reference": "[1]"
+              }
+            ]
+          },
+          {
+            "id": "P",
+            "label": "P – Perception",
+            "items": [
+              {
+                "item_no": 6,
+                "type": "standard",
+                "description": "Der Studierende stellt mindestens eine offene Frage zur Wahrnehmung der medizinischen Situation seitens des Patienten.",
+                "reference_quote": "(…), before discussing the medical findings, the clinician uses open ended questions to create a reasonably accurate picture of how the patients perceives the medical situation – what it is and whether it is serious or not.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 7,
+                "type": "conditional",
+                "condition": "Missverständnisse treten auf",
+                "description": "Der Studierende erkennt/korrigiert diese.",
+                "reference_quote": "(…) you can correct missinformation and tailor the bad news to what the patient understands.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 8,
+                "type": "conditional",
+                "condition": "Unrealistische Erwartungen treten auf",
+                "description": "Der Studierende erkennt/korrigiert diese.",
+                "reference_quote": "It can also accomplish the important task of determining if the patient is engaging in any variation of illness denial: wishful thinking, ommission of essential but unfavorable medical details of the illness, or unrealistic expectations of treatment.",
+                "reference": "[1]"
+              }
+            ]
+          },
+          {
+            "id": "I",
+            "label": "I – Invitation",
+            "items": [
+              {
+                "item_no": 9,
+                "type": "standard",
+                "description": "Der Studierende bespricht den Informationswunsch des SP angemessen.",
+                "reference_quote": "How would you like me to give the information about the test results? Would you like me to give you all the information or sketch out the results and spend more time discussing the treatment plan?",
+                "reference": "[1]"
+              }
+            ]
+          },
+          {
+            "id": "K",
+            "label": "K – Knowledge",
+            "items": [
+              {
+                "item_no": 10,
+                "type": "standard",
+                "description": "Teilen Sie Ihrem Patienten vor der Diagnoseeröffnung mit, dass nun eine unangenehme, aber wichtige Information folgen wird.",
+                "reference_quote": "Unfortunately I've got some bad news to tell you / I'm sorry to tell you that…",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 11,
+                "type": "standard",
+                "description": "Der Studierende benutzt keine Fachwörter bzw. ersetzt sie durch angemessene Sprache (Kategorisierung nach Fluck 1996).",
+                "reference_quote": "Try to use nontechnical words such as 'spread' instead of 'metastasized'.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 12,
+                "type": "standard",
+                "description": "Der Studierende verwendet keine drastische oder dramatische Wortwahl.",
+                "reference_quote": "Avoid excessive bluntness as it is likely to leave the patient isolated and later angry, with tendency to blame the messenger of the bad news.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 13,
+                "type": "standard",
+                "description": "Der Studierende macht nach kleinen Informationshappen eine Pause oder wartet auf Hörrückmeldung.",
+                "reference_quote": "Give information in small chunks and check periodically as to the patient's understanding.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 14,
+                "type": "standard",
+                "description": "Der Studierende verwendet keine Phrasen.",
+                "reference_quote": "When the prognosis is poor, avoid using phrases such as 'There is nothing more we can do for you'.",
+                "reference": "[1]"
+              }
+            ]
+          },
+          {
+            "id": "E",
+            "label": "E – Emotions",
+            "items": [
+              {
+                "item_no": 15,
+                "type": "standard",
+                "description": "Der Studierende benennt bzw. erfragt die Emotionen des SP.",
+                "reference_quote": "Observe for any emotion on the part of the patient. This may be tearfulness, a look of sadness, silence, or shock.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 16,
+                "type": "standard",
+                "description": "Der Studierende identifiziert den Grund der Emotionen (Frage/Statement).",
+                "reference_quote": "Identify the reason for the emotion. This is usually connected to the bad news. However, if you are not sure, again, ask the patient.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 17,
+                "type": "standard",
+                "description": "Der Studierende macht angemessene Pausen.",
+                "reference_quote": "He might have also touched the patient's arm or hand if they were both comfortable and paused a moment to allow her to get her composure.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 18,
+                "type": "standard",
+                "description": "Der Studierende setzt ein 'connecting statement'.",
+                "reference_quote": "After you have given the patient a brief period of time to express his or her feelings, let the patient know that you have connected the emotion with the reason for the emotion by making a connecting statement.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 19,
+                "type": "conditional",
+                "condition": "SP ist weiterhin traurig",
+                "description": "Der Studierende antwortet/verhält sich empathisch.",
+                "reference_quote": "When emotions are not clearly expressed, such as when patient is silent, the physician should ask an exploratory question before he makes an empathic response.",
+                "reference": "[1]"
+              }
+            ]
+          },
+          {
+            "id": "S2",
+            "label": "S – Summary",
+            "items": [
+              {
+                "item_no": 20,
+                "type": "standard",
+                "description": "Der Studierende stellt eine Frage zur Bereitschaft für die Behandlungsplanung.",
+                "reference_quote": "Before discussing a treatment plan, it is important to ask the patients, if they are ready at the time for such a discussion.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 21,
+                "type": "standard",
+                "description": "Der Studierende setzt ein Statement in Richtung gemeinsames Handeln/Planen.",
+                "reference_quote": "Sharing responsibility for decision-making with the patient may also reduce any sense of failure on the part of the physicians when treatment is not successful.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 22,
+                "type": "standard",
+                "description": "Der Studierende stellt eine Verständnisfrage (um mögliche Missverständnisse aufzudecken).",
+                "reference_quote": "Checking the patient's missunderstanding of the discussion can prevent the documented tendency of patients to overestimate the efficacy or misunderstand the purpose of treatment.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 23,
+                "type": "conditional",
+                "condition": "Unrealistische Erwartungen treten auf",
+                "description": "Der Studierende geht darauf ein und fordert SP zur Beschreibung der eigenen Krankheitsgeschichte auf.",
+                "reference_quote": "Asking the patient to describe the history of the illness will usually reveal fears, concerns, and emotions that lie behind the expectations.",
+                "reference": "[1]"
+              },
+              {
+                "item_no": 24,
+                "type": "conditional",
+                "condition": "Subjektive Ziele des SP kommen zur Sprache",
+                "description": "Der Studierende geht angemessen darauf ein.",
+                "reference_quote": "Understanding the important specific goals that many patients have, such as symptom control, and making sure that they receive the best possible treatment and continuity of care will allow the physician to frame hope in terms of what is possible to accomplish.",
+                "reference": "[1]"
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "id": "[1]",
+            "citation": "Baile, W.F., et al., SPIKES-A six-step protocol for delivering bad news: application to the patient with cancer. Oncologist, 2000. 5(4): p. 302-11."
+          }
+        ]
+      },
+      {
+        "id": "checklist_aufklaerung_lumbalpunktion",
+        "title": "Checkliste Gesprächsstruktur für die ärztliche Aufklärung nach § 630e BGB",
+        "case": "Lumbalpunktion",
+        "version": "1.0",
+        "effective_date": "2025-10-09",
+        "scoring": {
+          "nicht_erfüllt": 0,
+          "bedingt_erfüllt": 1,
+          "voll_erfüllt": 2
+        },
+        "items": [
+          {
+            "item_no": 1,
+            "category": "Art",
+            "prompt": "Welche Behandlung / welcher Eingriff ist geplant?",
+            "type": "standard"
+          },
+          {
+            "item_no": 2,
+            "category": "Umfang",
+            "prompt": "In welchem Ausmaß wird die Maßnahme durchgeführt?",
+            "type": "standard"
+          },
+          {
+            "item_no": 3,
+            "category": "Durchführung",
+            "prompt": "Wie läuft die Maßnahme ab? (Technik, Narkose, Schritte, Dauer)",
+            "type": "standard"
+          },
+          {
+            "item_no": 4,
+            "category": "Mögliche Folgen",
+            "prompt": "Welche unmittelbaren Wirkungen sind wahrscheinlich?",
+            "type": "standard"
+          },
+          {
+            "item_no": 5,
+            "category": "Risiken",
+            "prompt": "Welche Komplikationen können auftreten?",
+            "type": "standard"
+          },
+          {
+            "item_no": 6,
+            "category": "Notwendigkeit und Dringlichkeit",
+            "prompt": "Warum ist die Maßnahme erforderlich? Muss sie sofort erfolgen?",
+            "type": "standard"
+          },
+          {
+            "item_no": 7,
+            "category": "Eignung",
+            "prompt": "Ist die Maßnahme für die Diagnose/Therapie geeignet?",
+            "type": "standard"
+          },
+          {
+            "item_no": 8,
+            "category": "Erfolgsaussichten",
+            "prompt": "Welche Chancen bestehen auf Besserung oder Heilung?",
+            "type": "standard"
+          },
+          {
+            "item_no": 9,
+            "category": "Behandlungsalternativen",
+            "prompt": "Gibt es mehrere gleichwertige Methoden mit unterschiedlichen Belastungen, Risiken oder Heilungschancen?",
+            "type": "standard"
+          }
+        ],
+        "references": [
+          {
+            "id": "[1]",
+            "citation": "Bürgerliches Gesetzbuch (BGB) – § 630e Aufklärungspflichten. 2013. p. 277."
+          }
+        ]
+      },
+      {
+        "id": "lucas",
+        "title": "Liverpool Undergraduate Communication Assessment Scale (LUCAS)",
+        "case": "General",
+        "scoring_notes": "Items A and B: 1 (competent) or 0 (unacceptable). Items C–H: 2 (competent), 1 (borderline), 0 (unacceptable). Items I and J: 2 (competent) or 0 (unacceptable). Maximum score: 18.",
+        "max_score": 18,
+        "sections": [
+          {
+            "id": "introductions",
+            "label": "Introductions",
+            "items": [
+              {
+                "item_id": "A",
+                "label": "Greeting and introduction",
+                "competent_criteria": ["Greets patient", "States full name", "States job title", "Provides brief explanation why approaching the patient"],
+                "unacceptable_criteria": "Omission of any of elements i) to iv)",
+                "scale": ["competent", "unacceptable"],
+                "scores": {"competent": 1, "unacceptable": 0}
+              },
+              {
+                "item_id": "B",
+                "label": "Identity check",
+                "competent_criteria": ["Checks patient's full name", "One other identifier (e.g. D.O.B., address)"],
+                "unacceptable_criteria": "Omission of either i) or ii)",
+                "scale": ["competent", "unacceptable"],
+                "scores": {"competent": 1, "unacceptable": 0}
+              }
+            ]
+          },
+          {
+            "id": "general",
+            "label": "General",
+            "items": [
+              {
+                "item_id": "C",
+                "label": "Audibility and clarity of speech",
+                "scale": ["competent", "borderline", "unacceptable"],
+                "scores": {"competent": 2, "borderline": 1, "unacceptable": 0}
+              },
+              {
+                "item_id": "D",
+                "label": "Non-verbal behaviour",
+                "notes": "Includes eye-contact, positioning, posture, facial expressions, gestures & mannerisms",
+                "scale": ["competent", "borderline", "unacceptable"],
+                "scores": {"competent": 2, "borderline": 1, "unacceptable": 0}
+              },
+              {
+                "item_id": "E",
+                "label": "Questions, prompts and/or explanations",
+                "notes": "Includes: i) exploration of patient's needs, feelings and concerns & ii) comprehensibility of questions/explanation. Not to assess medical content of history taking.",
+                "scale": ["competent", "borderline", "unacceptable"],
+                "scores": {"competent": 2, "borderline": 1, "unacceptable": 0}
+              },
+              {
+                "item_id": "F",
+                "label": "Empathy & responsiveness",
+                "notes": "Includes adaptation & sensitivity to patient's needs",
+                "scale": ["competent", "borderline", "unacceptable"],
+                "scores": {"competent": 2, "borderline": 1, "unacceptable": 0}
+              },
+              {
+                "item_id": "G",
+                "label": "Clarification & summarising",
+                "notes": "Includes elicitation of patient's queries",
+                "scale": ["competent", "borderline", "unacceptable"],
+                "scores": {"competent": 2, "borderline": 1, "unacceptable": 0}
+              },
+              {
+                "item_id": "H",
+                "label": "Consulting style & organisation",
+                "notes": "Includes orderliness of the consultation, balance of open and closed questions and time management",
+                "scale": ["competent", "borderline", "unacceptable"],
+                "scores": {"competent": 2, "borderline": 1, "unacceptable": 0}
+              }
+            ]
+          },
+          {
+            "id": "professional_behaviour",
+            "label": "Professional Behaviour and Conduct",
+            "items": [
+              {
+                "item_id": "I",
+                "label": "Professional behaviour",
+                "competent_criteria": "Courteous, kind, thoughtful behaviour",
+                "unacceptable_criteria": "Overly casual, disinterested, discourteous or thoughtless behaviour",
+                "scale": ["competent", "unacceptable"],
+                "scores": {"competent": 2, "unacceptable": 0}
+              },
+              {
+                "item_id": "J",
+                "label": "Professional spoken/verbal conduct",
+                "competent_criteria": ["Remarks are respectful", "Avoid major inaccuracy", "Within own competence", "Reassurance is appropriate"],
+                "unacceptable_criteria": ["Remarks are disrespectful", "Contain major inaccuracy", "Outside own competence", "Reassurance is inappropriate"],
+                "scale": ["competent", "unacceptable"],
+                "scores": {"competent": 2, "unacceptable": 0}
+              }
+            ]
+          }
+        ],
+        "source": "© University of Liverpool"
+      },
+      {
+        "id": "checklist_fachlich_lumbalpunktion",
+        "title": "Checkliste fachlicher Erwartungshorizont für die ärztliche Aufklärung nach § 630e BGB",
+        "case": "Lumbalpunktion",
+        "version": "1.0",
+        "effective_date": "2025-10-09",
+        "scoring": {
+          "nicht_erfüllt": 0,
+          "bedingt_erfüllt": 1,
+          "voll_erfüllt": 2
+        },
+        "sections": [
+          {
+            "id": "A",
+            "category": "Art",
+            "prompt": "Welche Behandlung / welcher Eingriff ist geplant?",
+            "items": [
+              {
+                "item_no": 1,
+                "type": "standard",
+                "example_answers": [
+                  "Punktion des liquorgefüllten Subarachnoidalraums zu diagnostischen Zwecken.",
+                  "Bei Ihrem Kind soll eine kleine Menge Nervenflüssigkeit aus dem Wirbelkanal für einige Laboruntersuchungen entnommen werden."
+                ],
+                "references": ["[2]", "[3]"]
+              }
+            ]
+          },
+          {
+            "id": "B",
+            "category": "Umfang",
+            "prompt": "In welchem Ausmaß wird die Maßnahme durchgeführt?",
+            "items": [
+              {
+                "item_no": 2,
+                "type": "standard",
+                "example_answers": [
+                  "Dieser eigentliche Vorgang, der sogenannten 'Punktion' dauert im Normalfall nur wenige Minuten. Im Anschluss an die Punktion wird die kleine Wunde mit einem Pflaster versorgt."
+                ],
+                "references": ["[3]"]
+              }
+            ]
+          },
+          {
+            "id": "C",
+            "category": "Durchführung",
+            "prompt": "Wie läuft die Maßnahme ab? (Technik, Narkose, Schritte, Dauer)",
+            "items": [
+              {
+                "item_no": 3,
+                "type": "standard",
+                "example_answers": [
+                  "Die LP wird zwischen dem 3. und 5. Lendenwirbeldornfortsatz durchgeführt. Die Punktion kann im Liegen oder Sitzen erfolgen. Bei der Punktion ist nach Möglichkeit eine Kyphosierung der Wirbelsäule in ihrem unteren Abschnitt anzustreben.",
+                  "Bei Ihrem Kind können zusätzlich auch Medikamente zur Beruhigung oder zur Schmerzstillung eingesetzt werden, um die Untersuchung so angenehm wie möglich zu machen."
+                ],
+                "references": ["[2]", "[3]"]
+              }
+            ]
+          },
+          {
+            "id": "D",
+            "category": "Mögliche Folgen",
+            "prompt": "Welche unmittelbaren Wirkungen sind wahrscheinlich?",
+            "items": [
+              {
+                "item_no": 4,
+                "type": "standard",
+                "example_answers": [
+                  "Zu den häufigen Nebenwirkungen (> 3 %) zählen: lokaler Schmerz an der Punktionsstelle, akute transiente lumbale Wurzelreizsymptomatik, lokale leichte Blutung, postpunktionelles Syndrom."
+                ],
+                "references": ["[2]"]
+              }
+            ]
+          },
+          {
+            "id": "E",
+            "category": "Risiken",
+            "prompt": "Welche Komplikationen können auftreten?",
+            "items": [
+              {
+                "item_no": 5,
+                "type": "standard",
+                "example_answers": [
+                  "Zu den seltenen Komplikationen (< 3 %) gehören Infektion des Stichkanals, Kreislaufreaktionen bis hin zu Synkopen. In Einzelfällen wurden beschrieben: Blutungen mit neurologischen Ausfällen, Subduralhämatome, Hirnnervenausfälle, Migräneattacken, epileptische Anfälle, Einklemmungssyndrome."
+                ],
+                "references": ["[2]"]
+              }
+            ]
+          },
+          {
+            "id": "F",
+            "category": "Notwendigkeit und Dringlichkeit",
+            "prompt": "Warum ist die Maßnahme erforderlich? Muss sie sofort erfolgen?",
+            "items": [
+              {
+                "item_no": 6,
+                "type": "standard",
+                "example_answers": [
+                  "Eine diagnostische lumbale LP soll bei klinischem Verdacht auf eine bakterielle Meningitis so rasch wie möglich erfolgen."
+                ],
+                "references": ["[2]"]
+              }
+            ]
+          },
+          {
+            "id": "G",
+            "category": "Eignung",
+            "prompt": "Ist die Maßnahme für die Diagnose/Therapie geeignet?",
+            "items": [
+              {
+                "item_no": 7,
+                "type": "standard",
+                "example_answers": [
+                  "Die Liquoranalytik ist das einzige Verfahren außer einer Hirnbiopsie, das den Nachweis einer Entzündung im Liquorraum oder im Zentralnervensystem führen kann."
+                ],
+                "references": ["[2]"]
+              }
+            ]
+          },
+          {
+            "id": "H",
+            "category": "Erfolgsaussichten",
+            "prompt": "Welche Chancen bestehen auf Besserung oder Heilung?",
+            "items": [
+              {
+                "item_no": 8,
+                "type": "standard",
+                "example_answers": [
+                  "Manchmal gelingt es trotz großer Erfahrung und Sorgfalt des Arztes nicht die Untersuchung durchzuführen (z.B. wegen körperlicher Besonderheiten). Die Punktion muss dann unter Umständen wiederholt werden."
+                ],
+                "references": ["[3]"]
+              }
+            ]
+          },
+          {
+            "id": "I",
+            "category": "Behandlungsalternativen",
+            "prompt": "Gibt es mehrere gleichwertige Methoden mit unterschiedlichen Belastungen, Risiken oder Heilungschancen?",
+            "items": [
+              {
+                "item_no": 9,
+                "type": "standard",
+                "example_answers": [
+                  "Der Liquor ist ein wichtiges, teilweise alternativloses diagnostisches Verfahren bei Entzündungen des Nervensystems und der Hirnhäute, bildgebend nicht fassbaren Blutungen im Bereich des Subarachnoidalraums sowie Ausbreitung maligner Erkrankungen auf den Liquorraum und die Meningen.",
+                  "Zur direkten Untersuchung des Nervenwassers auf Krankheitserreger ist die Nervenwasseruntersuchung die einzige Möglichkeit."
+                ],
+                "references": ["[2]", "[3]"]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "id": "[1]",
+            "citation": "Bürgerliches Gesetzbuch (BGB) – § 630e Aufklärungspflichten. 2013. p. 277."
+          },
+          {
+            "id": "[2]",
+            "citation": "Tumani, H., Petereit, H.-F., et al., Lumbalpunktion und Liquordiagnostik – S1-Leitlinie. 2019, Deutsche Gesellschaft für Neurologie (DGN) & Deutsche Gesellschaft für Liquordiagnostik und Klinische Neurochemie (DGLN)."
+          },
+          {
+            "id": "[3]",
+            "citation": "GmbH, H.K., Patientenaufklärung Lumbalpunktion. 2023: Berlin."
+          }
+        ]
+      },
+      {
+        "id": "checklist_fachlich_diabetes",
+        "title": "Checkliste fachlicher Erwartungshorizont – Überbringen schlechter Nachrichten: Diagnoseübermittlung Diabetes Mellitus Typ 1",
+        "case": "Diabetes",
+        "version": "1.0",
+        "effective_date": "2025-10-09",
+        "scoring": {
+          "nicht_erfüllt": 0,
+          "bedingt_erfüllt": 1,
+          "voll_erfüllt": 2
+        },
+        "format_notes": "5 standardisierte vorformulierte Fragen durch den SP (Patienten)",
+        "sections": [
+          {
+            "id": "A",
+            "sp_question": "Seine Oma hat Diabetes, muss er jetzt auch abnehmen?",
+            "items": [
+              {
+                "item_no": 1,
+                "type": "standard",
+                "description": "Verdeutlicht, dass es sich hier um einen Typ 1 Diabetes handelt und es nicht dieselbe Erkrankung ist."
+              },
+              {
+                "item_no": 2,
+                "type": "standard",
+                "description": "Grundsätzliche Unterschiede zwischen Typ 1 und Typ 2 Diabetes.",
+                "details": {
+                  "Typ_1": "Autoimmunerkrankung → Zerstörung der insulinproduzierenden Betazellen in der Bauchspeicheldrüse → absoluter Insulinmangel",
+                  "Typ_2": "Progressiver Verlust der Insulin-Sekretion der Betazelle → aufgrund einer Insulinresistenz bei Übergewicht oder Adipositas"
+                }
+              },
+              {
+                "item_no": 5,
+                "type": "conditional",
+                "condition": "Das Wort Insulin fällt; Nachfrage der Mutter was Insulin ist",
+                "description": "Peptidhormon → Regulation der Aufnahme von Glucose in Körperzellen → Wirkung: blutzuckersenkend → spielt eine wesentliche Rolle bei der Entstehung und Therapie des Diabetes mellitus.",
+                "references": ["[2]"]
+              }
+            ]
+          },
+          {
+            "id": "B",
+            "sp_question": "Warum sind sie so sicher, dass er diese Erkrankung hat?",
+            "items": [
+              {
+                "item_no": 6,
+                "type": "standard",
+                "description": "Typische Symptomatik.",
+                "details": ["Polyurie", "Polydipsie", "Gewichtsabnahme", "Müdigkeit/Leistungsabfall"]
+              },
+              {
+                "item_no": 7,
+                "type": "standard",
+                "description": "Pathologische Blutzuckermessung (mindestens eines zutreffend).",
+                "details": [
+                  "HbA1c ≥ 6.5 % (48 mmol/mol Hb)",
+                  "Gelegenheits-/Plasma-Glukose ≥ 200 mg/dl (11,1 mmol/l) bei vorliegender Symptomatik",
+                  "2h-Plasma-Glukose im oGTT von ≥ 200 mg/dl (11,1 mmol/l)",
+                  "Nüchtern-Plasma-Glukose ≥ 126 mg/dl (7,0 mmol/l)"
+                ],
+                "references": ["[1]"]
+              }
+            ]
+          },
+          {
+            "id": "C",
+            "sp_question": "Wie häufig ist diese Erkrankung?",
+            "items": [
+              {
+                "item_no": 8,
+                "type": "standard",
+                "description": "Epidemiologie des Typ-1-Diabetes.",
+                "details": [
+                  "Häufigste Stoffwechselerkrankung im Kindesalter",
+                  "In Europa über 90% der Diabetesfälle im jungen Lebensalter (unter 25 Jahren)",
+                  "Schätzungsweise 8,4 Mio. Menschen mit Typ-1-Diabetes weltweit",
+                  "Deutschland unter den 10 Ländern mit der höchsten Prävalenz (nach USA, Indien, Brasilien, China)",
+                  "Inzidenzgipfel weltweit im Alter zwischen 10 und 14 Jahren"
+                ],
+                "references": ["[1]"]
+              }
+            ]
+          },
+          {
+            "id": "D",
+            "sp_question": "Wie verändert sich unser Alltag durch die Erkrankung?",
+            "items": [
+              {
+                "item_no": 9,
+                "type": "standard",
+                "description": "Chronische Erkrankung.",
+                "details": [
+                  "Lebenslang insulinpflichtig",
+                  "Ohne Insulin keine Überlebensfähigkeit"
+                ],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 10,
+                "type": "standard",
+                "description": "Therapieprinzipien im Alltag.",
+                "details": ["Empfehlung zu intensivierter Insulintherapie (Basis-Bolus, Pen, Pumpe)"],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 11,
+                "type": "standard",
+                "description": "Technologische Unterstützung.",
+                "details": ["Verwendung von Insulinpumpen, kontinuierlicher Glukosemessung und automatisierter Insulinabgabesysteme empfohlen"],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 12,
+                "type": "standard",
+                "description": "Ernährung.",
+                "details": ["Kohlenhydratbewusst, keine 'Diät' im klassischen Sinn"],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 13,
+                "type": "standard",
+                "description": "Sport.",
+                "details": ["Bewegung und Sport ausdrücklich empfohlen, mit Anpassung von Insulin/Ernährung"]
+              },
+              {
+                "item_no": 14,
+                "type": "standard",
+                "description": "Schulung und psychosoziale Unterstützung.",
+                "details": [
+                  "Strukturierte Schulungsprogramme für Eltern und Kinder obligat",
+                  "Ziel: selbstständiges Management (Insulin, Ernährung, Bewegung, Hypo-/Hyperglykämien)",
+                  "Psychosoziale Begleitung (Belastung, Lebensqualität, Familie, Schule)"
+                ],
+                "references": ["[1]"]
+              }
+            ]
+          },
+          {
+            "id": "E",
+            "sp_question": "Welche Langzeitfolgen können durch die Erkrankung auftreten?",
+            "items": [
+              {
+                "item_no": 15,
+                "type": "standard",
+                "description": "Nennt mindestens 4 Langzeitfolgen.",
+                "minimum_required": 4,
+                "possible_answers": [
+                  "Augen: diabetische Retinopathie → Sehstörungen bis Erblindung",
+                  "Nieren: diabetische Nephropathie → bis hin zu Nierenversagen",
+                  "Nerven: diabetische Neuropathie → Sensibilitätsstörungen, Schmerzen",
+                  "Gefäße: erhöhte Gefahr für Herzinfarkt, Schlaganfall (kardiovaskuläre Erkrankungen)",
+                  "Wachstums- und Pubertätsstörungen bei jahrelang schlechter Einstellung",
+                  "Erhöhtes Risiko für psychische Belastungen (Depression, Essstörungen, Diabetes-Stress)"
+                ],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 16,
+                "type": "standard",
+                "description": "Nennt mindestens 4 Langzeitfolgen (repeated assessment point).",
+                "minimum_required": 4,
+                "possible_answers": [
+                  "Augen: diabetische Retinopathie → Sehstörungen bis Erblindung",
+                  "Nieren: diabetische Nephropathie → bis hin zu Nierenversagen",
+                  "Nerven: diabetische Neuropathie → Sensibilitätsstörungen, Schmerzen",
+                  "Gefäße: erhöhte Gefahr für Herzinfarkt, Schlaganfall (kardiovaskuläre Erkrankungen)",
+                  "Wachstums- und Pubertätsstörungen bei jahrelang schlechter Einstellung",
+                  "Erhöhtes Risiko für psychische Belastungen (Depression, Essstörungen, Diabetes-Stress)"
+                ],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 17,
+                "type": "standard",
+                "description": "Nennt mindestens 4 Langzeitfolgen (repeated assessment point).",
+                "minimum_required": 4,
+                "possible_answers": [
+                  "Augen: diabetische Retinopathie → Sehstörungen bis Erblindung",
+                  "Nieren: diabetische Nephropathie → bis hin zu Nierenversagen",
+                  "Nerven: diabetische Neuropathie → Sensibilitätsstörungen, Schmerzen",
+                  "Gefäße: erhöhte Gefahr für Herzinfarkt, Schlaganfall (kardiovaskuläre Erkrankungen)",
+                  "Wachstums- und Pubertätsstörungen bei jahrelang schlechter Einstellung",
+                  "Erhöhtes Risiko für psychische Belastungen (Depression, Essstörungen, Diabetes-Stress)"
+                ],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 18,
+                "type": "standard",
+                "description": "Nennt mindestens 4 Langzeitfolgen (repeated assessment point).",
+                "minimum_required": 4,
+                "possible_answers": [
+                  "Augen: diabetische Retinopathie → Sehstörungen bis Erblindung",
+                  "Nieren: diabetische Nephropathie → bis hin zu Nierenversagen",
+                  "Nerven: diabetische Neuropathie → Sensibilitätsstörungen, Schmerzen",
+                  "Gefäße: erhöhte Gefahr für Herzinfarkt, Schlaganfall (kardiovaskuläre Erkrankungen)",
+                  "Wachstums- und Pubertätsstörungen bei jahrelang schlechter Einstellung",
+                  "Erhöhtes Risiko für psychische Belastungen (Depression, Essstörungen, Diabetes-Stress)"
+                ],
+                "references": ["[1]"]
+              },
+              {
+                "item_no": 19,
+                "type": "standard",
+                "description": "Arzt beruhigt die Mutter auf den Kommentar: 'Oh das ist ja schrecklich, kann man dagegen gar nichts tun?'",
+                "expected_content": "Mit guter Blutzuckereinstellung (HbA1c-Ziel < 7,0 % und Time in Range > 70 %) sind diese Spätfolgen deutlich zu verhindern oder hinauszuzögern. Deshalb werden regelmäßige Vorsorgeuntersuchungen (Augen, Nieren, Blutdruck, Lipide, Neuropathie-Screening) empfohlen.",
+                "references": ["[1]"]
+              }
+            ]
+          },
+          {
+            "id": "S",
+            "sp_question": "Hätten wir die Krankheit verhindern können?",
+            "items": [
+              {
+                "item_no": 20,
+                "type": "standard",
+                "description": "Nein, Typ-1-Diabetes ist nicht vermeidbar. Die Eltern haben keine Schuld und hätten die Erkrankung auch nicht verhindern können.",
+                "references": ["[1]"]
+              }
+            ]
+          }
+        ],
+        "references": [
+          {
+            "id": "[1]",
+            "citation": "Deutsche Diabetes Gesellschaft, Diagnostik, Therapie und Verlaufskontrolle des Diabetes mellitus im Kindes- und Jugendalter, in S3-Leitlinie, AWMF-Registernummer 057-016, Version 4.0. 2023."
+          },
+          {
+            "id": "[2]",
+            "citation": "Rahman, M.S., et al., Role of Insulin in Health and Disease: An Update. Int J Mol Sci, 2021. 22(12)."
+          }
+        ]
+      }
+    ]
+  }
+}
