@@ -50,13 +50,6 @@ asr:
     num_speakers: 2         # exact count; when set, overrides min/max_speakers
     min_speakers: 2         # used only if num_speakers is removed
     max_speakers: 2
-    # hf_token_env: HF_TOKEN must be set in environment for pyannote
-    # Uncomment to tune pyannote internals if diarization quality is poor:
-    # hyperparameters:
-    #   segmentation:
-    #     threshold: 0.4    # lower → more segments (default ~0.5)
-    #   clustering:
-    #     threshold: 0.65   # lower → stricter separation (default ~0.7)
   speaker_relabeling:
     enabled: true           # LLM maps SPEAKER_XX → ARZT / BEGLEITUNG after diarization
 
