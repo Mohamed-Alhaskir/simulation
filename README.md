@@ -16,7 +16,7 @@ We present a deterministic, reproducible pipeline for automated assessment of co
 
 The pipeline integrates automatic speech recognition with speaker diarization (Whisper large-v3 + Pyannote), non-verbal behaviour analysis (MediaPipe computer vision), and multi-pass large language model inference (Qwen2.5-32B-Instruct, temperature = 0, seed = 42). All model weights, prompts, configuration, and random seeds are cryptographically locked in a **freeze manifest** prior to confirmatory analysis, ensuring full auditability and reproducibility in a clinical research context.
 
-> **Study context:** Prospective evaluation at the **University Witten/Herdecke** (Department of Paediatrics, Wuppertal). Ethics committee reference: **S-44/2025**. The pipeline augments — but does not replace — instructor-led debriefings.
+> **Study context:** Prospective evaluation at the **RWTH Aachen Universtiy** (Department of Paediatrics, Wuppertal). Ethics committee reference: **S-44/2025**. The pipeline augments — but does not replace — instructor-led debriefings.
 
 ---
 
@@ -222,8 +222,7 @@ Edit `templates/scenario_catalog.json`:
 ```json
 {
   "session_001": "LP_Aufklaerung",
-  "session_002": "Bauchschmerzen",
-  "session_007": "Diabetes"
+  "session_002": "Diabetes"
 }
 ```
 
@@ -348,7 +347,6 @@ The pipeline applies different assessment passes depending on scenario type, con
 | Scenario | LUCAS | SPIKES | Clinical modules |
 |----------|:-----:|:------:|:---------------:|
 | `LP_Aufklaerung` | All sessions | — | GSLP + LP\_Aufklaerung |
-| `Bauchschmerzen` | All sessions | — | Bauchschmerzen |
 | `Diabetes` | All sessions | ✓ | Diabetes |
 
 New scenarios can be added by:
@@ -416,12 +414,11 @@ If you use this pipeline in academic work, please cite:
 ```bibtex
 @software{paed_sim_pipeline_2025,
   title     = {Automated Multimodal Feedback Generation for Paediatric Simulation Training},
-  author    = {[Authors]},
-  year      = {2025},
+  author    = {[Mohamed Alhaskir, Hannah Haven, Jonas Bienzeisler]},
+  year      = {2026},
   version   = {0.3.0},
-  institution = {University Witten/Herdecke},
-  note      = {Ethics ref: S-44/2025},
-  url       = {[repository URL]}
+  institution = {RWTH Aachen University},
+  note      = {Ethics ref: S-44/2025}
 }
 ```
 
@@ -440,6 +437,5 @@ This repository is made available for **research and academic use** under the te
 ---
 
 <p align="center">
-  University Witten/Herdecke · Department of Paediatrics · Wuppertal<br/>
-  Ethics committee approval: S-44/2025
+  RWTH Aachen University· Medical Informatics · Aachen<br/>
 </p>
