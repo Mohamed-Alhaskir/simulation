@@ -118,6 +118,7 @@ class LlamaCppBackend(LLMBackend):
             max_tokens=cfg.get("max_tokens", 6144),
             temperature=cfg.get("temperature", 0.0),
             top_p=cfg.get("top_p", 1.0),
+            repeat_penalty=cfg.get("repeat_penalty", 1.05),
             stop=None,
         )
         return response["choices"][0]["text"]
