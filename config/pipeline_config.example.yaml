@@ -26,7 +26,7 @@ ingest:
     # Which quadrant MediaPipe runs on. Recorded in inventory.json (auditable).
     # Override per-session via metadata.json → "video_analysis_quadrant".
     # Values: top_left | top_right | bottom_left | bottom_right
-    video_analysis_quadrant: "top_right"
+    video_analysis_quadrant: "bottom_right"
     quadrants:
       top_left: "overhead_camera"
       top_right: "patient_monitor"
@@ -91,7 +91,6 @@ video_analysis:
 llm:
   backend: "llama_cpp"      # "llama_cpp" or "vllm"
   model_path: "/path/to/your/model.gguf"   # ← set your local path
-  #model_path: "/path/to/Qwen2.5-72B-Instruct-IQ4_XS.gguf"
   context_length: 32768
   temperature: 0.0          # deterministic / greedy decoding
   top_p: 1.0
@@ -99,8 +98,8 @@ llm:
   max_tokens: 10000
   repeat_penalty: 1.05
   n_gpu_layers: -1          # -1 = all layers on GPU
+  strictness: 1             # scoring strictness: 1=lenient, 2=standard, 3=strict----------
 
-# --------------------------------------------------------------------------
 # Stage 07: Report Generation
 # --------------------------------------------------------------------------
 report:
