@@ -42,6 +42,20 @@ _ITEM_MAX_SCORE = {
     "I": 2, "J": 2,
 }
 
+# Canonical LUCAS item names (University of Liverpool scale)
+_ITEM_NAMES = {
+    "A": "Greet and Introduce",
+    "B": "Identify Patient / Relative",
+    "C": "Clarify Understanding / Avoid Jargon",
+    "D": "Non-Verbal Communication",
+    "E": "Elicit Concerns",
+    "F": "Empathy",
+    "G": "Summarise Information",
+    "H": "Shared Decision Making",
+    "I": "Professional Ending",
+    "J": "Overall Impression",
+}
+
 
 def _normalise_items(analysis: dict) -> list[dict]:
     """
@@ -73,7 +87,7 @@ def _normalise_items(analysis: dict) -> list[dict]:
 
         normalised.append({
             "item_id":      item_id,
-            "name":         item.get("name", ""),
+            "name":         item.get("name") or _ITEM_NAMES.get(item_id, ""),
             "category":     item.get("category", ""),
             "max_score":    item.get("max_score") or _ITEM_MAX_SCORE.get(item_id, 2),
             "rating":       score,
@@ -449,9 +463,6 @@ class ReportGenerationStage(BaseStage):
             cc_items = cc_data.get("items", [])
             critical_misses = cc_data.get("critical_misses", [])
             critical_fps    = cc_data.get("critical_false_positives", [])
-            raw_score       = cc_data.get("raw_score", "—")
-            max_score       = cc_data.get("max_applicable_score", "—")
-            pct             = cc_data.get("normalised_score_pct", "—")
             has_miss        = cc_data.get("has_critical_miss", False)
             overall_note    = cc_data.get("overall_clinical_note", "")
             cat_pcts        = cc_data.get("category_scores_pct", {})
@@ -566,24 +577,12 @@ class ReportGenerationStage(BaseStage):
                 </div>
               </div>"""
 
-            # Combined summary line
-            miss_cls_total = "has-miss" if has_miss else ""
-            combined_summary = (
-                f'<div class="cc-score-panel" style="margin-bottom:8px;">'
-                f'<div class="cc-score-box {miss_cls_total}" style="opacity:0.85;">'
-                f'<div class="cc-score-label">Total Clinical Score</div>'
-                f'<div class="cc-score-num">{raw_score}/{max_score}</div>'
-                f'<div class="cc-score-pct">{pct}%</div>'
-                f'</div></div>'
-            )
-
             cc_html = f"""
             <div class="section-block">
               <div class="section-header">
                 <span class="section-title">Clinical Content Assessment</span>
               </div>
               {banner_html}
-              {combined_summary}
               <p style="margin:0 0 16px;font-size:13px;color:#374151;">{overall_note}</p>
             </div>
             {module_blocks}"""

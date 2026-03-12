@@ -356,6 +356,8 @@ class LLMAnalysisStage(BaseStage):
 
     def run(self, ctx: dict) -> dict:
         cfg = self._get_stage_config("llm")
+        strictness = int(cfg.get("strictness", 2))
+        self._strictness_preamble_text = self._strictness_preamble(strictness)
         output_dir = Path(ctx["output_base"]) / "05_analysis"
         output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -452,7 +454,7 @@ class LLMAnalysisStage(BaseStage):
         # ── 4. Pass 2 — LUCAS (multi-pass scorer) ─────────────────────
         self.logger.info("Pass 2: LUCAS scoring (multipass)")
         from stages.lucas_multipass import LucasMultipassScorer
-        lucas_scorer = LucasMultipassScorer(backend=backend, cfg=cfg)
+        lucas_scorer = LucasMultipassScorer(backend=backend, cfg=cfg, strictness=strictness)
         lucas_context = dict(context)
         lucas_context["spikes_annotation"] = spikes_annotation
         lucas_analysis = lucas_scorer.score(lucas_context)
@@ -713,6 +715,7 @@ class LLMAnalysisStage(BaseStage):
             interaction=interaction_text,
             conversation_phases=phases_text,
             video_nvb_section=video_nvb_section,
+            strictness_preamble=getattr(self, "_strictness_preamble_text", ""),
         )
 
     def _build_clinical_content_prompt(
@@ -773,6 +776,7 @@ class LLMAnalysisStage(BaseStage):
             transcript_text=transcript_text,
             schema_items=schema_items,
             scoring_preamble=merged_module.get("scoring_preamble", ""),
+            strictness_preamble=getattr(self, "_strictness_preamble_text", ""),
         )
 
     # ------------------------------------------------------------------
@@ -785,6 +789,28 @@ class LLMAnalysisStage(BaseStage):
             f"[{s['speaker']}] ({s['start']:.1f}-{s['end']:.1f}s): {s['text']}"
             for s in segments
         )
+
+    @staticmethod
+    def _strictness_preamble(level: int) -> str:
+        """Return a calibration block injected at the top of every prompt."""
+        if level == 1:
+            return (
+                "SCORING CALIBRATION — LENIENT (Level 1/3)\n"
+                "Apply benefit of the doubt throughout.\n"
+                "- Implied or inferable behaviour warrants credit.\n"
+                "- Borderline cases: score UP.\n"
+                "- Focus on what the clinician achieved.\n\n"
+            )
+        if level == 3:
+            return (
+                "SCORING CALIBRATION — STRICT (Level 3/3)\n"
+                "Apply a high evidentiary standard throughout.\n"
+                "- Only explicit, unambiguous, clearly observable behaviour receives credit.\n"
+                "- No inference; ambiguous cases score DOWN.\n"
+                "- This level reflects a high-stakes examination standard.\n\n"
+            )
+        # level == 2 (standard) — no preamble needed, keep prompts as-is
+        return ""
 
     @staticmethod
     def _render_template(template_name: str, **kwargs) -> str:

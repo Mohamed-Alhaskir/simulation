@@ -69,7 +69,7 @@ features:
 video_analysis:
   enabled: true
   sample_fps: 10
-  preferred_quadrant: "bottom_left"  # fallback if inventory.json has no quadrant set
+  preferred_quadrant: "bottom_right"  # fallback if inventory.json has no quadrant set
   calibration_seconds: 120           # seconds used to compute person-relative baselines
   generate_annotated_video: true     # write annotated_video.mp4 to output dir
   annotated_codec: "mp4v"
