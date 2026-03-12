@@ -796,15 +796,17 @@ class LLMAnalysisStage(BaseStage):
         if level == 1:
             return (
                 "SCORING CALIBRATION — LENIENT (Level 1/3)\n"
-                "Apply benefit of the doubt throughout.\n"
-                "- Implied or inferable behaviour warrants credit.\n"
+                "Applies to RATING DECISIONS ONLY. Follow all pass-specific search instructions unchanged.\n"
+                "When deciding a rating: apply benefit of the doubt.\n"
+                "- Partial or implicit evidence is sufficient for a higher rating.\n"
                 "- Borderline cases: score UP.\n"
-                "- Focus on what the clinician achieved.\n\n"
+                "- A criterion counts as met if the evidence reasonably supports it, even if not fully explicit.\n\n"
             )
         if level == 3:
             return (
                 "SCORING CALIBRATION — STRICT (Level 3/3)\n"
-                "Apply a high evidentiary standard throughout.\n"
+                "Applies to RATING DECISIONS ONLY. Follow all pass-specific search instructions unchanged.\n"
+                "When deciding a rating: apply a high evidentiary standard.\n"
                 "- Only explicit, unambiguous, clearly observable behaviour receives credit.\n"
                 "- No inference; ambiguous cases score DOWN.\n"
                 "- This level reflects a high-stakes examination standard.\n\n"
