@@ -925,9 +925,30 @@ class LucasMultipassScorer:
         conversation_phases, spikes_annotation (optional)
     """
 
-    def __init__(self, backend, cfg: dict):
+    def __init__(self, backend, cfg: dict, strictness: int = 2):
         self.backend = backend
         self.cfg = cfg
+        self._strictness = strictness
+
+    @staticmethod
+    def _make_strictness_preamble(level: int) -> str:
+        if level == 1:
+            return (
+                "SCORING CALIBRATION — LENIENT (Level 1/3)\n"
+                "Apply benefit of the doubt throughout.\n"
+                "- Implied or inferable behaviour warrants credit.\n"
+                "- Borderline cases: score UP.\n"
+                "- Focus on what the clinician achieved.\n\n"
+            )
+        if level == 3:
+            return (
+                "SCORING CALIBRATION — STRICT (Level 3/3)\n"
+                "Apply a high evidentiary standard throughout.\n"
+                "- Only explicit, unambiguous, clearly observable behaviour receives credit.\n"
+                "- No inference; ambiguous cases score DOWN.\n"
+                "- This level reflects a high-stakes examination standard.\n\n"
+            )
+        return ""  # level 2 = standard, no preamble
 
     def score(self, context: dict) -> dict:
         diarized = context.get("diarized_transcript", [])
@@ -949,13 +970,14 @@ class LucasMultipassScorer:
             spikes_annotation = spikes_annotation + "\n\n" + register_warning
 
         # --- Build prompts ---
+        _sp = LucasMultipassScorer._make_strictness_preamble(self._strictness)
         prompts = {
-            "pass1": build_pass1_prompt(opening_transcript),
-            "pass2": build_pass2_prompt(full_transcript),
-            "pass3": build_pass3_prompt(video_summary),
-            "pass4": build_pass4_prompt(full_transcript, spikes_annotation),
-            "pass5": build_pass5_prompt(full_transcript, interaction_metrics),
-            "pass6": build_pass6_prompt(full_transcript, register_warning),
+            "pass1": _sp + build_pass1_prompt(opening_transcript),
+            "pass2": _sp + build_pass2_prompt(full_transcript),
+            "pass3": _sp + build_pass3_prompt(video_summary),
+            "pass4": _sp + build_pass4_prompt(full_transcript, spikes_annotation),
+            "pass5": _sp + build_pass5_prompt(full_transcript, interaction_metrics),
+            "pass6": _sp + build_pass6_prompt(full_transcript, register_warning),
         }
 
         # --- Run passes sequentially ---
