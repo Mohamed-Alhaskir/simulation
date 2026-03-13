@@ -78,50 +78,7 @@ from pathlib import Path
 from typing import Optional, Dict, List, Any, Tuple
 import numpy as np
 from stages.base import BaseStage
-
-
-class _NumpySafeEncoder(json.JSONEncoder):
-    """JSON encoder that handles numpy types, NaN, and Infinity correctly."""
-    def default(self, obj):
-        if isinstance(obj, (np.integer,)):
-            return int(obj)
-        if isinstance(obj, (np.floating,)):
-            val = float(obj)
-            if math.isnan(val) or math.isinf(val):
-                return None
-            return val
-        if isinstance(obj, (np.bool_,)):
-            return bool(obj)
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, (np.str_,)):
-            return str(obj)
-        return super().default(obj)
-
-    def encode(self, obj):
-        return super().encode(self._sanitize(obj))
-
-    def _sanitize(self, obj):
-        if isinstance(obj, float):
-            if math.isnan(obj) or math.isinf(obj):
-                return None
-            return obj
-        if isinstance(obj, (np.bool_,)):
-            return bool(obj)
-        if isinstance(obj, (np.integer,)):
-            return int(obj)
-        if isinstance(obj, (np.floating,)):
-            val = float(obj)
-            if math.isnan(val) or math.isinf(val):
-                return None
-            return val
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, dict):
-            return {k: self._sanitize(v) for k, v in obj.items()}
-        if isinstance(obj, (list, tuple)):
-            return [self._sanitize(v) for v in obj]
-        return obj
+from utils.json_utils import JSONEncoder
 
 
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -912,7 +869,7 @@ class VideoAnalysisStage(BaseStage):
 
         features_path = output_dir / "video_features.json"
         with open(features_path, "w") as f:
-            json.dump(lucas_nvb_output, f, indent=2, ensure_ascii=False, cls=_NumpySafeEncoder)
+            json.dump(lucas_nvb_output, f, indent=2, ensure_ascii=False, cls=JSONEncoder)
 
         ctx["artifacts"]["video_features"]      = lucas_nvb_output
         ctx["artifacts"]["video_features_path"] = str(features_path)
@@ -928,6 +885,14 @@ class VideoAnalysisStage(BaseStage):
         inventory = ctx["artifacts"].get("inventory", {})
         quadrants = inventory.get("quadrants", {})
 
+        # Priority: config setting > inventory setting > composite video
+        # (Config allows user to override the default quadrant selection)
+
+        preferred_quadrant = cfg.get("preferred_quadrant")
+        if preferred_quadrant and preferred_quadrant in quadrants:
+            self.logger.info(f"Video analysis quadrant from config: '{preferred_quadrant}'")
+            return quadrants[preferred_quadrant]
+
         inventory_quadrant = inventory.get("video_analysis_quadrant")
         if inventory_quadrant:
             if inventory_quadrant in quadrants:
@@ -937,11 +902,6 @@ class VideoAnalysisStage(BaseStage):
                 f"inventory.video_analysis_quadrant='{inventory_quadrant}' not found "
                 f"in quadrants {list(quadrants.keys())}; falling back."
             )
-
-        preferred_quadrant = cfg.get("preferred_quadrant")
-        if preferred_quadrant and preferred_quadrant in quadrants:
-            self.logger.info(f"Video analysis quadrant from config: '{preferred_quadrant}'")
-            return quadrants[preferred_quadrant]
 
         composite = ctx["artifacts"].get("composite_video")
         if composite and Path(composite).exists():
