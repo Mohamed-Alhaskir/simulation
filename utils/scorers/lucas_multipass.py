@@ -34,6 +34,8 @@ import re
 import concurrent.futures
 from typing import Any
 
+from utils.json_utils import repair_unescaped_quotes
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,10 +53,10 @@ def _validate_item(item: dict, video_features: dict, register_break: bool) -> di
     rating = item.get("rating")
 
     if label == "D":
-        gaze = video_features.get("D1_eye_contact", {}).get("gaze_on_target", {}).get("rate")
-        overall_rel = video_features.get(
-            "I_professional_behaviour_demeanour", {}
-        ).get("overall_reliability", "low")
+        gaze = (video_features.get("D1_eye_contact") or {}).get("gaze_on_target", {}).get("rate")
+        overall_rel = (video_features.get(
+            "I_professional_behaviour_demeanour"
+        ) or {}).get("overall_reliability", "low")
 
         if gaze is not None and gaze < 0.75 and rating == 2:
             flags.append(f"D1 VIOLATION: gaze={gaze:.1%} < 75% but rating=2 -> forced to 1")
@@ -142,43 +144,6 @@ def _format_full_transcript(diarized_transcript: list) -> str:
     return "\n".join(lines)
 
 
-def _repair_unescaped_quotes(text: str) -> str:
-    out = []
-    in_string = False
-    escape_next = False
-    i = 0
-    while i < len(text):
-        ch = text[i]
-        if escape_next:
-            out.append(ch)
-            escape_next = False
-            i += 1
-            continue
-        if ch == '\\':
-            out.append(ch)
-            escape_next = True
-            i += 1
-            continue
-        if ch == '"':
-            if not in_string:
-                in_string = True
-                out.append(ch)
-            else:
-                j = i + 1
-                while j < len(text) and text[j] in ' \t\r\n':
-                    j += 1
-                next_ch = text[j] if j < len(text) else ''
-                if next_ch in (':', ',', '}', ']', ''):
-                    in_string = False
-                    out.append(ch)
-                else:
-                    out.append('\\"')
-        else:
-            out.append(ch)
-        i += 1
-    return ''.join(out)
-
-
 def _call_llm(backend, prompt: str, cfg: dict) -> dict | None:
     try:
         raw = backend.generate(prompt, cfg)
@@ -195,7 +160,7 @@ def _call_llm(backend, prompt: str, cfg: dict) -> dict | None:
             except json.JSONDecodeError:
                 pass
             try:
-                repaired = _repair_unescaped_quotes(clean[start:end + 1])
+                repaired = repair_unescaped_quotes(clean[start:end + 1])
                 return json.loads(repaired)
             except (json.JSONDecodeError, Exception):
                 pass
@@ -677,8 +642,8 @@ class LucasMultipassScorer:
 
     def score(self, context: dict) -> dict:
         diarized = context.get("diarized_transcript", [])
-        video_features = context.get("video_nvb", {})
-        verbal_features = context.get("verbal_features", {})
+        video_features = context.get("video_nvb") or {}
+        verbal_features = context.get("verbal_features") or {}
 
         # --- Pre-processing ---
         register_break, register_hits = _detect_register_break(diarized)
