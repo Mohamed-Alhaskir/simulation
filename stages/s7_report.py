@@ -406,21 +406,44 @@ class ReportGenerationStage(BaseStage):
         spikes = report.get("spikes_annotation")
         if spikes and not spikes.get("parse_error") and not spikes.get("skipped"):
             rows = ""
-            for step in spikes.get("steps", []):
-                present = step.get("present", False)
-                icon    = "✓" if present else "✗"
-                cls     = "sp-yes" if present else "sp-no"
-                rows += (
-                    f'<tr class="{cls}">'
-                    f'<td class="sp-id"><strong>{step.get("id","")}</strong></td>'
-                    f'<td>{step.get("name","")}</td>'
-                    f'<td class="sp-icon">{icon}</td>'
-                    f'<td class="sp-note">{step.get("note","")}</td>'
-                    f'</tr>'
-                )
+            # Handle both generic 6-step and detailed item-based responses
+            items = spikes.get("items", spikes.get("steps", []))
+
+            if items and "phase" in items[0]:
+                # Detailed variant: show items grouped by phase
+                from itertools import groupby
+                items_sorted = sorted(items, key=lambda x: x.get("phase", ""))
+                for phase, phase_items in groupby(items_sorted, key=lambda x: x.get("phase", "")):
+                    for item in phase_items:
+                        rating = item.get("rating")
+                        rating_str = str(rating) if rating not in [None, "NA"] else "—"
+                        cls = "sp-rated" if rating not in [None, "NA"] else "sp-na"
+                        rows += (
+                            f'<tr class="{cls}">'
+                            f'<td class="sp-id"><strong>{item.get("id","")}</strong></td>'
+                            f'<td>{item.get("name","")}</td>'
+                            f'<td class="sp-icon" style="text-align:center;">{rating_str}</td>'
+                            f'<td class="sp-note">{item.get("justification","")[:80]}...</td>'
+                            f'</tr>'
+                        )
+            else:
+                # Generic variant: show 6 steps
+                for step in items:
+                    present = step.get("present", False)
+                    icon    = "✓" if present else "✗"
+                    cls     = "sp-yes" if present else "sp-no"
+                    rows += (
+                        f'<tr class="{cls}">'
+                        f'<td class="sp-id"><strong>{step.get("id","")}</strong></td>'
+                        f'<td>{step.get("name","")}</td>'
+                        f'<td class="sp-icon">{icon}</td>'
+                        f'<td class="sp-note">{step.get("note","")}</td>'
+                        f'</tr>'
+                    )
+
             seq_ok   = spikes.get("sequence_correct", False)
             seq_note = spikes.get("sequence_note", "")
-            overall  = spikes.get("overall_spikes_note", "")
+            overall  = spikes.get("overall_spikes_structure_note", "")
             seq_cls  = "seq-ok" if seq_ok else "seq-bad"
 
             spikes_html = f"""
@@ -432,9 +455,9 @@ class ReportGenerationStage(BaseStage):
                 <table class="sp-table">
                   <thead>
                     <tr>
-                      <th>Step</th><th>Name</th>
-                      <th style="width:80px;text-align:center">Present</th>
-                      <th>Assessor Note</th>
+                      <th>Item</th><th>Name</th>
+                      <th style="width:80px;text-align:center">Rating/Status</th>
+                      <th>Note</th>
                     </tr>
                   </thead>
                   <tbody>{rows}</tbody>
