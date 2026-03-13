@@ -176,9 +176,9 @@ class SpikesScorer:
 
         return self._render_template(
             "spikes_prompt.j2",
-            transcript=transcript_text,
-            interaction=interaction_text,
-            conversation_phases=phases_text,
+            transcript_text=transcript_text,
+            interaction_text=interaction_text,
+            phases_text=phases_text,
             video_nvb_section=video_nvb_section,
             strictness_preamble=strictness_preamble,
             items_block=items_block,
