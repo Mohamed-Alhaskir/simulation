@@ -138,13 +138,18 @@ class SpikesScorer:
         # Validate
         self._validate_spikes(spikes_annotation)
 
-        n_present = sum(
-            1 for s in spikes_annotation.get("steps", []) if s.get("present")
-        )
-        self.logger.info(
-            f"SPIKES annotation complete: "
-            f"{n_present}/{len(SPIKES_STEPS)} steps identified"
-        )
+        # Log completion status based on response format
+        items = spikes_annotation.get("items", spikes_annotation.get("steps", []))
+        if items and "phase" in items[0]:
+            # Detailed variant: count items with ratings
+            n_rated = sum(1 for item in items if item.get("rating") not in [None, "NA"])
+            self.logger.info(f"SPIKES annotation complete: {n_rated}/{len(items)} items rated")
+        else:
+            # Generic variant: count steps marked as present
+            n_present = sum(1 for s in items if s.get("present"))
+            self.logger.info(
+                f"SPIKES annotation complete: {n_present}/{len(SPIKES_STEPS)} steps identified"
+            )
 
         return spikes_annotation
 
