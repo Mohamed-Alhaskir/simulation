@@ -226,26 +226,42 @@ class SpikesScorer:
             )
             return
 
-        steps = annotation.get("steps", [])
-        if len(steps) != len(SPIKES_STEPS):
-            self.logger.warning(
-                f"SPIKES: expected {len(SPIKES_STEPS)} steps, got {len(steps)}"
+        # Handle both generic 6-step and detailed item-based responses
+        items = annotation.get("items", annotation.get("steps", []))
+
+        # Count items by phase if detailed response
+        if items and "phase" in items[0]:
+            # Detailed variant: count items per phase
+            phases = {}
+            for item in items:
+                phase = item.get("phase", "unknown")
+                if phase not in phases:
+                    phases[phase] = 0
+                if item.get("rating") not in [None, "NA"]:
+                    phases[phase] += 1
+
+            total_items = len(items)
+            total_scored = sum(1 for item in items if item.get("rating") not in [None, "NA"])
+            self.logger.info(
+                f"SPIKES: {total_scored}/{total_items} items rated "
+                f"(phases: {', '.join(f'{p}={c}' for p, c in sorted(phases.items()))})"
             )
+        else:
+            # Generic 6-step variant
+            if len(items) != len(SPIKES_STEPS):
+                self.logger.warning(
+                    f"SPIKES: expected {len(SPIKES_STEPS)} steps, got {len(items)}"
+                )
 
-        expected_ids = {s["id"] for s in SPIKES_STEPS}
-        returned_ids = {s.get("id") for s in steps}
-        missing = expected_ids - returned_ids
-        if missing:
-            self.logger.warning(f"SPIKES: missing step ids: {missing}")
+            expected_ids = {s["id"] for s in SPIKES_STEPS}
+            returned_ids = {s.get("id") for s in items}
+            missing = expected_ids - returned_ids
+            if missing:
+                self.logger.warning(f"SPIKES: missing step ids: {missing}")
 
-        absent = [s["id"] for s in steps if not s.get("present")]
-        if absent:
-            self.logger.info(f"SPIKES: steps not identified: {absent}")
-
-        if not annotation.get("sequence_correct"):
-            self.logger.warning(
-                f"SPIKES sequencing issue: {annotation.get('sequence_note', '')}"
-            )
+            absent = [s["id"] for s in items if not s.get("present")]
+            if absent:
+                self.logger.info(f"SPIKES: steps not identified: {absent}")
 
     # ────────────────────────────────────────────────────────────────
     # Shared helper methods (duplicated from s5_analysis to avoid import)
