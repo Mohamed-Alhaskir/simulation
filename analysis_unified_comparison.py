@@ -27,8 +27,18 @@ SCENARIO_TO_MODULE = {
     "Bauchschmerzen": None,  # No clinical content module
 }
 
-# SPIKES step names (from protocol)
+# SPIKES step names (from GT - matches column names)
 SPIKES_STEPS = ["Setting", "Perception", "Invitation", "Knowledge", "Strategy_Summary"]
+
+# Map pipeline phase codes to GT step names
+PHASE_TO_GT_STEP = {
+    "S": "Setting",
+    "P": "Perception",
+    "I": "Invitation",
+    "K": "Knowledge",
+    "E": "Strategy_Summary",  # Exploration during summary
+    "S2": "Strategy_Summary",  # Second Setting/Summary
+}
 
 # LUCAS items
 LUCAS_ITEMS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
@@ -148,9 +158,15 @@ def load_session_predictions(session_path):
     if lucas_path.exists():
         with open(lucas_path) as f:
             lucas_data = json.load(f)
-            if "items" in lucas_data:
+            if "lucas_items" in lucas_data:
                 results["lucas"] = {
-                    item["item"]: item["score"]
+                    item["item"]: item.get("rating")
+                    for item in lucas_data["lucas_items"]
+                    if "rating" in item
+                }
+            elif "items" in lucas_data:
+                results["lucas"] = {
+                    item["item"]: item.get("score")
                     for item in lucas_data["items"]
                 }
             elif "predictions" in lucas_data:
@@ -162,12 +178,23 @@ def load_session_predictions(session_path):
         try:
             with open(spikes_path) as f:
                 spikes_data = json.load(f)
-                if isinstance(spikes_data, dict):
-                    if "items" in spikes_data:
+                if isinstance(spikes_data, dict) and "items" in spikes_data:
+                    # Group items by GT step (map phase codes to GT names) and compute average
+                    step_scores = defaultdict(list)
+                    for item in spikes_data.get("items", []):
+                        phase = item.get("phase", "").upper()
+                        rating = item.get("rating")
+                        if rating is not None and phase:
+                            # Map phase code to GT step name
+                            gt_step = PHASE_TO_GT_STEP.get(phase, phase)
+                            step_scores[gt_step].append(rating)
+
+                    # Average by step and keep only GT step names
+                    if step_scores:
                         results["spikes"] = {
-                            item.get("item") or item.get("step"): item.get("score")
-                            for item in spikes_data.get("items", [])
-                            if item.get("score") is not None
+                            step: sum(ratings) / len(ratings)
+                            for step, ratings in step_scores.items()
+                            if step in SPIKES_STEPS  # Only GT-defined steps
                         }
         except (json.JSONDecodeError, KeyError, TypeError):
             pass
@@ -178,7 +205,13 @@ def load_session_predictions(session_path):
         try:
             with open(clinical_path) as f:
                 clinical_data = json.load(f)
-                results["clinical"] = clinical_data
+                if isinstance(clinical_data, dict) and "items" in clinical_data:
+                    # Extract clinical item scores
+                    results["clinical"] = {
+                        f"{item.get('id', 'unknown')}_{i}": item.get("rating")
+                        for i, item in enumerate(clinical_data.get("items", []))
+                        if item.get("rating") is not None
+                    }
         except (json.JSONDecodeError, IOError):
             pass
 
@@ -219,16 +252,16 @@ def compute_rater_consensus(rater_scores_list, metric="median"):
 
 def match_video_to_gt(session_name):
     """Find GT video matching this session"""
-    # Try exact match first
+    # Mapping based on available GT data
+    # LP_Aufklaerung sessions (001, 003, 005, 006) have LUCAS + Clinical GT
+    # Diabetes sessions (007, 008) have SPIKES + Clinical GT, no LUCAS
     session_videos = {
-        "session_001": "2025-01-17_14-25-37-Schockraum-Session 1",
-        "session_002": "2025-07-04_14-11-21-Schockraum-Session 1",
-        "session_003": "2025-01-17_15-02-15-Schockraum-Session 1",
-        "session_004": "2025-07-04_15-00-01-Schockraum-Session 1",
-        "session_005": "2025-10-10_15-34-21-Schockraum-Session 1",
-        "session_006": "2025-10-10_17-30-52-Schockraum-Session 1",
-        "session_007": "2025-10-10_16-34-17-Schockraum-Session 1",
-        "session_008": "2025-10-10_14-31-45-Schockraum-Session 1",
+        "session_001": "2025-01-17_14-25-37-Schockraum-Session 1",  # LUCAS, Clinical
+        "session_003": "2025-01-17_15-02-15-Schockraum-Session 1",  # LUCAS, Clinical
+        "session_005": "2025-10-10_15-34-21-Schockraum-Session 1",  # LUCAS, GSLP
+        "session_006": "2025-10-10_17-30-52-Schockraum-Session 1",  # LUCAS, LP_Aufklaerung
+        "session_007": "2025-10-10_16-34-17-Schockraum-Session 1",  # SPIKES, Diabetes
+        "session_008": "2025-10-10_14-31-45-Schockraum-Session 1",  # SPIKES, Diabetes
     }
     return session_videos.get(session_name)
 
