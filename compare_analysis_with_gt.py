@@ -78,6 +78,25 @@ SPIKES_MAPPING = {
     "DM_S_24": "Uses clear and structured closing",
 }
 
+# Diabetes clinical item ID to GT column mapping
+DIABETES_MAPPING = {
+    "DM_A_1": "Verdeutlicht dass es sich um Typ-1-Diabetes handelt und es nicht dieselbe Erkrankung wie Typ-2 ist",
+    "DM_A_2": "Erklärt grundsätzliche Unterschiede zwischen Typ-1 und Typ-2 Diabetes",
+    "DM_A_5": "Erklärt was Insulin ist wenn die Bezugsperson danach fragt",
+    "DM_B_6": "Nennt typische Symptome als Begründung für die Diagnose",
+    "DM_B_7": "Nennt pathologische Blutzuckermessung als Grundlage der Diagnose",
+    "DM_C_8": "Gibt korrekte epidemiologische Informationen zum Typ-1-Diabetes",
+    "DM_D_9": "Erklärt dass Typ-1-Diabetes eine chronische lebenslang insulinpflichtige Erkrankung ist",
+    "DM_D_10": "Erklärt die empfohlene Insulintherapie im Alltag",
+    "DM_D_11": "Erwähnt technologische Hilfsmittel (Insulinpumpe CGM AID-Systeme)",
+    "DM_D_12": "Erklärt den Umgang mit Ernährung bei Typ-1-Diabetes",
+    "DM_D_13": "Erklärt den Umgang mit Sport bei Typ-1-Diabetes",
+    "DM_D_14": "Informiert über Schulungsprogramme und psychosoziale Unterstützung",
+    "DM_E_15": "Nennt mindestens 4 Langzeitkomplikationen des Typ-1-Diabetes",
+    "DM_E_19": "Beruhigt die Mutter mit sachlich korrekter Aussage über Prävention der Spätfolgen",
+    "DM_S_20": "Erklärt dass Typ-1-Diabetes nicht vermeidbar ist und die Eltern keine Schuld haben",
+}
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Load Data
 # ═══════════════════════════════════════════════════════════════════════════
@@ -358,6 +377,65 @@ def main(session_name):
                     print(f"     {status} {d['item']} → {d['gt_column']}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
                 print()
 
+    # Compare Diabetes Clinical
+    diabetes_pred = {k: v for k, v in clinical_pred.items() if k.startswith("DM_")}
+    if diabetes_pred:
+        diabetes_gt = load_gt_for_video("Diabetes.csv", gt_video)
+        if diabetes_gt:
+            # Manually compute alignment for Diabetes using DIABETES_MAPPING
+            mappable_items = {item_id: pred for item_id, pred in diabetes_pred.items()
+                            if item_id in DIABETES_MAPPING}
+
+            if mappable_items:
+                in_range = 0
+                total = len(mappable_items)
+                details = []
+
+                for item_id, pred_score in mappable_items.items():
+                    gt_col = DIABETES_MAPPING[item_id]
+
+                    # Find corresponding GT values for this item
+                    gt_values = []
+                    for gt_row in diabetes_gt:
+                        if gt_col in gt_row:
+                            try:
+                                gt_values.append(int(gt_row[gt_col]))
+                            except (ValueError, TypeError):
+                                pass
+
+                    if not gt_values:
+                        continue
+
+                    # Compute consensus
+                    gt_median = statistics.median(gt_values)
+                    sorted_vals = sorted(gt_values)
+                    q1 = sorted_vals[len(gt_values)//4]
+                    q3 = sorted_vals[3*len(gt_values)//4]
+
+                    in_range_flag = q1 <= pred_score <= q3
+                    if in_range_flag:
+                        in_range += 1
+
+                    details.append({
+                        "item": item_id,
+                        "gt_column": gt_col,
+                        "predicted": pred_score,
+                        "median": gt_median,
+                        "q1": q1,
+                        "q3": q3,
+                        "in_range": in_range_flag,
+                    })
+
+                alignment_pct = (100 * in_range / total) if total > 0 else 0
+                print(f"📊 DIABETES CLINICAL ALIGNMENT: {alignment_pct:.1f}%")
+                print(f"   Items in range: {in_range}/{total}")
+                print(f"   GT file: GT/Diabetes.csv")
+                print(f"   Details:")
+                for d in details:
+                    status = "✓" if d["in_range"] else "✗"
+                    print(f"     {status} {d['item']} → {d['gt_column'][:50]}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
+                print()
+
     print(f"{'='*70}\n")
 
 def save_results_csv(session_name, output_file):
@@ -533,6 +611,49 @@ def save_results_csv(session_name, output_file):
 
                     rows.append({
                         "Framework": "SPIKES",
+                        "Item": item_id,
+                        "Predicted": pred_score,
+                        "Median": f"{gt_median:.1f}",
+                        "Q1": f"{q1:.1f}",
+                        "Q3": f"{q3:.1f}",
+                        "In_Range": "✓" if in_range_flag else "✗",
+                    })
+
+    # Diabetes clinical results
+    diabetes_pred = {k: v for k, v in clinical_pred.items() if k.startswith("DM_")}
+    if diabetes_pred:
+        gt_data = load_gt_for_video("Diabetes.csv", gt_video)
+        if gt_data:
+            # Manually compute alignment for Diabetes using DIABETES_MAPPING
+            mappable_items = {item_id: pred for item_id, pred in diabetes_pred.items()
+                            if item_id in DIABETES_MAPPING}
+
+            if mappable_items:
+                for item_id, pred_score in mappable_items.items():
+                    gt_col = DIABETES_MAPPING[item_id]
+
+                    # Find corresponding GT values for this item
+                    gt_values = []
+                    for gt_row in gt_data:
+                        if gt_col in gt_row:
+                            try:
+                                gt_values.append(int(gt_row[gt_col]))
+                            except (ValueError, TypeError):
+                                pass
+
+                    if not gt_values:
+                        continue
+
+                    # Compute consensus
+                    gt_median = statistics.median(gt_values)
+                    sorted_vals = sorted(gt_values)
+                    q1 = sorted_vals[len(gt_values)//4]
+                    q3 = sorted_vals[3*len(gt_values)//4]
+
+                    in_range_flag = q1 <= pred_score <= q3
+
+                    rows.append({
+                        "Framework": "Diabetes",
                         "Item": item_id,
                         "Predicted": pred_score,
                         "Median": f"{gt_median:.1f}",
