@@ -254,10 +254,120 @@ def main(session_name):
 
     print(f"{'='*70}\n")
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python compare_analysis_with_gt.py <session_name>")
-        print("Example: python compare_analysis_with_gt.py session_005")
-        sys.exit(1)
+def save_results_csv(session_name, output_file):
+    """Save all comparison results to CSV file"""
+    print(f"✓ Scenario: LP_Aufklaerung")
+    print(f"📂 File: data/reports/{session_name}/05_analysis/analysis.json\n")
 
-    main(sys.argv[1])
+    # Load analysis
+    analysis = load_analysis(session_name)
+    if not analysis:
+        print(f"❌ Could not find analysis.json for {session_name}")
+        return
+
+    scenario = analysis.get("scenario_id")
+
+    # Extract predictions
+    lucas_pred = {}
+    if "lucas_analysis" in analysis:
+        for item in analysis["lucas_analysis"].get("lucas_items", []):
+            lucas_pred[item["item"]] = item["rating"]
+
+    clinical_pred = {}
+    if "clinical_content" in analysis:
+        for item in analysis["clinical_content"].get("items", []):
+            clinical_pred[item["id"]] = item["rating"]
+
+    # Session to GT video mapping
+    session_to_video = {
+        "session_001": "2025-01-17_14-25-37-Schockraum-Session 1",
+        "session_003": "2025-01-17_15-02-15-Schockraum-Session 1",
+        "session_005": "2025-10-10_15-34-21-Schockraum-Session 1",
+        "session_006": "2025-10-10_17-30-52-Schockraum-Session 1",
+    }
+    gt_video = session_to_video.get(session_name)
+
+    if not gt_video:
+        print(f"⚠ No GT video mapping for {session_name}")
+        return
+
+    # Collect all results
+    rows = []
+
+    # LUCAS results
+    if lucas_pred:
+        lucas_gt = load_gt_for_video("lucas.csv", gt_video)
+        if lucas_gt:
+            result = compute_alignment(lucas_pred, lucas_gt)
+            if result:
+                for d in result["details"]:
+                    rows.append({
+                        "Framework": "LUCAS",
+                        "Item": d["item"],
+                        "Predicted": d["predicted"],
+                        "Median": f"{d['median']:.1f}",
+                        "Q1": f"{d['q1']:.1f}",
+                        "Q3": f"{d['q3']:.1f}",
+                        "In_Range": "✓" if d["in_range"] else "✗",
+                    })
+
+    # Clinical results - GSLP
+    gslp_pred = {k: v for k, v in clinical_pred.items() if k.startswith("LP_GS_")}
+    if gslp_pred:
+        gt_data = load_gt_for_video("GSLP.csv", gt_video)
+        if gt_data:
+            result = compute_alignment(gslp_pred, gt_data)
+            if result:
+                for d in result["details"]:
+                    rows.append({
+                        "Framework": "GSLP",
+                        "Item": d["item"],
+                        "Predicted": d["predicted"],
+                        "Median": f"{d['median']:.1f}",
+                        "Q1": f"{d['q1']:.1f}",
+                        "Q3": f"{d['q3']:.1f}",
+                        "In_Range": "✓" if d["in_range"] else "✗",
+                    })
+
+    # Clinical results - LP_Aufklaerung
+    lp_auf_pred = {k: v for k, v in clinical_pred.items() if k.startswith("LP_") and not k.startswith("LP_GS_")}
+    if lp_auf_pred:
+        gt_data = load_gt_for_video("LP_Aufklaerung.csv", gt_video)
+        if gt_data:
+            result = compute_alignment(lp_auf_pred, gt_data)
+            if result:
+                for d in result["details"]:
+                    rows.append({
+                        "Framework": "LP_Aufklaerung",
+                        "Item": d["item"],
+                        "Predicted": d["predicted"],
+                        "Median": f"{d['median']:.1f}",
+                        "Q1": f"{d['q1']:.1f}",
+                        "Q3": f"{d['q3']:.1f}",
+                        "In_Range": "✓" if d["in_range"] else "✗",
+                    })
+
+    # Write CSV
+    if rows:
+        with open(output_file, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=["Framework", "Item", "Predicted", "Median", "Q1", "Q3", "In_Range"])
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"✅ Results saved to {output_file} ({len(rows)} items)")
+    else:
+        print("No results to save")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Compare pipeline predictions with ground truth")
+    parser.add_argument("session_name", help="Session name (e.g., session_005)")
+    parser.add_argument("--output", "-o", help="Save results to CSV file")
+
+    args = parser.parse_args()
+
+    if args.output:
+        save_results_csv(args.session_name, args.output)
+    else:
+        main(args.session_name)

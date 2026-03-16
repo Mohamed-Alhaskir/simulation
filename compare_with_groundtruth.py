@@ -47,6 +47,30 @@ LUCAS_ITEMS = {
 
 SPIKES_STEPS = ["Setting", "Perception", "Invitation", "Knowledge", "Strategy_Summary"]
 
+# Clinical item ID to GT column mapping
+CLINICAL_MAPPING = {
+    # GSLP
+    "LP_GS_1": "Type_of_treatment",
+    "LP_GS_2": "Scope",
+    "LP_GS_3": "Procedure",
+    "LP_GS_4": "Consequences",
+    "LP_GS_5": "Risks",
+    "LP_GS_6": "Necessity_Urgency",
+    "LP_GS_7": "Suitability",
+    "LP_GS_8": "Chances_of_success",
+    "LP_GS_9": "Alternatives",
+    # LP_Aufklaerung
+    "LP_A": "Art",
+    "LP_B": "Umfang",
+    "LP_C": "Durchfuehrung",
+    "LP_D": "Moegliche_Folgen",
+    "LP_E": "Risiken",
+    "LP_F": "Notwendigkeit_Dringlichkeit",
+    "LP_G": "Eignung",
+    "LP_H": "Erfolgsaussichten",
+    "LP_I": "Behandlungsalternativen",
+}
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Load Session
 # ═══════════════════════════════════════════════════════════════════════════
@@ -66,9 +90,57 @@ def load_session_metadata(session_name):
         return scenario
 
 def load_predictions(session_name):
-    """Load LUCAS, SPIKES, Clinical predictions from session"""
+    """Load LUCAS, SPIKES, Clinical predictions from unified analysis.json"""
     predictions = {"lucas": None, "spikes": None, "clinical": None}
 
+    # Try unified analysis.json first (preferred - has all data)
+    analysis_path = Path(f"data/reports/{session_name}/05_analysis/analysis.json")
+    if analysis_path.exists():
+        with open(analysis_path) as f:
+            analysis = json.load(f)
+
+        # Load LUCAS from unified file
+        if "lucas_analysis" in analysis:
+            lucas_data = analysis["lucas_analysis"]
+            if "lucas_items" in lucas_data:
+                predictions["lucas"] = {
+                    item["item"]: item.get("rating")
+                    for item in lucas_data["lucas_items"]
+                    if "rating" in item
+                }
+
+        # Load SPIKES from unified file
+        if "spikes_annotation" in analysis:
+            spikes_data = analysis["spikes_annotation"]
+            if "steps" in spikes_data and not spikes_data.get("skipped"):
+                # Group by step
+                step_scores = defaultdict(list)
+                for step in spikes_data["steps"]:
+                    step_name = step.get("step", "").title()
+                    rating = step.get("rating")
+                    if rating is not None and step_name:
+                        step_scores[step_name].append(rating)
+
+                if step_scores:
+                    predictions["spikes"] = {
+                        step: statistics.mean(ratings)
+                        for step, ratings in step_scores.items()
+                        if step in SPIKES_STEPS
+                    }
+
+        # Load Clinical from unified file
+        if "clinical_content" in analysis:
+            clinical_data = analysis["clinical_content"]
+            if "items" in clinical_data:
+                predictions["clinical"] = {
+                    item.get("id"): item.get("rating")
+                    for item in clinical_data["items"]
+                    if item.get("rating") is not None
+                }
+
+        return predictions
+
+    # Fallback to separate files for backwards compatibility
     # Load LUCAS
     lucas_path = Path(f"data/reports/{session_name}/05_analysis/lucas_analysis.json")
     if lucas_path.exists():
@@ -371,56 +443,196 @@ def main(session_name):
         else:
             print(f"⚠ No SPIKES GT data for {gt_video}\n")
 
-    # 6. Compare Clinical - search all clinical modules if scenario-specific not found
+    # 6. Compare Clinical - handle multiple modules per scenario
     if predictions["clinical"]:
-        print(f"\n📂 Searching Clinical GT files:")
-        clinical_gt = None
-        found_module = None
+        # Separate predictions by module prefix
+        gslp_pred = {k: v for k, v in predictions["clinical"].items() if k.startswith("LP_GS_")}
+        lp_auf_pred = {k: v for k, v in predictions["clinical"].items() if k.startswith("LP_") and not k.startswith("LP_GS_")}
 
-        # First try scenario-specific module
-        gt_file = SCENARIO_GT_MAP.get(scenario)
-        if gt_file:
-            gt_path = f"GT/{gt_file}"
-            clinical_gt = load_gt_clinical(gt_file)
-            print(f"  [{scenario}] {gt_path} → {len(clinical_gt)} videos")
-            if gt_video in clinical_gt:
-                found_module = scenario
-                print(f"    ✓ Found {gt_video} with {len(clinical_gt[gt_video])} raters")
+        results_shown = False
 
-        # If not found, search all modules
-        if not clinical_gt or gt_video not in clinical_gt:
-            print(f"  Searching other modules...")
-            for module in ["Diabetes", "GSLP", "LP_Aufklaerung"]:
-                if module == scenario:
-                    continue  # Already checked
-                gt_file = f"{module}.csv"
-                gt_path = f"GT/{gt_file}"
-                clinical_gt = load_gt_clinical(gt_file)
-                print(f"  [{module}] {gt_path} → {len(clinical_gt)} videos")
-                if gt_video in clinical_gt:
-                    found_module = module
-                    print(f"    ✓ Found {gt_video} with {len(clinical_gt[gt_video])} raters")
-                    break
+        # Helper to map item IDs to GT columns
+        def map_predictions_to_gt(pred_dict, mapping):
+            """Map prediction item IDs to GT column names"""
+            return {
+                mapping[item_id]: rating
+                for item_id, rating in pred_dict.items()
+                if item_id in mapping
+            }
 
-        if clinical_gt and gt_video in clinical_gt:
-            consensus = compute_gt_consensus(clinical_gt[gt_video])
-            result = compute_alignment(predictions["clinical"], consensus)
-            if result:
-                module_label = f" ({found_module})" if found_module != scenario else ""
-                print(f"\n📊 CLINICAL ALIGNMENT{module_label}: {result['alignment']:.1f}%")
-                print(f"   Items in range: {result['in_range']}/{result['total']}")
-                print(f"   GT items: {list(consensus.keys())[:5]}...")  # Show first 5 GT items
-                print()
-        else:
-            print(f"⚠ No Clinical GT data found in any module for {gt_video}\n")
+        # Compare GSLP if present
+        if gslp_pred:
+            gt_data = load_gt_clinical("GSLP.csv")
+            if gt_video in gt_data:
+                mapped_pred = map_predictions_to_gt(gslp_pred, CLINICAL_MAPPING)
+                if mapped_pred:
+                    consensus = compute_gt_consensus(gt_data[gt_video])
+                    result = compute_alignment(mapped_pred, consensus)
+                    if result:
+                        print(f"📊 CLINICAL ALIGNMENT (GSLP): {result['alignment']:.1f}%")
+                        print(f"   Items in range: {result['in_range']}/{result['total']}")
+                        print(f"   Details:")
+                        for d in result["details"][:5]:
+                            status = "✓" if d["in_range"] else "✗"
+                            print(f"     {status} {d['item']}: pred={d['predicted']:.1f}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
+                        print()
+                        results_shown = True
+
+        # Compare LP_Aufklaerung if present
+        if lp_auf_pred:
+            gt_data = load_gt_clinical("LP_Aufklaerung.csv")
+            if gt_video in gt_data:
+                mapped_pred = map_predictions_to_gt(lp_auf_pred, CLINICAL_MAPPING)
+                if mapped_pred:
+                    consensus = compute_gt_consensus(gt_data[gt_video])
+                    result = compute_alignment(mapped_pred, consensus)
+                    if result:
+                        print(f"📊 CLINICAL ALIGNMENT (LP_Aufklaerung): {result['alignment']:.1f}%")
+                        print(f"   Items in range: {result['in_range']}/{result['total']}")
+                        print(f"   Details:")
+                        for d in result["details"][:5]:
+                            status = "✓" if d["in_range"] else "✗"
+                            print(f"     {status} {d['item']}: pred={d['predicted']:.1f}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
+                        print()
+                        results_shown = True
+
+        if not results_shown:
+            print(f"⚠ No Clinical GT data found for {gt_video}\n")
 
     print(f"{'='*70}\n")
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python compare_with_groundtruth.py <session_name>")
-        print("Example: python compare_with_groundtruth.py session_005")
-        sys.exit(1)
+def save_results_csv_cwgt(session_name, output_file):
+    """Save all comparison results to CSV file"""
+    # Load session metadata
+    scenario = load_session_metadata(session_name)
+    if not scenario:
+        print(f"❌ Could not find metadata for {session_name}")
+        return
 
-    session = sys.argv[1]
-    main(session)
+    # Load predictions
+    predictions = load_predictions(session_name)
+
+    # Find GT video
+    gt_video = find_gt_video(session_name, scenario, "lucas")
+    if not gt_video:
+        available_videos = find_gt_video_for_scenario(scenario)
+        if available_videos:
+            gt_video = available_videos[0]
+        else:
+            print(f"⚠ No GT video found for scenario: {scenario}")
+            return
+
+    # Collect all results
+    rows = []
+
+    # LUCAS results
+    if predictions["lucas"]:
+        lucas_gt = load_gt_lucas()
+        if gt_video in lucas_gt:
+            consensus = compute_gt_consensus(lucas_gt[gt_video])
+            result = compute_alignment(predictions["lucas"], consensus)
+            if result:
+                for d in result["details"]:
+                    rows.append({
+                        "Framework": "LUCAS",
+                        "Item": d["item"],
+                        "Predicted": d["predicted"],
+                        "Median": f"{d['median']:.1f}",
+                        "Q1": f"{d['q1']:.1f}",
+                        "Q3": f"{d['q3']:.1f}",
+                        "In_Range": "✓" if d["in_range"] else "✗",
+                    })
+
+    # SPIKES results
+    if predictions["spikes"]:
+        spikes_gt = load_gt_spikes()
+        if gt_video in spikes_gt:
+            consensus = compute_gt_consensus(spikes_gt[gt_video])
+            result = compute_alignment(predictions["spikes"], consensus)
+            if result:
+                for d in result["details"]:
+                    rows.append({
+                        "Framework": "SPIKES",
+                        "Item": d["item"],
+                        "Predicted": f"{d['predicted']:.1f}",
+                        "Median": f"{d['median']:.1f}",
+                        "Q1": f"{d['q1']:.1f}",
+                        "Q3": f"{d['q3']:.1f}",
+                        "In_Range": "✓" if d["in_range"] else "✗",
+                    })
+
+    # Clinical results
+    if predictions["clinical"]:
+        # Separate predictions by module
+        gslp_pred = {k: v for k, v in predictions["clinical"].items() if k.startswith("LP_GS_")}
+        lp_auf_pred = {k: v for k, v in predictions["clinical"].items() if k.startswith("LP_") and not k.startswith("LP_GS_")}
+
+        # Helper function
+        def map_predictions_to_gt(pred_dict, mapping):
+            return {mapping[item_id]: rating for item_id, rating in pred_dict.items() if item_id in mapping}
+
+        # GSLP
+        if gslp_pred:
+            gt_data = load_gt_clinical("GSLP.csv")
+            if gt_video in gt_data:
+                mapped_pred = map_predictions_to_gt(gslp_pred, CLINICAL_MAPPING)
+                if mapped_pred:
+                    consensus = compute_gt_consensus(gt_data[gt_video])
+                    result = compute_alignment(mapped_pred, consensus)
+                    if result:
+                        for d in result["details"]:
+                            rows.append({
+                                "Framework": "GSLP",
+                                "Item": d["item"],
+                                "Predicted": f"{d['predicted']:.1f}",
+                                "Median": f"{d['median']:.1f}",
+                                "Q1": f"{d['q1']:.1f}",
+                                "Q3": f"{d['q3']:.1f}",
+                                "In_Range": "✓" if d["in_range"] else "✗",
+                            })
+
+        # LP_Aufklaerung
+        if lp_auf_pred:
+            gt_data = load_gt_clinical("LP_Aufklaerung.csv")
+            if gt_video in gt_data:
+                mapped_pred = map_predictions_to_gt(lp_auf_pred, CLINICAL_MAPPING)
+                if mapped_pred:
+                    consensus = compute_gt_consensus(gt_data[gt_video])
+                    result = compute_alignment(mapped_pred, consensus)
+                    if result:
+                        for d in result["details"]:
+                            rows.append({
+                                "Framework": "LP_Aufklaerung",
+                                "Item": d["item"],
+                                "Predicted": f"{d['predicted']:.1f}",
+                                "Median": f"{d['median']:.1f}",
+                                "Q1": f"{d['q1']:.1f}",
+                                "Q3": f"{d['q3']:.1f}",
+                                "In_Range": "✓" if d["in_range"] else "✗",
+                            })
+
+    # Write CSV
+    if rows:
+        with open(output_file, 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=["Framework", "Item", "Predicted", "Median", "Q1", "Q3", "In_Range"])
+            writer.writeheader()
+            writer.writerows(rows)
+        print(f"✅ Results saved to {output_file} ({len(rows)} items)")
+    else:
+        print("No results to save")
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Compare pipeline predictions with ground truth")
+    parser.add_argument("session_name", help="Session name (e.g., session_005)")
+    parser.add_argument("--output", "-o", help="Save results to CSV file")
+
+    args = parser.parse_args()
+
+    if args.output:
+        save_results_csv_cwgt(args.session_name, args.output)
+    else:
+        session = args.session_name
+        main(session)
