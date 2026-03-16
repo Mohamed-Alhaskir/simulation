@@ -383,14 +383,22 @@ def save_results_csv(session_name, output_file):
 
 if __name__ == "__main__":
     import argparse
+    from pathlib import Path
 
     parser = argparse.ArgumentParser(description="Compare pipeline predictions with ground truth")
     parser.add_argument("session_name", help="Session name (e.g., session_005)")
-    parser.add_argument("--output", "-o", help="Save results to CSV file")
+    parser.add_argument("--output", "-o", help="Save results to CSV file (default: results/results_{session}.csv)")
 
     args = parser.parse_args()
 
-    if args.output:
-        save_results_csv(args.session_name, args.output)
-    else:
-        main(args.session_name)
+    # Default output path
+    results_dir = Path("results")
+    results_dir.mkdir(exist_ok=True)
+    default_output = results_dir / f"results_{args.session_name}.csv"
+
+    output_file = args.output if args.output else str(default_output)
+    save_results_csv(args.session_name, output_file)
+
+    # Also show comparison in terminal
+    print()
+    main(args.session_name)
