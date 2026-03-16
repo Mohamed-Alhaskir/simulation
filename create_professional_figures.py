@@ -88,6 +88,49 @@ def get_all_sessions():
     return sorted(sessions)
 
 
+def format_session_name(session):
+    """Format session name professionally (e.g., 'session_005' → 'Session 005')"""
+    if session.startswith("session_"):
+        return f"Session {session.replace('session_', '')}"
+    return session
+
+
+def format_item_name(item):
+    """Format item name professionally"""
+    # Map item codes to proper names
+    item_names = {
+        "A": "Greeting & Introduction",
+        "B": "Identity Check",
+        "C": "Audibility & Clarity",
+        "D": "Non-verbal Behaviour",
+        "E": "Questions & Prompts",
+        "F": "Empathy & Responsiveness",
+        "G": "Clarification & Summary",
+        "H": "Consulting Style",
+        "I": "Professional Behaviour",
+        "J": "Professional Conduct",
+        "LP_GS_1": "Type of Treatment",
+        "LP_GS_2": "Scope",
+        "LP_GS_3": "Procedure",
+        "LP_GS_4": "Consequences",
+        "LP_GS_5": "Risks",
+        "LP_GS_6": "Necessity & Urgency",
+        "LP_GS_7": "Suitability",
+        "LP_GS_8": "Chances of Success",
+        "LP_GS_9": "Alternatives",
+        "LP_A": "Type of Treatment",
+        "LP_B": "Scope",
+        "LP_C": "Procedure",
+        "LP_D": "Consequences",
+        "LP_E": "Risks",
+        "LP_F": "Necessity & Urgency",
+        "LP_G": "Suitability",
+        "LP_H": "Chances of Success",
+        "LP_I": "Alternatives",
+    }
+    return item_names.get(item, item)
+
+
 def calculate_stats(data):
     """Calculate alignment statistics"""
     if not data:
@@ -263,8 +306,51 @@ def create_per_session_figure(session_name):
     return fig
 
 
+def plot_framework_heatmap(ax, data, sessions, framework, label):
+    """Heatmap: Item consistency for specific framework across sessions"""
+    # Get items for this framework
+    fw_data = [d for d in data if d["Framework"] == framework]
+    all_items = sorted(set(d["Item"] for d in fw_data))[:10]  # Top 10 items
+
+    # Create matrix: sessions x items
+    matrix = np.zeros((len(sessions), len(all_items)))
+    for i, session in enumerate(sessions):
+        for j, item in enumerate(all_items):
+            item_data = [d for d in fw_data if d["Session"] == session and d["Item"] == item]
+            if item_data:
+                in_range = sum(1 for d in item_data if d["In_Range"])
+                matrix[i, j] = in_range / len(item_data) * 100 if item_data else 0
+
+    im = ax.imshow(matrix, cmap="RdYlGn", aspect="auto", vmin=0, vmax=100)
+
+    # Format labels
+    formatted_sessions = [format_session_name(s) for s in sessions]
+    formatted_items = [format_item_name(item) for item in all_items]
+
+    ax.set_xticks(np.arange(len(all_items)))
+    ax.set_yticks(np.arange(len(sessions)))
+    ax.set_xticklabels(formatted_items, fontsize=FONT_SIZES["tick"]-1, rotation=45, ha="right")
+    ax.set_yticklabels(formatted_sessions, fontsize=FONT_SIZES["tick"], fontweight="bold")
+
+    ax.set_title(f"{label}. {framework} Items", fontsize=FONT_SIZES["title"],
+                 fontweight="bold", loc="left", pad=8)
+
+    # Add percentage annotations
+    for i in range(len(sessions)):
+        for j in range(len(all_items)):
+            if matrix[i, j] > 0:
+                text_color = "white" if matrix[i, j] < 50 else "black"
+                ax.text(j, i, f"{int(matrix[i, j])}", ha="center", va="center",
+                       color=text_color, fontsize=FONT_SIZES["annotation"], fontweight="bold")
+
+    # Colorbar
+    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("(%)", fontsize=FONT_SIZES["tick"]-1, fontweight="bold")
+    cbar.ax.tick_params(labelsize=FONT_SIZES["tick"]-1)
+
+
 def create_cross_session_figure():
-    """Create cross-session summary figure"""
+    """Create cross-session summary figure with better layout"""
     sessions = get_all_sessions()
     if not sessions:
         print("❌ No session data found")
@@ -281,24 +367,28 @@ def create_cross_session_figure():
         print("❌ No data loaded")
         return None
 
-    # Create figure
-    fig = plt.figure(figsize=FIGSIZE_WIDE, dpi=DPI)
-    gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+    # Create figure with better proportions
+    fig = plt.figure(figsize=(NATURE_WIDTH_MM/25.4, 14), dpi=DPI, facecolor="white")
+    gs = fig.add_gridspec(4, 3, hspace=0.4, wspace=0.3, top=0.96, bottom=0.06, left=0.08, right=0.96)
 
+    # Row 1: Alignment Trend (full width)
     ax1 = fig.add_subplot(gs[0, :])
-    ax2 = fig.add_subplot(gs[1, 0])
-    ax3 = fig.add_subplot(gs[1, 1])
-
-    # Plot 1: Alignment by session and framework
     plot_cross_session_alignment(ax1, all_data, sessions, "A")
 
-    # Plot 2: Framework comparison
+    # Row 2: Framework Comparison (full width)
+    ax2 = fig.add_subplot(gs[1, :])
     plot_framework_comparison(ax2, all_data, "B")
 
-    # Plot 3: Item consistency across sessions
-    plot_item_consistency(ax3, all_data, sessions, "C")
+    # Row 3-4: Item consistency heatmaps (one per framework)
+    ax3 = fig.add_subplot(gs[2:, 0])
+    ax4 = fig.add_subplot(gs[2:, 1])
+    ax5 = fig.add_subplot(gs[2:, 2])
 
-    fig.suptitle("Cross-Session Summary: Pipeline Performance",
+    plot_framework_heatmap(ax3, all_data, sessions, "LUCAS", "C")
+    plot_framework_heatmap(ax4, all_data, sessions, "GSLP", "D")
+    plot_framework_heatmap(ax5, all_data, sessions, "LP_Aufklaerung", "E")
+
+    fig.suptitle("Cross-Session Summary: Pipeline Performance Analysis",
                  fontsize=FONT_SIZES["title"] + 2, fontweight="bold", y=0.98)
 
     return fig
@@ -307,6 +397,9 @@ def create_cross_session_figure():
 def plot_cross_session_alignment(ax, data, sessions, label):
     """Line plot: Alignment trend across sessions"""
     frameworks = ["LUCAS", "GSLP", "LP_Aufklaerung"]
+
+    # Format session names
+    formatted_sessions = [format_session_name(s) for s in sessions]
 
     for fw in frameworks:
         alignments = []
@@ -320,22 +413,29 @@ def plot_cross_session_alignment(ax, data, sessions, label):
 
         # Plot line
         valid_indices = [i for i, x in enumerate(alignments) if x is not None]
-        valid_sessions = [sessions[i] for i in valid_indices]
+        valid_sessions = [formatted_sessions[i] for i in valid_indices]
         valid_alignments = [alignments[i] for i in valid_indices]
 
         color = COLORS.get(fw.lower().replace("_", "_"), "#3498db")
-        ax.plot(valid_sessions, valid_alignments, marker="o", linewidth=2,
-                label=fw, color=color, markersize=8)
+        ax.plot(valid_sessions, valid_alignments, marker="o", linewidth=2.5,
+                label=fw, color=color, markersize=10, markerfacecolor=color,
+                markeredgecolor="white", markeredgewidth=1.5)
 
-    ax.set_xlabel("Session", fontsize=FONT_SIZES["label"])
-    ax.set_ylabel("Alignment (%)", fontsize=FONT_SIZES["label"])
+    ax.set_xlabel("Session", fontsize=FONT_SIZES["label"], fontweight="bold")
+    ax.set_ylabel("Alignment (%)", fontsize=FONT_SIZES["label"], fontweight="bold")
     ax.set_title(f"{label}. Alignment Trend Across Sessions", fontsize=FONT_SIZES["title"],
-                 fontweight="bold", loc="left")
+                 fontweight="bold", loc="left", pad=10)
     ax.set_ylim(0, 110)
-    ax.axhline(y=50, color=COLORS["neutral"], linestyle=":", alpha=0.5, label="50% threshold")
-    ax.legend(fontsize=FONT_SIZES["legend"], loc="best")
-    ax.grid(True, alpha=0.3)
-    ax.tick_params(axis="x", rotation=45)
+    ax.axhline(y=50, color=COLORS["neutral"], linestyle=":", alpha=0.5, linewidth=1.5)
+    ax.legend(fontsize=FONT_SIZES["legend"], loc="best", frameon=True, fancybox=False, edgecolor="black")
+    ax.grid(True, alpha=0.2, linestyle="-", linewidth=0.5)
+    ax.set_axisbelow(True)
+    ax.tick_params(axis="both", labelsize=FONT_SIZES["tick"])
+
+    # Professional styling
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+        spine.set_color("#333333")
 
 
 def plot_framework_comparison(ax, data, label):
@@ -352,20 +452,36 @@ def plot_framework_comparison(ax, data, label):
             labels.append(fw)
 
     parts = ax.violinplot(deviations, positions=range(len(deviations)),
-                         showmeans=True, showmedians=True)
+                         showmeans=True, showmedians=True, widths=0.7)
+
+    # Format parts
+    for pc in parts["bodies"]:
+        pc.set_linewidth(1.5)
+        pc.set_edgecolor("black")
+
+    parts["cmeans"].set_edgecolor("black")
+    parts["cmedians"].set_color("black")
+    parts["cmedians"].set_linewidth(2)
 
     for i, pc in enumerate(parts["bodies"]):
         color_map = {"LUCAS": COLORS["lucas"], "GSLP": COLORS["gslp"],
                      "LP_Aufklaerung": COLORS["lp_auf"]}
         pc.set_facecolor(color_map[labels[i]])
-        pc.set_alpha(0.6)
+        pc.set_alpha(0.7)
 
     ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, fontsize=FONT_SIZES["tick"], rotation=15, ha="right")
-    ax.set_ylabel("Absolute Deviation", fontsize=FONT_SIZES["label"])
+    ax.set_xticklabels(labels, fontsize=FONT_SIZES["label"], fontweight="bold")
+    ax.set_ylabel("Absolute Deviation", fontsize=FONT_SIZES["label"], fontweight="bold")
     ax.set_title(f"{label}. Framework Comparison", fontsize=FONT_SIZES["title"],
-                 fontweight="bold", loc="left")
-    ax.grid(axis="y", alpha=0.3)
+                 fontweight="bold", loc="left", pad=10)
+    ax.grid(axis="y", alpha=0.2, linestyle="-", linewidth=0.5)
+    ax.set_axisbelow(True)
+    ax.tick_params(axis="both", labelsize=FONT_SIZES["tick"])
+
+    # Professional styling
+    for spine in ax.spines.values():
+        spine.set_linewidth(1)
+        spine.set_color("#333333")
 
 
 def plot_item_consistency(ax, data, sessions, label):
@@ -385,15 +501,21 @@ def plot_item_consistency(ax, data, sessions, label):
 
     im = ax.imshow(matrix, cmap="RdYlGn", aspect="auto", vmin=0, vmax=100)
 
+    # Format labels
+    formatted_sessions = [format_session_name(s) for s in sessions]
+    formatted_items = [format_item_name(item) for item in all_items]
+
     ax.set_xticks(np.arange(len(all_items)))
     ax.set_yticks(np.arange(len(sessions)))
-    ax.set_xticklabels(all_items, fontsize=FONT_SIZES["tick"], rotation=45, ha="right")
-    ax.set_yticklabels(sessions, fontsize=FONT_SIZES["tick"])
+    ax.set_xticklabels(formatted_items, fontsize=FONT_SIZES["tick"], rotation=45, ha="right")
+    ax.set_yticklabels(formatted_sessions, fontsize=FONT_SIZES["tick"], fontweight="bold")
 
-    ax.set_title(f"{label}. Item Consistency (Alignment %)", fontsize=FONT_SIZES["title"],
-                 fontweight="bold", loc="left")
+    ax.set_title(f"{label}. Item Consistency Across Sessions", fontsize=FONT_SIZES["title"],
+                 fontweight="bold", loc="left", pad=10)
 
-    plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04, label="Alignment %")
+    cbar = plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("Alignment (%)", fontsize=FONT_SIZES["label"], fontweight="bold")
+    cbar.ax.tick_params(labelsize=FONT_SIZES["tick"])
 
 
 def main():
