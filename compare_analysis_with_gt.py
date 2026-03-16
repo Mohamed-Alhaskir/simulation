@@ -294,22 +294,45 @@ def save_results_csv(session_name, output_file):
     # Collect all results
     rows = []
 
-    # LUCAS results
+    # LUCAS results - compare all 10 items directly
     if lucas_pred:
         lucas_gt = load_gt_for_video("lucas.csv", gt_video)
         if lucas_gt:
-            result = compute_alignment(lucas_pred, lucas_gt)
-            if result:
-                for d in result["details"]:
-                    rows.append({
-                        "Framework": "LUCAS",
-                        "Item": d["item"],
-                        "Predicted": d["predicted"],
-                        "Median": f"{d['median']:.1f}",
-                        "Q1": f"{d['q1']:.1f}",
-                        "Q3": f"{d['q3']:.1f}",
-                        "In_Range": "✓" if d["in_range"] else "✗",
-                    })
+            # Convert raw GT rows to rater score dicts
+            rater_scores_list = []
+            for gt_row in lucas_gt:
+                scores = {}
+                for item_key in LUCAS_ITEMS.keys():
+                    item_name = LUCAS_ITEMS[item_key]
+                    try:
+                        scores[item_key] = int(gt_row.get(item_name, 0))
+                    except (ValueError, TypeError):
+                        pass
+                if scores:
+                    rater_scores_list.append(scores)
+
+            if rater_scores_list:
+                # Compute consensus for each item
+                for item_key in sorted(lucas_pred.keys()):
+                    gt_values = [scores.get(item_key) for scores in rater_scores_list if item_key in scores]
+
+                    if gt_values:
+                        gt_median = statistics.median(gt_values)
+                        sorted_vals = sorted(gt_values)
+                        q1 = sorted_vals[len(gt_values)//4]
+                        q3 = sorted_vals[3*len(gt_values)//4]
+
+                        in_range_flag = q1 <= lucas_pred[item_key] <= q3
+
+                        rows.append({
+                            "Framework": "LUCAS",
+                            "Item": item_key,
+                            "Predicted": lucas_pred[item_key],
+                            "Median": f"{gt_median:.1f}",
+                            "Q1": f"{q1:.1f}",
+                            "Q3": f"{q3:.1f}",
+                            "In_Range": "✓" if in_range_flag else "✗",
+                        })
 
     # Clinical results - GSLP
     gslp_pred = {k: v for k, v in clinical_pred.items() if k.startswith("LP_GS_")}
