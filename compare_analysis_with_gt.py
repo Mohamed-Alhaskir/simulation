@@ -208,29 +208,48 @@ def main(session_name):
                     print(f"     {status} {d['item']}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
                 print()
 
-    # Compare Clinical
+    # Compare Clinical - may have multiple modules per scenario
     if clinical_pred:
-        # Find which GT file has this video
-        found_module = None
-        for module in ["GSLP", "LP_Aufklaerung", "Diabetes"]:
-            gt_data = load_gt_for_video(f"{module}.csv", gt_video)
-            if gt_data:
-                found_module = module
-                break
+        # Separate predictions by module prefix
+        gslp_pred = {k: v for k, v in clinical_pred.items() if k.startswith("LP_GS_")}
+        lp_auf_pred = {k: v for k, v in clinical_pred.items() if k.startswith("LP_") and not k.startswith("LP_GS_")}
 
-        if found_module:
-            result = compute_alignment(clinical_pred, gt_data)
-            if result:
-                print(f"📊 CLINICAL ALIGNMENT ({found_module}): {result['alignment']:.1f}%")
-                print(f"   Mappable items: {result['mappable_items']}/{result['total_items']}")
-                print(f"   Items in range: {result['in_range']}/{result['total']}")
-                print(f"   GT file: GT/{found_module}.csv")
-                print(f"   Details:")
-                for d in result["details"]:
-                    status = "✓" if d["in_range"] else "✗"
-                    print(f"     {status} {d['item']} → {d['gt_column']}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
-                print()
-        else:
+        # Compare each module if it has predictions
+        results_shown = False
+
+        if gslp_pred:
+            gt_data = load_gt_for_video("GSLP.csv", gt_video)
+            if gt_data:
+                result = compute_alignment(gslp_pred, gt_data)
+                if result:
+                    print(f"📊 CLINICAL ALIGNMENT (GSLP): {result['alignment']:.1f}%")
+                    print(f"   Mappable items: {result['mappable_items']}/{result['total_items']}")
+                    print(f"   Items in range: {result['in_range']}/{result['total']}")
+                    print(f"   GT file: GT/GSLP.csv")
+                    print(f"   Details:")
+                    for d in result["details"]:
+                        status = "✓" if d["in_range"] else "✗"
+                        print(f"     {status} {d['item']} → {d['gt_column']}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
+                    print()
+                    results_shown = True
+
+        if lp_auf_pred:
+            gt_data = load_gt_for_video("LP_Aufklaerung.csv", gt_video)
+            if gt_data:
+                result = compute_alignment(lp_auf_pred, gt_data)
+                if result:
+                    print(f"📊 CLINICAL ALIGNMENT (LP_Aufklaerung): {result['alignment']:.1f}%")
+                    print(f"   Mappable items: {result['mappable_items']}/{result['total_items']}")
+                    print(f"   Items in range: {result['in_range']}/{result['total']}")
+                    print(f"   GT file: GT/LP_Aufklaerung.csv")
+                    print(f"   Details:")
+                    for d in result["details"]:
+                        status = "✓" if d["in_range"] else "✗"
+                        print(f"     {status} {d['item']} → {d['gt_column']}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
+                    print()
+                    results_shown = True
+
+        if not results_shown:
             print(f"⚠ No Clinical GT data found for {gt_video}\n")
 
     print(f"{'='*70}\n")
