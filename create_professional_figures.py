@@ -146,6 +146,15 @@ def calculate_stats(data):
 
 def plot_scatter_predicted_vs_raters(ax, data, title, label):
     """Scatter plot: Predicted vs Median rater scores"""
+    # Handle missing data (e.g., Diabetes scenario with no GSLP/LP_Aufklaerung)
+    if not data:
+        ax.text(0.5, 0.5, f"No {title} data", transform=ax.transAxes,
+                ha="center", va="center", fontsize=FONT_SIZES["label"], color="gray")
+        ax.set_title(f"{label}. {title} (No Data)", fontsize=FONT_SIZES["title"], fontweight="bold", loc="left")
+        ax.set_xlim(-0.2, 2.2)
+        ax.set_ylim(-0.2, 2.2)
+        return
+
     predicted = [d["Predicted"] for d in data]
     median = [d["Median"] for d in data]
     colors = [COLORS["in_range"] if d["In_Range"] else COLORS["out_range"] for d in data]
