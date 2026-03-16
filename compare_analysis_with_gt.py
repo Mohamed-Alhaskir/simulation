@@ -1,0 +1,244 @@
+#!/usr/bin/env python3
+"""
+Direct comparison: analysis.json predictions vs Ground Truth
+
+Loads directly from analysis.json (instead of separate files)
+Handles clinical item ID to GT column mapping
+"""
+
+import json
+import csv
+import sys
+import statistics
+from pathlib import Path
+from collections import defaultdict
+
+# Clinical item ID to GT column mapping
+CLINICAL_MAPPING = {
+    # GSLP
+    "LP_GS_1": "Type_of_treatment",
+    "LP_GS_2": "Scope",
+    "LP_GS_3": "Procedure",
+    "LP_GS_4": "Consequences",
+    "LP_GS_5": "Risks",
+    "LP_GS_6": "Necessity_Urgency",
+    "LP_GS_7": "Suitability",
+    "LP_GS_8": "Chances_of_success",
+    "LP_GS_9": "Alternatives",
+    # LP_Aufklaerung
+    "LP_A": "Art",
+    "LP_B": "Umfang",
+    "LP_C": "Durchfuehrung",
+    "LP_D": "Moegliche_Folgen",
+    "LP_E": "Risiken",
+    "LP_F": "Notwendigkeit_Dringlichkeit",
+    "LP_G": "Eignung",
+    "LP_H": "Erfolgsaussichten",
+    "LP_I": "Behandlungsalternativen",
+}
+
+LUCAS_ITEMS = {
+    'A': 'Greeting and introduction',
+    'B': 'Identity check',
+    'C': 'Audibility and clarity of speech',
+    'D': 'Non-verbal behaviour',
+    'E': 'Questions prompts and/or explanations',
+    'F': 'Empathy & responsiveness',
+    'G': 'Clarification & summarising',
+    'H': 'Consulting style & organisation',
+    'I': 'Professional behaviour',
+    'J': 'Professional spoken/verbal conduct'
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Load Data
+# ═══════════════════════════════════════════════════════════════════════════
+
+def load_analysis(session_name):
+    """Load predictions from analysis.json"""
+    analysis_path = Path(f"data/reports/{session_name}/05_analysis/analysis.json")
+    if not analysis_path.exists():
+        return None
+
+    with open(analysis_path) as f:
+        return json.load(f)
+
+def load_gt_for_video(gt_file, gt_video):
+    """Load GT data for specific video"""
+    gt = []
+    try:
+        with open(f"GT/{gt_file}") as f:
+            lines = [l for l in f.readlines() if l.strip()]
+            reader = csv.DictReader(lines)
+            for row in reader:
+                if row.get("Video") == gt_video:
+                    gt.append(row)
+    except FileNotFoundError:
+        pass
+    return gt
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Compare
+# ═══════════════════════════════════════════════════════════════════════════
+
+def compute_alignment(predictions, gt_raters):
+    """Compare predictions to GT consensus (only for mapped items)"""
+    if not predictions or not gt_raters:
+        return None
+
+    # Only process items that have a GT mapping
+    mappable_items = {item_id: pred for item_id, pred in predictions.items()
+                      if item_id in CLINICAL_MAPPING}
+
+    if not mappable_items:
+        return None
+
+    in_range = 0
+    total = len(mappable_items)
+    details = []
+
+    for item_id, pred_score in mappable_items.items():
+        gt_col = CLINICAL_MAPPING[item_id]
+
+        # Find corresponding GT values for this item
+        gt_values = []
+        for gt_row in gt_raters:
+            if gt_col in gt_row:
+                try:
+                    gt_values.append(int(gt_row[gt_col]))
+                except (ValueError, TypeError):
+                    pass
+
+        if not gt_values:
+            continue
+
+        # Compute consensus
+        gt_median = statistics.median(gt_values)
+        sorted_vals = sorted(gt_values)
+        q1 = sorted_vals[len(gt_values)//4]
+        q3 = sorted_vals[3*len(gt_values)//4]
+
+        in_range_flag = q1 <= pred_score <= q3
+        if in_range_flag:
+            in_range += 1
+
+        details.append({
+            "item": item_id,
+            "gt_column": gt_col,
+            "predicted": pred_score,
+            "median": gt_median,
+            "q1": q1,
+            "q3": q3,
+            "in_range": in_range_flag,
+        })
+
+    alignment_percent = (100 * in_range / total) if total > 0 else 0
+    return {
+        "alignment": alignment_percent,
+        "in_range": in_range,
+        "total": total,
+        "mappable_items": len(mappable_items),
+        "total_items": len(predictions),
+        "details": details,
+    }
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Main
+# ═══════════════════════════════════════════════════════════════════════════
+
+def main(session_name):
+    print(f"\n{'='*70}")
+    print(f"COMPARING: {session_name}")
+    print(f"{'='*70}\n")
+
+    # Load analysis
+    analysis = load_analysis(session_name)
+    if not analysis:
+        print(f"❌ Could not find analysis.json for {session_name}")
+        return
+
+    scenario = analysis.get("scenario_id")
+    print(f"✓ Scenario: {scenario}")
+    print(f"📂 File: data/reports/{session_name}/05_analysis/analysis.json\n")
+
+    # Extract predictions
+    lucas_pred = {}
+    if "lucas_analysis" in analysis:
+        for item in analysis["lucas_analysis"].get("lucas_items", []):
+            lucas_pred[item["item"]] = item["rating"]
+
+    clinical_pred = {}
+    if "clinical_content" in analysis:
+        for item in analysis["clinical_content"].get("items", []):
+            clinical_pred[item["id"]] = item["rating"]
+
+    print(f"Predictions loaded:")
+    print(f"  - LUCAS: {len(lucas_pred)} items")
+    print(f"  - Clinical: {len(clinical_pred)} items\n")
+
+    # Session to GT video mapping
+    session_to_video = {
+        "session_001": "2025-01-17_14-25-37-Schockraum-Session 1",
+        "session_003": "2025-01-17_15-02-15-Schockraum-Session 1",
+        "session_005": "2025-10-10_15-34-21-Schockraum-Session 1",
+        "session_006": "2025-10-10_17-30-52-Schockraum-Session 1",
+    }
+    gt_video = session_to_video.get(session_name)
+
+    if not gt_video:
+        print(f"⚠ No GT video mapping for {session_name}")
+        return
+
+    print(f"GT video: {gt_video}\n")
+    print(f"{'-'*70}")
+    print("RESULTS")
+    print(f"{'-'*70}\n")
+
+    # Compare LUCAS
+    if lucas_pred:
+        lucas_gt = load_gt_for_video("lucas.csv", gt_video)
+        if lucas_gt:
+            result = compute_alignment(lucas_pred, lucas_gt)
+            if result:
+                print(f"📊 LUCAS ALIGNMENT: {result['alignment']:.1f}%")
+                print(f"   Items in range: {result['in_range']}/{result['total']}")
+                print(f"   Details:")
+                for d in result["details"][:5]:
+                    status = "✓" if d["in_range"] else "✗"
+                    print(f"     {status} {d['item']}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
+                print()
+
+    # Compare Clinical
+    if clinical_pred:
+        # Find which GT file has this video
+        found_module = None
+        for module in ["GSLP", "LP_Aufklaerung", "Diabetes"]:
+            gt_data = load_gt_for_video(f"{module}.csv", gt_video)
+            if gt_data:
+                found_module = module
+                break
+
+        if found_module:
+            result = compute_alignment(clinical_pred, gt_data)
+            if result:
+                print(f"📊 CLINICAL ALIGNMENT ({found_module}): {result['alignment']:.1f}%")
+                print(f"   Mappable items: {result['mappable_items']}/{result['total_items']}")
+                print(f"   Items in range: {result['in_range']}/{result['total']}")
+                print(f"   GT file: GT/{found_module}.csv")
+                print(f"   Details:")
+                for d in result["details"]:
+                    status = "✓" if d["in_range"] else "✗"
+                    print(f"     {status} {d['item']} → {d['gt_column']}: pred={d['predicted']}, median={d['median']:.1f}, IQR=[{d['q1']:.1f}, {d['q3']:.1f}]")
+                print()
+        else:
+            print(f"⚠ No Clinical GT data found for {gt_video}\n")
+
+    print(f"{'='*70}\n")
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        print("Usage: python compare_analysis_with_gt.py <session_name>")
+        print("Example: python compare_analysis_with_gt.py session_005")
+        sys.exit(1)
+
+    main(sys.argv[1])

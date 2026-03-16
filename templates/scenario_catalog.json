@@ -1,10 +1,29 @@
 {
-  "session_001": "LP_Aufklaerung",
-  "session_002": "Bauchschmerzen",
-  "session_003": "LP_Aufklaerung",
-  "session_004": "Bauchschmerzen",
-  "session_005": "LP_Aufklaerung",
-  "session_006": "LP_Aufklaerung",
-  "session_007": "Diabetes",
-  "session_008": "Diabetes"
+  "scenarios": {
+    "Diabetes": {
+      "uses_spikes": true,
+      "module_ids": ["Diabetes"],
+      "display_name": "Diagnoseübermittlung Diabetes Mellitus Typ 1"
+    },
+    "LP_Aufklaerung": {
+      "uses_spikes": false,
+      "module_ids": ["GSLP", "LP_Aufklaerung"],
+      "display_name": "LP-Aufklärung bei V.a. Meningitis"
+    },
+    "Bauchschmerzen": {
+      "uses_spikes": false,
+      "module_ids": ["Bauchschmerzen"],
+      "display_name": "Bauchschmerzen – Anamnese bei akutem abdominalem Schmerz"
+    }
+  },
+  "sessions": {
+    "session_001": "LP_Aufklaerung",
+    "session_002": "Bauchschmerzen",
+    "session_003": "LP_Aufklaerung",
+    "session_004": "Bauchschmerzen",
+    "session_005": "LP_Aufklaerung",
+    "session_006": "LP_Aufklaerung",
+    "session_007": "Diabetes",
+    "session_008": "Diabetes"
+  }
 }

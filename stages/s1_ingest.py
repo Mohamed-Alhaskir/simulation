@@ -249,7 +249,9 @@ class DataIngestionStage(BaseStage):
         if catalog_path.exists():
             with open(catalog_path, encoding="utf-8") as f:
                 catalog = json.load(f)
-            scenario_id = catalog.get(ctx["session_id"], "")
+            # Support both old flat structure and new nested structure
+            sessions_map = catalog.get("sessions", catalog)
+            scenario_id = sessions_map.get(ctx["session_id"], "")
             if scenario_id:
                 from utils.scenario_map import _canonicalise
                 metadata["scenario"]["id"] = _canonicalise(scenario_id)
