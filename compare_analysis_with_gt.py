@@ -170,7 +170,13 @@ def main(session_name):
     clinical_pred = {}
     if "clinical_content" in analysis:
         for item in analysis["clinical_content"].get("items", []):
-            clinical_pred[item["id"]] = item["rating"]
+            rating = item["rating"]
+            # Skip items with 'NA' or non-numeric ratings
+            if rating != "NA":
+                try:
+                    clinical_pred[item["id"]] = int(rating) if isinstance(rating, str) else rating
+                except (ValueError, TypeError):
+                    pass
 
     print(f"Predictions loaded:")
     print(f"  - LUCAS: {len(lucas_pred)} items")
@@ -182,6 +188,8 @@ def main(session_name):
         "session_003": "2025-01-17_15-02-15-Schockraum-Session 1",
         "session_005": "2025-10-10_15-34-21-Schockraum-Session 1",
         "session_006": "2025-10-10_17-30-52-Schockraum-Session 1",
+        "session_007": "2025-10-10_16-34-17-Schockraum-Session 1",
+        "session_008": "2025-10-10_14-31-45-Schockraum-Session 1",
     }
     gt_video = session_to_video.get(session_name)
 
@@ -256,9 +264,6 @@ def main(session_name):
 
 def save_results_csv(session_name, output_file):
     """Save all comparison results to CSV file"""
-    print(f"✓ Scenario: LP_Aufklaerung")
-    print(f"📂 File: data/reports/{session_name}/05_analysis/analysis.json\n")
-
     # Load analysis
     analysis = load_analysis(session_name)
     if not analysis:
@@ -266,6 +271,8 @@ def save_results_csv(session_name, output_file):
         return
 
     scenario = analysis.get("scenario_id")
+    print(f"✓ Scenario: {scenario}")
+    print(f"📂 File: data/reports/{session_name}/05_analysis/analysis.json\n")
 
     # Extract predictions
     lucas_pred = {}
@@ -276,7 +283,13 @@ def save_results_csv(session_name, output_file):
     clinical_pred = {}
     if "clinical_content" in analysis:
         for item in analysis["clinical_content"].get("items", []):
-            clinical_pred[item["id"]] = item["rating"]
+            rating = item["rating"]
+            # Skip items with 'NA' or non-numeric ratings
+            if rating != "NA":
+                try:
+                    clinical_pred[item["id"]] = int(rating) if isinstance(rating, str) else rating
+                except (ValueError, TypeError):
+                    pass
 
     # Session to GT video mapping
     session_to_video = {
@@ -284,6 +297,8 @@ def save_results_csv(session_name, output_file):
         "session_003": "2025-01-17_15-02-15-Schockraum-Session 1",
         "session_005": "2025-10-10_15-34-21-Schockraum-Session 1",
         "session_006": "2025-10-10_17-30-52-Schockraum-Session 1",
+        "session_007": "2025-10-10_16-34-17-Schockraum-Session 1",
+        "session_008": "2025-10-10_14-31-45-Schockraum-Session 1",
     }
     gt_video = session_to_video.get(session_name)
 
