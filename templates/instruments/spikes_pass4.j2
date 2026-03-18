@@ -1,0 +1,67 @@
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES**.
+
+## ⚠ GESPRÄCHSKONTEXT
+
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
+
+---
+
+## Bewertungsmaßstab
+
+{{ scoring_preamble }}
+
+---
+
+## PASS 4 — K-Phase (Knowledge — Diagnosemitteilung)
+
+⚠ **Phase-Fokus:** {{ phase_focus }}
+
+{% for item in items %}
+---
+
+### Item {{ item.id }}: {{ item.name }}
+
+{{ item.description }}
+
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}**: {{ text }}
+{% endfor %}
+
+{% for note in item.get('evaluation_notes', []) %}
+*Hinweis {{ loop.index }}:* {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Diarisiertes Transkript
+
+⚠ **Diarisierungshinweis:** Kurze Ein-Wort-Segmente wie „Genau", „Mhm", „Ja", „Okay" sind häufig falsch zugeordnet.
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Bewerte alle 5 K-Phase Items. Konzentriere dich auf den Abschnitt der Diagnosemitteilung, aber prüfe das gesamte Transkript.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item_no": {{ loop.index + 9 }},
+      "phase": "K",
+      "name": "{{ item.name }}",
+      "type": "standard",
+      "rating": <0, 1 oder 2>,
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

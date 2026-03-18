@@ -1,0 +1,82 @@
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES**.
+
+## ⚠ GESPRÄCHSKONTEXT
+
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
+
+---
+
+## Bewertungsmaßstab
+
+{{ scoring_preamble }}
+
+---
+
+## PASS 5 — E-Phase (Empathy — Emotionale Reaktionen)
+
+⚠ **Phase-Fokus:** {{ phase_focus }}
+
+{% for item in items %}
+---
+
+### Item {{ item.id }}: {{ item.name }}{% if item.get('type') == 'conditional' %} [KONDITIONAL]{% endif %}
+
+{{ item.description }}
+
+{% if item.get('type') == 'conditional' %}
+**Bedingung:** {{ item.condition }}
+Wenn die Bedingung NICHT eingetreten ist → rating: "NA"
+{% endif %}
+
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}**: {{ text }}
+{% endfor %}
+
+{% for note in item.get('evaluation_notes', []) %}
+*Hinweis {{ loop.index }}:* {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Pflichtprozess — Emotionsscan
+
+⚠ **ZWINGEND vor der Bewertung:** Durchsuche das GESAMTE Transkript nach allen Äußerungen von SPEAKER_01, die Emotionen signalisieren (Angst, Sorge, Schock, Überwältigung, Ablehnung, Trauer). Notiere jeden Moment mit Zeitstempel. Prüfe für jeden Moment die unmittelbare Reaktion von SPEAKER_00:
+- **vollständig** — Emotion benannt/gespiegelt UND Raum gelassen
+- **teilweise** — Emotion kurz quittiert, sofort weitergemacht
+- **fehlend** — Emotion vollständig übergangen oder rein sachlich beantwortet
+
+Schreibe das Ergebnis in das evidence-Feld im Format:
+`[MM:SS] SPEAKER_01: "[Zitat]" → SPEAKER_00: "[Reaktion]" → vollständig/teilweise/fehlend`
+
+---
+
+## Diarisiertes Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Führe zuerst den Emotionsscan durch. Bewerte dann alle E-Phase Items.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item_no": {{ loop.index + 14 }},
+      "phase": "E",
+      "name": "{{ item.name }}",
+      "type": "{{ item.get('type', 'standard') }}",
+      "rating": <0, 1, 2 oder "NA">,
+      "justification": "<Begründung mit Emotionsscan-Ergebnis>",
+      "evidence": ["<[MM:SS] SPEAKER_01: '[Emotion]' → SPEAKER_00: '[Reaktion]'>"]
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

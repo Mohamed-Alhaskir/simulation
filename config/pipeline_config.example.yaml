@@ -98,7 +98,6 @@ llm:
   max_tokens: 10000
   repeat_penalty: 1.05
   n_gpu_layers: -1          # -1 = all layers on GPU
-  strictness: 1             # scoring strictness: 1=lenient, 2=standard, 3=strict----------
 
 # Stage 07: Report Generation
 # --------------------------------------------------------------------------

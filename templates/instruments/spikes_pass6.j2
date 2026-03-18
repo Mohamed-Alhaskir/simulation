@@ -1,0 +1,70 @@
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES**.
+
+## ⚠ GESPRÄCHSKONTEXT
+
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
+
+---
+
+## Bewertungsmaßstab
+
+{{ scoring_preamble }}
+
+---
+
+## PASS 6 — S2-Phase (Strategy/Summary — Abschluss)
+
+⚠ **Phase-Fokus:** {{ phase_focus }}
+
+{% for item in items %}
+---
+
+### Item {{ item.id }}: {{ item.name }}{% if item.get('type') == 'conditional' %} [KONDITIONAL]{% endif %}
+
+{{ item.description }}
+
+{% if item.get('type') == 'conditional' %}
+**Bedingung:** {{ item.condition }}
+Wenn die Bedingung NICHT eingetreten ist → rating: "NA", justification: "Bedingung nicht eingetreten."
+{% endif %}
+
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}**: {{ text }}
+{% endfor %}
+
+{% for note in item.get('evaluation_notes', []) %}
+*Hinweis {{ loop.index }}:* {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Diarisiertes Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Bewerte die 5 S2-Phase Items. Konzentriere dich auf den Abschlussteil des Gesprächs. Für konditionale Items prüfe ZUERST ob die Bedingung eingetreten ist.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item_no": {{ loop.index + 19 }},
+      "phase": "S2",
+      "name": "{{ item.name }}",
+      "type": "{{ item.get('type', 'standard') }}",
+      "rating": <0, 1, 2 oder "NA">,
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

@@ -1,0 +1,72 @@
+{{ scoring_preamble }}
+
+## PASS 3 — Item D (Non-verbal Behaviour)
+
+{% for item in items %}
+### {{ item.id }}) {{ item.name }} (0, 1 oder 2)
+
+LUCAS-Kriterien:
+Beurteilt werden: Blickkontakt, Positionierung, Körperhaltung, Gesichtsausdruck, Gesten und Manierismen.
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
+{% endfor %}
+
+Bewertungsanleitung anhand der Videometriken:
+
+D1 — Blickkontakt:
+gaze_on_target >= 75% → gut
+gaze_on_target < 75% → D:2 ist ausgeschlossen (hartes Kriterium)
+
+D2 — Positionierung (nur wenn horizon_valid=true UND reliability != low):
+at_patient_eye_level_rate >= 50% → gut
+above_patient_eye_level_rate >= 60% → problematisch
+Sonst: D2 nicht auswertbar — ignorieren
+
+D3 — Körperhaltung:
+arm_deviation_median > -0.5 → offen/neutral
+arm_deviation_median <= -0.5 → verschränkt/geschlossen
+
+Rating-Logik:
+- Alle auswertbaren Kriterien gut → D:2 (aber D1 < 75% sperrt D:2 absolut)
+- Ein Kriterium auffällig → D:1
+- reliability=low → D:1 maximum
+- Keine Videodaten → D:1, mit Vermerk 'nicht beurteilbar'
+
+Nenne in der justification die konkreten Metrikwerte für jedes Kriterium.
+
+{% for note in item.get('evaluation_notes', []) %}
+{{ loop.index }}. {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Videometriken
+
+{{ video_summary }}
+
+---
+
+## Anweisungen
+
+Bewerte Item D ausschliesslich auf Basis der Videometriken. Kein Transkript verfügbar für diesen Pass.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+    {
+      "id": "D",
+      "item": "D",
+      "rating": <0, 1 oder 2>,
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "<Metrikwerte und Bewertung pro Kriterium>",
+      "evidence": [
+        "[video] D1: gaze=<Wert>%",
+        "[video] D2: at_eye_level=<Wert>%, above=<Wert>%",
+        "[video] D3: arm_deviation_median=<Wert>"
+      ],
+      "confidence": "<high|medium|low>"
+    }
+  ]
+}

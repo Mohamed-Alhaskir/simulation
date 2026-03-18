@@ -1,0 +1,98 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstrumentSchema",
+  "description": "Schema for unified assessment instrument JSON files",
+  "type": "object",
+  "required": ["id", "name", "domain", "scoring_preamble", "passes", "items"],
+  "additionalProperties": true,
+  "properties": {
+    "id":               { "type": "string" },
+    "name":             { "type": "string" },
+    "version":          { "type": "string" },
+    "domain":           { "type": "string" },
+    "description":      { "type": "string" },
+    "reference":        { "type": "string" },
+    "scoring_preamble": { "type": "string" },
+
+    "passes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "template"],
+        "additionalProperties": true,
+        "properties": {
+          "id":       { "type": "string" },
+          "name":     { "type": "string" },
+          "type":     { "type": "string", "enum": ["standard", "aggregation", "sequence_check"] },
+          "item_ids": { "type": "array", "items": { "type": "string" } },
+          "phase":    { "type": "string" },
+          "template": { "type": "string" },
+          "max_tokens": { "type": "integer" },
+          "context_requirements": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "transcript":       { "type": "string", "enum": ["full", "video_only", "none"] },
+              "video_features":   { "type": "boolean" },
+              "verbal_features":  { "type": "boolean" },
+              "spikes_annotation":{ "type": "boolean" },
+              "register_warning": { "type": "boolean" },
+              "emotion_scan":     { "type": "boolean" },
+              "phase_focus":      { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "items": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "scale", "scoring_guidance"],
+        "additionalProperties": true,
+        "properties": {
+          "id":          { "type": "string" },
+          "name":        { "type": "string" },
+          "category":    { "type": "string" },
+          "scale": {
+            "type": "array",
+            "items": { "type": ["integer", "string"] },
+            "minItems": 2
+          },
+          "scale_labels": {
+            "type": "object",
+            "additionalProperties": { "type": "string" }
+          },
+          "description":       { "type": "string" },
+          "scoring_guidance":  { "type": "object", "additionalProperties": { "type": "string" } },
+          "evaluation_notes":  { "type": "array", "items": { "type": "string" } },
+          "critical":          { "type": "boolean" },
+          "type":              { "type": "string", "enum": ["standard", "conditional"] },
+          "condition":         { "type": "string" },
+          "validation_rules": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "additionalProperties": true,
+              "properties": {
+                "type":          { "type": "string" },
+                "field":         { "type": "string" },
+                "operator":      { "type": "string" },
+                "threshold":     { "type": "number" },
+                "value":         { "type": "string" },
+                "blocked_score": { "type": "integer" },
+                "forced_score":  { "type": "integer" },
+                "disallowed":    { "type": "integer" },
+                "message":       { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

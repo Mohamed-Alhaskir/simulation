@@ -1,0 +1,63 @@
+{{ scoring_preamble }}
+
+## PASS 6 — Items I und J
+
+{% for item in items %}
+---
+
+### {{ item.id }}) {{ item.name }} (0 oder 2 — kein Borderline)
+
+LUCAS-Kriterien:
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
+{% endfor %}
+
+Bewertungsanleitung:
+{% for note in item.get('evaluation_notes', []) %}
+{{ loop.index }}. {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+{% if register_warning %}
+## ⚠ Register-Warnung
+
+{{ register_warning }}
+
+{% endif %}
+
+## Vollständiges Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+**I** — Scanne das GESAMTE Transkript — professionelles Verhalten muss DURCHGEHEND aufrechterhalten werden. Ein problematischer Austausch gegen Ende der Konsultation kann I:0 begründen, auch wenn der Anfang professionell war.
+Registerwechsel: Wenn SPEAKER_00 informelle 'du'-Formen DIREKT gegenüber SPEAKER_01 verwendet, ist das ein Registerwechsel → I:0.
+WICHTIG — Pädiatrischer Kontext: In Gesprächen mit Elternteil + Kind können 'du'-Formen an das KIND (Patienten) gerichtet sein — das ist kein Registerwechsel mit SPEAKER_01.
+WICHTIG — Einzelner Ausrutscher: Ein einzelner, isolierter 'du'-Ausdruck in einem ansonsten durchgehend professionellen Gespräch begründet in der Regel KEIN I:0.
+
+**J** — Scanne das GESAMTE Transkript. Prüfe ob medizinische Aussagen sachlich korrekt sind, ob der Kliniker im Rahmen seiner Kompetenz bleibt, ob Beruhigung angemessen ist. Widersprüchliche Risikoaussagen zur DERSELBEN Frage sind ein J:0-Indikator.
+
+⚠ **Bewertungsregeln:** I und J haben KEIN Borderline. Erlaubte Scores: 0 oder 2.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item": "{{ item.id }}",
+      "rating": <0 oder 2>,
+      "rating_label": "<Competent|Unacceptable>",
+      "justification": "<max 3 Sätze>",
+      "evidence": ["<[MM:SS] SPEAKER_XX: 'Zitat'>"],
+      "confidence": "<high|medium|low>"
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

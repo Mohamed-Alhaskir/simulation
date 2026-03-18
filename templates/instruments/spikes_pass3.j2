@@ -1,0 +1,63 @@
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES**.
+
+## ⚠ GESPRÄCHSKONTEXT
+
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
+
+---
+
+## Bewertungsmaßstab
+
+{{ scoring_preamble }}
+
+---
+
+## PASS 3 — I-Phase (Invitation)
+
+⚠ **Phase-Fokus:** {{ phase_focus }}
+
+{% for item in items %}
+---
+
+### Item {{ item.id }}: {{ item.name }}
+
+{{ item.description }}
+
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}**: {{ text }}
+{% endfor %}
+
+{% for note in item.get('evaluation_notes', []) %}
+*Hinweis {{ loop.index }}:* {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Diarisiertes Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Prüfe ob der Kliniker explizit den Informationswunsch der Bezugsperson erfragte VOR der Diagnosemitteilung.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt:
+
+{
+  "items": [
+    {
+      "id": "DM_I_9",
+      "item_no": 9,
+      "phase": "I",
+      "name": "Informationswunsch besprechen",
+      "type": "standard",
+      "rating": <0, 1 oder 2>,
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    }
+  ]
+}

@@ -1,18 +1,15 @@
 {
   "scenarios": {
     "Diabetes": {
-      "uses_spikes": true,
-      "module_ids": ["Diabetes"],
+      "instruments": ["SPIKES", "LUCAS", "Diabetes_CC"],
       "display_name": "Diagnoseübermittlung Diabetes Mellitus Typ 1"
     },
     "LP_Aufklaerung": {
-      "uses_spikes": false,
-      "module_ids": ["GSLP", "LP_Aufklaerung"],
+      "instruments": ["LUCAS", "GSLP", "LP_Aufklaerung"],
       "display_name": "LP-Aufklärung bei V.a. Meningitis"
     },
     "Bauchschmerzen": {
-      "uses_spikes": false,
-      "module_ids": ["Bauchschmerzen"],
+      "instruments": ["LUCAS"],
       "display_name": "Bauchschmerzen – Anamnese bei akutem abdominalem Schmerz"
     }
   },
