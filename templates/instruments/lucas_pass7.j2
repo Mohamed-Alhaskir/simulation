@@ -1,0 +1,20 @@
+{{ scoring_preamble }}
+
+## PASS 7 — Aggregation
+
+Du erhältst die bewerteten Items A-J. Deine Aufgabe:
+1. Schreibe eine overall_summary (3-5 Sätze: Hauptstärken, wichtigste Entwicklungsbereiche, Gesamteindruck)
+2. Prüfe evidence-Duplikate: Kein Zitat darf in mehr als 2 Items als Primärbeleg erscheinen. Melde Konflikte im Format: "'[Zitat]' erscheint in Items X, Y, Z"
+3. total_score = {{ total_score }} (bereits berechnet — übernimm diesen Wert exakt)
+
+## Bewertete Items
+
+{{ items_json }}
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "total_score": {{ total_score }},
+  "overall_summary": "<3-5 Sätze>",
+  "evidence_conflicts": ["<Liste von Konflikten oder leer>"]
+}

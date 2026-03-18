@@ -1,0 +1,54 @@
+{{ scoring_preamble }}
+
+## PASS 5 — Item H (Consulting Style and Organisation)
+
+{% for item in items %}
+### {{ item.id }}) {{ item.name }} (0, 1 oder 2)
+
+LUCAS-Kriterien:
+Beinhaltet Ordnung der Konsultation, Balance offener und geschlossener Fragen, Zeitmanagement.
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
+{% endfor %}
+
+Bewertungsanleitung:
+{% for note in item.get('evaluation_notes', []) %}
+{{ loop.index }}. {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Interaktionsmetriken
+
+{{ interaction_metrics }}
+
+---
+
+## Vollständiges Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Beachte den Sprechangteil von SPEAKER_00. Wenn SPEAKER_00 deutlich dominiert (> 75%), prüfe ob aktive Strukturierungsmomente (Gesprächsübergänge, Einladungen zum Nachfragen, Zusammenfassungen zwischen Themenblöcken) dies kompensieren.
+
+Evidence: Nur Strukturierungsmomente (Übergänge, Themenmarkierungen, aktive Beteiligung). NICHT: Begrüssung (→A), Abschlussformeln (→G), Explorationsfragen (→E).
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+    {
+      "id": "H",
+      "item": "H",
+      "rating": <0, 1 oder 2>,
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "<Sprechangteil nennen, Strukturierung beurteilen>",
+      "evidence": ["<Strukturierungsmomente mit Zeitstempel>"],
+      "confidence": "<high|medium|low>"
+    }
+  ]
+}

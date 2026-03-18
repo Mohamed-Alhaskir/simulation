@@ -1,0 +1,51 @@
+{{ scoring_preamble }}
+
+## PASS 4 — Items F und G
+
+{% for item in items %}
+---
+
+### {{ item.id }}) {{ item.name }} (0, 1 oder 2)
+
+LUCAS-Kriterien:
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
+{% endfor %}
+
+Bewertungsanleitung:
+{% for note in item.get('evaluation_notes', []) %}
+{{ loop.index }}. {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Vollständiges Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+**F** — Identifiziere emotionale Äusserungen von SPEAKER_01. Prüfe jeweils die Reaktion von SPEAKER_00. F:2 vs F:1 Entscheidung: Ein einziger genuiner empathischer Moment (echte Perspektivübernahme, nicht-formelhafte Validierung) reicht für F:2, auch wenn andere Reaktionen routinierter ausfallen. F:1 nur wenn ALLE Reaktionen formelhaft bleiben. Evidence MUSS als Interaktionspaar formatiert sein: "[MM:SS] SPEAKER_01: '...' → SPEAKER_00: '...'"
+
+**G** — G bewertet AKTIVE Initiative von SPEAKER_00 — nicht reaktive Antworten auf Fragen von SPEAKER_01 (das gehört zu Item E). Standard-Abschlussformeln ('Haben Sie noch Fragen?') allein begründen kein G:1.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item": "{{ item.id }}",
+      "rating": <0, 1 oder 2>,
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "<max 3 Sätze>",
+      "evidence": ["<[MM:SS] SPEAKER_01: '...' → SPEAKER_00: '...'>"],
+      "confidence": "<high|medium|low>"
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

@@ -1,0 +1,36 @@
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES**.
+
+## PASS 7 — Sequenzprüfung S→P→I→K→E→S2
+
+Du erhältst alle bewerteten Items aus den Passes 1–6. Deine Aufgabe:
+
+1. **Sequenzprüfung:** Prüfe ob die SPIKES-Phasen in der korrekten Reihenfolge aufgetreten sind: S → P → I → K → E → S2.
+   - Identifiziere den ersten Zeitstempel (aus den evidence-Zitaten) für jede Phase.
+   - Prüfe ob die Reihenfolge korrekt ist.
+   - Berücksichtige dass Phasen sich überlappen können — prüfe den BEGINN jeder Phase.
+
+2. **Gesamtbewertung:** Schreibe eine 2-3 Sätze Gesamtbewertung der SPIKES-Gesprächsstruktur.
+
+## Bewertete Items (alle Phasen)
+
+{{ items_json }}
+
+---
+
+## Anweisungen
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "sequence_correct": <true oder false>,
+  "sequence_note": "<Erklärung ob und wie die Sequenz eingehalten oder verletzt wurde>",
+  "phase_first_timestamps": {
+    "S": "<[MM:SS] oder null>",
+    "P": "<[MM:SS] oder null>",
+    "I": "<[MM:SS] oder null>",
+    "K": "<[MM:SS] oder null>",
+    "E": "<[MM:SS] oder null>",
+    "S2": "<[MM:SS] oder null>"
+  },
+  "overall_spikes_structure_note": "<2-3 Sätze Gesamtbewertung der SPIKES-Gesprächsstruktur>"
+}

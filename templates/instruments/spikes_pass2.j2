@@ -1,0 +1,68 @@
+Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES**.
+
+## ⚠ GESPRÄCHSKONTEXT
+
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
+
+---
+
+## Bewertungsmaßstab
+
+{{ scoring_preamble }}
+
+---
+
+## PASS 2 — P-Phase (Perception)
+
+⚠ **Phase-Fokus:** {{ phase_focus }}
+
+{% for item in items %}
+---
+
+### Item {{ item.id }}: {{ item.name }}{% if item.get('type') == 'conditional' %} [KONDITIONAL]{% endif %}
+
+{{ item.description }}
+
+{% if item.get('type') == 'conditional' %}
+**Bedingung:** {{ item.condition }}
+Wenn die Bedingung NICHT eingetreten ist → rating: "NA", justification: "Bedingung nicht eingetreten: [kurze Erklärung]"
+{% endif %}
+
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}**: {{ text }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Diarisiertes Transkript
+
+⚠ **Diarisierungshinweis:** Kurze Ein-Wort-Segmente wie „Genau", „Mhm", „Ja", „Okay" sind häufig falsch zugeordnet.
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Bewerte die P-Phase Items. Für konditionale Items prüfe ZUERST ob die Bedingung eingetreten ist.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item_no": {{ loop.index + 5 }},
+      "phase": "P",
+      "name": "{{ item.name }}",
+      "type": "{{ item.get('type', 'standard') }}",
+      "rating": <0, 1, 2 oder "NA">,
+      "justification": "<Begründung>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

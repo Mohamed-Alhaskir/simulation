@@ -1,0 +1,53 @@
+{{ scoring_preamble }}
+
+## PASS 1 — Items A und B (Eröffnungssequenz)
+
+⚠ **Phase-Fokus:** {{ phase_focus }}
+
+Bewerte die Eröffnungssequenz des Gesprächs, nicht nur die ersten Worte. Die Begrüßung und Identifikation können zu Beginn stattfinden — der Kliniker muss nicht in den ersten 30 Sekunden alles sagen, aber VOR dem eigentlichen Gesprächsinhalt.
+
+{% for item in items %}
+---
+
+### {{ item.id }}) {{ item.name }} (0 oder {{ item.scale | max }})
+
+LUCAS-Kriterien:
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
+{% endfor %}
+
+Bewertungsanleitung:
+{% for note in item.get('evaluation_notes', []) %}
+{{ loop.index }}. {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Bewerte nur Items A und B. Scanne zunächst die Eröffnungssequenz des Gesprächs.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item": "{{ item.id }}",
+      "rating": <{% for v in item.scale %}{{ v }}{% if not loop.last %} oder {% endif %}{% endfor %}>,
+      "rating_label": "<{% for k, v in item.scale_labels.items() %}{{ v }}{% if not loop.last %}|{% endif %}{% endfor %}>",
+      "justification": "<welche Elemente vorhanden/fehlend>",
+      "evidence": ["<[MM:SS] SPEAKER_XX: 'Zitat'>"],
+      "confidence": "<high|medium|low>"
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}

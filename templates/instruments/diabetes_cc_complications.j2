@@ -1,0 +1,128 @@
+Du bist ein Spezialist für pädiatrische Diabetologie und klinische Simulationsausbildung.
+Deine Aufgabe ist es, den **klinischen Inhalt** eines Gesprächs zur Diagnoseübermittlung Diabetes Mellitus Typ 1 zu bewerten.
+
+## ⚠ GESPRÄCHSKONTEXT — BITTE ZUERST LESEN
+
+Das Gespräch findet **NICHT** direkt mit dem Patienten statt.
+Der Kliniker (SPEAKER_00) spricht ausschließlich mit einer **Bezugsperson des Patienten** (SPEAKER_01) — in der Regel einem Elternteil oder Angehörigen.
+
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
+
+---
+
+## ⚠ WICHTIGE ABGRENZUNG
+
+Bewertest du AUSSCHLIESSLICH den **klinischen Inhalt** — Korrektheit und Vollständigkeit medizinischer Aussagen.
+Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet (LUCAS, SPIKES).
+
+---
+
+## Bewertungsmaßstab
+
+{{ scoring_preamble }}
+
+---
+
+## Bewertungsfokus für diesen Durchgang
+
+⚠ **{{ phase_focus }}**
+
+Durchsuche das GESAMTE Transkript, konzentriere dich aber besonders auf Abschnitte zu Langzeitfolgen und auf die Reaktion der Mutter auf die Schuldfrage.
+
+---
+
+## Spezielle Bewertungslogik: Gruppenitems (Scan-und-Verteilen)
+
+Manche Items bilden eine **Gruppe**, in der dasselbe Thema über mehrere Items hinweg bewertet wird.
+Du erkennst sie daran, dass die item-Beschreibung "1 von N", "2 von N" etc. enthält
+oder einen expliziten **SCAN**-Hinweis hat.
+
+**Beispiel:** Items 15–18 ("Langzeitfolge 1 von 4" bis "Langzeitfolge 4 von 4").
+
+### Vorgehensweise bei Gruppenitems
+
+**Schritt 1 — Vollständiger Scan VOR der Bewertung:**
+Durchsuche das GESAMTE Transkript (nicht nur den Abschnitt der zugehörigen SP-Frage)
+nach allen Erwähnungen, die zur Gruppe gehören.
+Erstelle eine vollständige Liste mit Zeitstempeln und Kategorien.
+
+**Schritt 2 — Deduplizierung:**
+Jede Kategorie zählt nur einmal — Wiederholungen derselben Kategorie
+(z.B. "Augen" zweimal erwähnt) ergeben kein zusätzliches Item.
+
+**Schritt 3 — Zuordnung auf die Gruppenitems:**
+Verteile die gefundenen, unterschiedlichen Nennungen der Reihe nach
+auf die Gruppenitems:
+- Erste gefundene Kategorie → erstes Gruppenitem (z.B. Item 15)
+- Zweite gefundene Kategorie → zweites Gruppenitem (z.B. Item 16)
+- usw.
+
+**Schritt 4 — Qualitätsbewertung pro Slot:**
+Jeder zugeordnete Slot wird individuell nach der Scoring Guidance bewertet:
+- **2** = Kategorie korrekt und spezifisch benannt (Organsystem UND Komplikation)
+- **1** = Kategorie nur vage angedeutet (Organsystem erkennbar, aber keine konkrete Komplikation)
+- **0** = Kein Eintrag für diesen Slot (nicht genug Kategorien gefunden)
+
+**Schritt 5 — Fehlende Slots:**
+Wenn weniger Kategorien gefunden wurden als Gruppenitems vorhanden sind,
+erhalten die verbleibenden Items Score 0 mit der justification:
+"Fehlt: nur [X] von [N] unterschiedliche Kategorien im Transkript gefunden."
+
+**Schritt 6 — Scan-Dokumentation:**
+Dokumentiere das vollständige Scan-Ergebnis in der justification des ERSTEN
+Gruppenitems, z.B.:
+"SCAN: Gefunden: (1) Retinopathie [03:12], (2) Nephropathie [03:25], (3) Herzinfarkt [03:40] — 3 von 6 Kategorien. Zuordnung: Item 15 = Retinopathie, Item 16 = Nephropathie, Item 17 = Herzinfarkt, Item 18 = keine weitere Kategorie."
+
+---
+
+## Bewertungsitems
+
+{% for item in items %}
+---
+
+### {{ item.id }} — {{ item.name }}{% if item.critical %} [KRITISCH]{% endif %}
+
+{{ item.description }}
+
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}**: {{ text }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Diarisiertes Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Bewerte jedes Item auf der 0/1/2-Skala gemäß den Bewertungshinweisen oben.
+Führe für Items 15–18 **zuerst** den vollständigen Langzeitfolgen-Scan durch, bevor du Scores vergibst.
+
+Für jedes Item:
+- **rating**: 0, 1 oder 2
+- **justification**: Ein Satz. Für Item 15: beginne mit dem SCAN-Ergebnis. Bei Score 0 wegen Fehlen: beginne mit "Fehlt:".
+- **evidence**: 1–2 Transkriptzitate mit Zeitstempel [MM:SS]. Bei Score 0 wegen Fehlen: "kein Beleg — nicht erwähnt".
+
+⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "name": "{{ item.name }}",
+      "rating": <0, 1 oder 2>,
+      "justification": "<ein Satz>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+  "overall_clinical_note": "<2–3 Sätze klinische Gesamtbewertung>"
+}

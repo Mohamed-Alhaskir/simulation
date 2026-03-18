@@ -1,0 +1,750 @@
+{
+  "id": "SPIKES",
+  "name": "Checkliste Gesprächsstruktur SPIKES — Diagnoseübermittlung Diabetes Mellitus Typ 1",
+  "version": "1.0",
+  "domain": "communication",
+  "description": "Bewertet die Gesprächsstruktur nach dem SPIKES-Protokoll (Baile et al., 2000) anhand von 24 Items (davon 5 konditional). Version 1.0, 09-10-2025.",
+  "reference": "Baile WF et al. SPIKES — A Six-Step Protocol for Delivering Bad News. Oncologist. 2000;5(4):302-311.",
+  "scoring_preamble": "Allgemeine Skala:\n- 2 = Verhalten klar und vollständig im Transkript belegt\n- 1 = Verhalten erkennbar angedeutet, aber unvollständig oder nur teilweise umgesetzt\n- 0 = Verhalten fehlt oder nicht erkennbar\n- NA = Nur bei konditionalen Items wenn die Bedingung im Gespräch NICHT eingetreten ist\n\nIm Zweifelsfall zwischen zwei Stufen wähle die niedrigere. Score 2 erfordert einen positiven Transkriptbeleg — nicht nur die Abwesenheit eines Fehlers.\n\nABGRENZUNG:\nBewerte AUSSCHLIESSLICH die SPIKES-Gesprächsstruktur — ob die Phasen Setting / Perception / Invitation / Knowledge / Emotion / Summary umgesetzt wurden und in der richtigen Reihenfolge stattfanden.\nKommunikationsqualität (Empathie, Ausdrucksweise, Professionalität) → wird durch LUCAS bewertet, nicht durch SPIKES.\nKlinischer Inhalt (medizinische Korrektheit der Aussagen) → wird durch Diabetes_CC bewertet, nicht durch SPIKES.\n\nGESPRÄCHSKONTEXT:\n- SPEAKER_00 = Kliniker (zu bewerten)\n- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)\n- Das Gespräch findet NICHT direkt mit dem Patienten statt, sondern mit der Bezugsperson.\n\nDIARISIERUNGSHINWEIS: Kurze Ein-Wort-Segmente wie 'Genau', 'Mhm', 'Ja', 'Okay' sind häufig falsch zugeordnet. Prüfe immer den Kontext des umgebenden Dialogs.",
+  "passes": [
+    {
+      "id": "pass1",
+      "name": "S-Phase — Setting",
+      "type": "standard",
+      "item_ids": [
+        "DM_S_1",
+        "DM_S_2",
+        "DM_S_3",
+        "DM_S_4",
+        "DM_S_5"
+      ],
+      "template": "spikes_pass1.j2",
+      "max_tokens": 4000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "S-Phase (Setting up) — Gesprächsbeginn und Umgebungsgestaltung. Die S-Phase findet typischerweise am Anfang des Gesprächs statt, aber prüfe das gesamte Transkript auf S-Phase-Verhalten."
+      }
+    },
+    {
+      "id": "pass2",
+      "name": "P-Phase — Perception",
+      "type": "standard",
+      "item_ids": [
+        "DM_P_6",
+        "DM_P_7",
+        "DM_P_8"
+      ],
+      "template": "spikes_pass2.j2",
+      "max_tokens": 4000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "P-Phase (Perception) — Was weiß die Bezugsperson bereits? Offene Fragen zur Vorwahrnehmung, Erkennen und Korrigieren von Missverständnissen und unrealistischen Erwartungen."
+      }
+    },
+    {
+      "id": "pass3",
+      "name": "I-Phase — Invitation",
+      "type": "standard",
+      "item_ids": [
+        "DM_I_9"
+      ],
+      "template": "spikes_pass3.j2",
+      "max_tokens": 3000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "I-Phase (Invitation) — Informationswunsch besprechen. Hat der Kliniker explizit gefragt wie viel Information die Bezugsperson möchte?"
+      }
+    },
+    {
+      "id": "pass4",
+      "name": "K-Phase — Knowledge",
+      "type": "standard",
+      "item_ids": [
+        "DM_K_10",
+        "DM_K_11",
+        "DM_K_12",
+        "DM_K_13",
+        "DM_K_14"
+      ],
+      "template": "spikes_pass4.j2",
+      "max_tokens": 5000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "K-Phase (Knowledge) — Diagnosemitteilung und Informationsvermittlung. Wie wurde die schlechte Nachricht übermittelt? Sprache, Portionierung, Vorwarnung."
+      }
+    },
+    {
+      "id": "pass5",
+      "name": "E-Phase — Empathy",
+      "type": "standard",
+      "item_ids": [
+        "DM_E_15",
+        "DM_E_16",
+        "DM_E_17",
+        "DM_E_18",
+        "DM_E_19"
+      ],
+      "template": "spikes_pass5.j2",
+      "max_tokens": 5000,
+      "context_requirements": {
+        "transcript": "full",
+        "emotion_scan": true,
+        "phase_focus": "E-Phase (Emotion) — Emotionale Reaktionen der Bezugsperson und empathische Reaktion des Klinikers. Führe zuerst einen vollständigen Emotionsscan durch."
+      }
+    },
+    {
+      "id": "pass6",
+      "name": "S2-Phase — Strategy/Summary",
+      "type": "standard",
+      "item_ids": [
+        "DM_S2_20",
+        "DM_S2_21",
+        "DM_S2_22",
+        "DM_S2_23",
+        "DM_S2_24"
+      ],
+      "template": "spikes_pass6.j2",
+      "max_tokens": 4000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "S2-Phase (Strategy/Summary) — Abschluss und nächste Schritte. Behandlungsplanung, Verständnissicherung, Zusammenfassung."
+      }
+    },
+    {
+      "id": "pass7",
+      "name": "Sequenzprüfung",
+      "type": "sequence_check",
+      "item_ids": [],
+      "template": "spikes_pass7.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full"
+      }
+    }
+  ],
+  "items": [
+    {
+      "id": "DM_S_1",
+      "name": "Ungestörtheit sicherstellen",
+      "category": "S",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker stellt sicher dass das Gespräch ungestört stattfinden kann (Raum, Unterbrechungen minimiert, Handy stumm o.ä.).",
+      "scoring_guidance": {
+        "2": "Ungestörtheit explizit und erkennbar sichergestellt — konkreter Hinweis im Transkript (z.B. Tür schließen, Handy weglegen, Hinweis dass keine Unterbrechungen kommen) oder Setting-Beschreibung zeigt klare Maßnahmen.",
+        "1": "Ansätze vorhanden aber unvollständig — z.B. kurze Erwähnung ohne konkrete Umsetzung, oder nur eine Maßnahme von mehreren notwendigen.",
+        "0": "Keine erkennbaren Maßnahmen zur Sicherstellung der Ungestörtheit."
+      },
+      "evaluation_notes": [
+        "In vielen Transkripten ist S1 schwer zu belegen da es setting-basiert ist — gib S1:2 wenn eindeutige Hinweise vorliegen.",
+        "Implizite Hinweise wie 'Wir sitzen jetzt hier ruhig' oder eine störungsfreie Gesprächsatmosphäre können S1:1 begründen."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_S_2",
+      "name": "Angehörige einbeziehen",
+      "category": "S",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker bezieht anwesende Bezugspersonen aktiv in das Gespräch ein oder begrüßt sie.",
+      "scoring_guidance": {
+        "2": "Bezugsperson aktiv und explizit in das Gespraech einbezogen: Begruessung der Bezugsperson als Person (nicht nur als Anwesende) UND mindestens eine weitere aktive Einbeziehungsgeste (Rollenerklaerung, Einladung zur Teilnahme, direkte Adressierung eines Beitrags der Bezugsperson). Beide Elemente muessen vorhanden sein.",
+        "1": "Nur Begruessung der Bezugsperson ohne weitere aktive Einbeziehung, ODER Bezugsperson gelegentlich angesprochen aber kein systematischer Einbezug.",
+        "0": "Keine erkennbare Einbeziehung der Bezugsperson oder Bezugsperson vollständig ignoriert."
+      },
+      "evaluation_notes": [
+        "Im Szenario ist SPEAKER_01 bereits die einzige Gesprächspartnerin — 'Einbeziehen' bedeutet aktive Anerkennung ihrer Rolle.",
+        "Score 2 wenn Kliniker SPEAKER_01 explizit als Gesprächspartner addressiert und einbezieht."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_S_3",
+      "name": "Hinsetzen / Barrieren beseitigen",
+      "category": "S",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker setzt sich (Augenhöhe herstellen, physische Barrieren beseitigen).",
+      "scoring_guidance": {
+        "2": "Hinsetzen oder Augenhöhe explizit erkennbar — z.B. Transkripthinweis, oder Videometriken bestätigen sitzende Position auf Augenhöhe.",
+        "1": "Ansatz erkennbar aber nicht vollständig sicher (z.B. unklar ob sitzend oder stehend).",
+        "0": "Keine Hinweise auf körperliche Annäherung oder Augenhöhe; oder Kliniker offensichtlich stehend/distanziert."
+      },
+      "evaluation_notes": [
+        "S3 ist in reinen Transkripten schwer zu belegen — nutze Kontexthinweise.",
+        "Bei fehlenden Videodaten: Score 1 als Standard wenn keine Hinweise auf das Gegenteil vorliegen."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_S_4",
+      "name": "Verbindung herstellen",
+      "category": "S",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker stellt Rapport her — persönliche Verbindung, Name verwendet, Augenkontakt, kurzer Small Talk oder direkte Zuwendung.",
+      "scoring_guidance": {
+        "2": "Rapport erkennbar aufgebaut — mindestens eines der folgenden klar vorhanden: (a) Bezugsperson beim Namen angesprochen (nicht nur im Ritual der Begruessung), (b) kurze persoenliche Anmerkung oder warmherzige Einleitung vor dem sachlichen Gespraechseinstieg, (c) explizite empathische Geste beim Einstieg. Ein einziger genuiner Rapport-Moment genuegt.",
+        "1": "Nur routinehafte Begruessung ohne erkennbaren Rapport-Aufbau (z.B. 'Guten Tag, ich bin Dr. Mayer'), oder Namensverwendung lediglich im Kontext der Begruessung ohne weitere Zuwendung.",
+        "0": "Kein erkennbarer Rapport-Aufbau; Gespräch beginnt sofort sachlich ohne persönliche Zuwendung."
+      },
+      "evaluation_notes": [
+        "Unterscheide von Item A (LUCAS) — S4 bewertet die Verbindungsherstellung, nicht die formale Vorstellung."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_S_5",
+      "name": "Zeitmanagement kommunizieren",
+      "category": "S",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker kommuniziert den verfügbaren Zeitrahmen für das Gespräch.",
+      "scoring_guidance": {
+        "2": "Zeitrahmen explizit kommuniziert — konkreter Hinweis auf verfügbare Zeit oder explizite Aussage dass ausreichend Zeit vorhanden ist.",
+        "1": "Vage Zeitandeutung — z.B. 'wir haben jetzt ein bisschen Zeit' ohne konkrete Angabe.",
+        "0": "Zeitmanagement nicht thematisiert."
+      },
+      "evaluation_notes": [
+        "S5 wird häufig vergessen — scanne explizit nach Zeithinweisen am Gesprächsbeginn.",
+        "Im Simulationskontext ist Zeitangabe selten — S5:0 ist häufig."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_P_6",
+      "name": "Offene Frage zur Wahrnehmung",
+      "category": "P",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker verwendet offene Fragen um zu ermitteln was die Bezugsperson bereits weiß ('Was hat man Ihnen bisher gesagt?', 'Was haben Sie sich gedacht?').",
+      "scoring_guidance": {
+        "2": "Frage zur Vorwahrnehmung gestellt die der Bezugsperson Raum gibt zu antworten — auch eine Ja/Nein-Frage zaehlt wenn sie offen formuliert ist und eine echte Antwortmoeglichkeit laesst (z.B. 'Haben Sie sich schon Gedanken gemacht was das sein koennte?'). Die Frage muss VOR oder frueh in der Informationsvermittlung gestellt werden.",
+        "1": "Frage zur Vorkenntnis sehr spaet im Gespraech gestellt (nach der Diagnosemitteilung), ODER nur rhetorical ('Sie wissen sicher warum ich Sie hergebeten habe...') ohne echten Raum fuer eine Antwort.",
+        "0": "Keine Frage zur Vorwahrnehmung; Kliniker steigt direkt in die Information ein."
+      },
+      "evaluation_notes": [
+        "Die P-Phase soll VOR der Diagnosemitteilung stattfinden.",
+        "Beispiele für Score 2: 'Was hat man Ihnen schon gesagt?', 'Was wissen Sie bereits?', 'Was haben Sie sich selbst gedacht?'"
+      ],
+      "critical": true,
+      "type": "standard"
+    },
+    {
+      "id": "DM_P_7",
+      "name": "Missverständnisse erkennen und korrigieren",
+      "category": "P",
+      "scale": [
+        0,
+        1,
+        2,
+        "NA"
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig",
+        "NA": "Nicht eingetreten"
+      },
+      "description": "Kliniker erkennt Missverständnisse der Bezugsperson und korrigiert sie respektvoll.",
+      "condition": "Missverständnisse treten im Gespräch auf",
+      "scoring_guidance": {
+        "2": "Missverständnis klar erkannt UND respektvoll und vollständig korrigiert — Bezugsperson versteht danach richtig.",
+        "1": "Missverständnis erkannt aber nur teilweise oder unvollständig korrigiert.",
+        "0": "Missverständnis nicht erkannt oder ignoriert.",
+        "NA": "Im Transkript keine Missverständnisse der Bezugsperson erkennbar."
+      },
+      "critical": false,
+      "type": "conditional"
+    },
+    {
+      "id": "DM_P_8",
+      "name": "Unrealistische Erwartungen erkennen und korrigieren",
+      "category": "P",
+      "scale": [
+        0,
+        1,
+        2,
+        "NA"
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig",
+        "NA": "Nicht eingetreten"
+      },
+      "description": "Kliniker erkennt unrealistische Erwartungen (z.B. 'das wird von selbst besser', 'das war nur Stress') und korrigiert sie einfühlsam.",
+      "condition": "Unrealistische Erwartungen treten im Gespräch auf",
+      "scoring_guidance": {
+        "2": "Unrealistische Erwartung erkannt UND einfühlsam und vollständig korrigiert.",
+        "1": "Erkannt aber nicht vollständig oder zu direkt/abrupt korrigiert.",
+        "0": "Nicht erkannt oder Erwartung bestärkt.",
+        "NA": "Im Transkript keine unrealistischen Erwartungen der Bezugsperson erkennbar."
+      },
+      "critical": false,
+      "type": "conditional"
+    },
+    {
+      "id": "DM_I_9",
+      "name": "Informationswunsch besprechen",
+      "category": "I",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker prüft wie viel Information die Bezugsperson möchte ('Möchten Sie dass ich Ihnen alles erkläre?', 'Wie viel möchten Sie wissen?').",
+      "scoring_guidance": {
+        "2": "Explizit und klar gefragt wie viel Information die Bezugsperson moechte — offene oder gezielte Frage nach dem Informationswunsch. Zeitpunkt im Gespraech ist nicht entscheidend: auch wenn die Frage nach ersten orientierenden Saetzen gestellt wird, zaehlt sie als Score 2, solange sie genuinen Charakter hat (nicht rein rhetorisch).",
+        "1": "Vage Einladung zur Informationsaufnahme ohne echte Frage ('Ich erklaere Ihnen jetzt...', 'Darf ich Ihnen erklaeren...') ODER eine Ja/Nein-Frage die keinen wirklichen Entscheidungsspielraum laesst ('Soll ich Ihnen alles erklaeren?' wenn direkt damit begonnen wird).",
+        "0": "Kliniker beginnt direkt mit der Informationsvermittlung ohne den Informationswunsch zu prüfen."
+      },
+      "evaluation_notes": [
+        "I-Phase soll zwischen P-Phase und K-Phase stattfinden.",
+        "Im Simulationskontext wird I häufig übersprungen — I:0 ist häufig."
+      ],
+      "critical": true,
+      "type": "standard"
+    },
+    {
+      "id": "DM_K_10",
+      "name": "Warnung vor schlechter Nachricht",
+      "category": "K",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker spricht explizit eine vorbereitende Aussage aus BEVOR er die Diagnose nennt — ein 'warning shot' der signalisiert dass eine schwierige Nachricht folgt.",
+      "scoring_guidance": {
+        "2": "Klare explizite Vorwarnung im Transkript belegt — Beispiele: 'Leider muss ich Ihnen etwas Schwieriges mitteilen', 'Das Ergebnis ist leider nicht so gut wie erhofft', 'Ich habe jetzt Neuigkeiten für Sie, die nicht einfach zu hören sind'.",
+        "1": "Vage Übergangsfloskel ohne emotionale Vorbereitung ('Also, wir haben die Ergebnisse...', 'Ich habe jetzt die Befunde...').",
+        "0": "Kliniker nennt die Diagnose direkt ohne jede Vorwarnung."
+      },
+      "evaluation_notes": [
+        "Warning shot muss BEVOR der Diagnose kommen.",
+        "Unterscheide echten warning shot (emotionale Vorbereitung) von bloßer Überleitung."
+      ],
+      "critical": true,
+      "type": "standard"
+    },
+    {
+      "id": "DM_K_11",
+      "name": "Keine Fachbegriffe / angemessene Sprache",
+      "category": "K",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Unacceptable",
+        "1": "Borderline",
+        "2": "Competent"
+      },
+      "description": "Kliniker vermeidet Fachbegriffe oder erklärt sie sofort in Laiensprache.",
+      "scoring_guidance": {
+        "2": "Keine medizinischen Fachbegriffe oder alle Fachbegriffe proaktiv und verständlich erklärt — Bezugsperson muss nicht nachfragen um Begriffe zu verstehen.",
+        "1": "Einige Fachbegriffe nicht erklärt, aber grundsätzlich verständlich. Erklärungen teilweise erst nach Rückfrage.",
+        "0": "Durchgehend Fachsprache ohne Erklärung, oder Bezugsperson zeigt wiederholt Unverständnis."
+      },
+      "evaluation_notes": [
+        "Häufige Fachbegriffe: Ketoazidose, HbA1c, Autoimmunerkrankung, Betazellen, Insulinresistenz.",
+        "Proaktive Erklärung = Score 2, reaktive = Score 1."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_K_12",
+      "name": "Keine drastische Wortwahl",
+      "category": "K",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Unacceptable",
+        "1": "Borderline",
+        "2": "Competent"
+      },
+      "description": "Kliniker verwendet keine dramatisierenden oder erschreckenden Formulierungen bei der Diagnosemitteilung.",
+      "scoring_guidance": {
+        "2": "Keine drastischen oder dramatisierenden Formulierungen — Sprache sachlich, einfühlsam und nicht erschreckend.",
+        "1": "Vereinzelt unglückliche Formulierung aber kein durchgehendes Muster.",
+        "0": "Dramatisierende, erschreckende oder pessimistische Formulierungen die Bezugsperson unnötig belasten (z.B. 'das ist furchtbar', 'das ist eine Katastrophe', ohne Grund erschreckend)."
+      },
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_K_13",
+      "name": "Informationen in kleinen Schritten",
+      "category": "K",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker portioniert Informationen in kleinen Einheiten, legt Pausen ein und wartet auf Reaktionen der Bezugsperson.",
+      "scoring_guidance": {
+        "2": "Klare Portionierung erkennbar — Pausen nach wichtigen Aussagen, Reaktionen der Bezugsperson abgewartet, Informationsblöcke strukturiert eingeleitet.",
+        "1": "Teilweise Portionierung — einige Pausen aber insgesamt zu viele Informationen auf einmal.",
+        "0": "Informationsflut ohne Pausen; Bezugsperson kommt kaum zu Wort; Reaktionen werden nicht abgewartet."
+      },
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_K_14",
+      "name": "Keine hoffnungslosen Phrasen",
+      "category": "K",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Unacceptable",
+        "1": "Borderline",
+        "2": "Competent"
+      },
+      "description": "Kliniker vermeidet hoffnungslose oder nihilistische Phrasen ('Es gibt nichts mehr was wir tun können').",
+      "scoring_guidance": {
+        "2": "Keine hoffnungslosen oder nihilistischen Aussagen — Kliniker behält realistische aber nicht destruktive Perspektive.",
+        "1": "Vereinzelt ungünstige Formulierung ohne klares Muster.",
+        "0": "Hoffnungslose Phrasen ('Es gibt nichts mehr zu tun', 'Da kann man nichts machen') oder nihilistische Haltung erkennbar."
+      },
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_E_15",
+      "name": "Emotionen benennen oder erfragen",
+      "category": "E",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker erkennt emotionale Reaktionen der Bezugsperson und benennt oder erfragt sie aktiv ('Ich sehe dass Sie das erschüttert', 'Wie geht es Ihnen gerade mit dieser Nachricht?').",
+      "scoring_guidance": {
+        "2": "Emotion explizit benannt oder erfragte — Kliniker adressiert die emotionale Reaktion der Bezugsperson direkt und gibt ihr Raum.",
+        "1": "Emotion kurz quittiert oder angedeutet ohne echte Adressierung ('Ich verstehe das ist schwer' als Floskel ohne Nachfragen).",
+        "0": "Emotionale Reaktionen der Bezugsperson vollständig übergangen oder rein sachlich beantwortet."
+      },
+      "evaluation_notes": [
+        "Führe zuerst Emotionsscan durch: Suche alle Momente wo SPEAKER_01 Emotion zeigt.",
+        "Format: [MM:SS] SPEAKER_01: '[Emotion]' → SPEAKER_00: '[Reaktion]' → vollständig/teilweise/fehlend"
+      ],
+      "critical": true,
+      "type": "standard"
+    },
+    {
+      "id": "DM_E_16",
+      "name": "Grund der Emotionen identifizieren",
+      "category": "E",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker exploriert den Grund der emotionalen Reaktion ('Was bereitet Ihnen dabei am meisten Sorgen?', 'Was geht Ihnen durch den Kopf?').",
+      "scoring_guidance": {
+        "2": "Kliniker exploriert den Grund der emotionalen Reaktion — entweder durch eine offene Frage ('Was bereitet Ihnen am meisten Sorgen?', 'Was geht Ihnen durch den Kopf?') ODER durch eine empathische Reflexion des vermuteten Grundes ('Ich glaube, Sie machen sich vor allem Sorgen um..., ist das so?'). Aktive Bezugnahme auf die Emotion der Bezugsperson genuegt.",
+        "1": "Ansätze — kurze Nachfrage oder implizites Erkennen ohne echte Exploration.",
+        "0": "Kein Versuch den Emotionsgrund zu explorieren."
+      },
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_E_17",
+      "name": "Angemessene Pausen",
+      "category": "E",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker lässt nach emotionalen Momenten Stille zu und hetzt nicht weiter.",
+      "scoring_guidance": {
+        "2": "Pausen nach emotionalen Momenten erkennbar — Kliniker wartet nach Emotion von SPEAKER_01 bevor er weitermacht, gibt der Bezugsperson Raum.",
+        "1": "Kurze Pausen vorhanden aber Kliniker kehrt schnell zur Sachinformation zurück.",
+        "0": "Keine Pausen — Kliniker redet sofort weiter nach emotionalen Reaktionen der Bezugsperson."
+      },
+      "evaluation_notes": [
+        "Pausen sind im Transkript schwer zu erkennen — nutze Kontexthinweise (z.B. 'Kliniker schweigt', 'Pause').",
+        "Indirekter Beleg: Wenn SPEAKER_01 nach einem emotionalen Ausbruch deutlich mehr Redezeit hat, ist das ein Zeichen für eine Pause."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_E_18",
+      "name": "Connecting Statement",
+      "category": "E",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker formuliert ein verbindendes empathisches Statement ('Ich kann mir vorstellen dass das für Sie sehr schwer ist', 'Das ist eine große Last').",
+      "scoring_guidance": {
+        "2": "Verbindendes Empathiestatement klar formuliert — nicht formelhafte, echte Verbindung zwischen Arzt und Bezugsperson erkennbar.",
+        "1": "Andeutung vorhanden — kurzes empathisches Signal aber nicht vollständig ausformuliert oder wirkt routiniert.",
+        "0": "Kein verbindendes Statement."
+      },
+      "evaluation_notes": [
+        "Unterscheide echtes Connecting Statement von Floskeln wie 'Ja, das verstehe ich'.",
+        "Echtes Statement benennt konkret die wahrgenommene Situation der Bezugsperson."
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_E_19",
+      "name": "Empathische Reaktion bei anhaltender Trauer",
+      "category": "E",
+      "scale": [
+        0,
+        1,
+        2,
+        "NA"
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig",
+        "NA": "Nicht eingetreten"
+      },
+      "description": "Kliniker bleibt empathisch wenn Bezugsperson weiterhin traurig oder überwältigt ist — lässt Raum, bietet Unterstützung an.",
+      "condition": "SP ist weiterhin traurig oder zeigt anhaltende Emotion",
+      "scoring_guidance": {
+        "2": "Anhaltende Trauer oder Überwältigung erkannt und empathisch begleitet — Kliniker bleibt präsent, bietet Unterstützung an, drängt nicht weiter.",
+        "1": "Kurze Reaktion auf anhaltende Emotion aber Kliniker kehrt schnell zur Sachinformation zurück.",
+        "0": "Anhaltende Emotion vollständig ignoriert oder übergangen.",
+        "NA": "Bezugsperson zeigt keine anhaltende Trauer oder Überwältigung im Gespräch."
+      },
+      "critical": false,
+      "type": "conditional"
+    },
+    {
+      "id": "DM_S2_20",
+      "name": "Bereitschaft für Behandlungsplanung erfragen",
+      "category": "S2",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker prüft ob Bezugsperson bereit ist über nächste Schritte/Behandlung zu sprechen ('Darf ich Ihnen jetzt erklären wie wir weiter vorgehen?').",
+      "scoring_guidance": {
+        "2": "Explizit und einfühlsam gefragt ob Bezugsperson für Behandlungsplanung bereit ist — Übergang von Emotionsphase zu Sachphase bewusst gestaltet.",
+        "1": "Vage Überleitung ('Wir sollten jetzt über das Weitere sprechen') ohne explizite Bereitschaftsprüfung.",
+        "0": "Direkt in Behandlungsplanung übergegangen ohne Bereitschaft der Bezugsperson zu prüfen."
+      },
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_S2_21",
+      "name": "Statement gemeinsames Handeln",
+      "category": "S2",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker formuliert explizit dass er gemeinsam mit der Familie/Bezugsperson vorgeht ('Wir machen das zusammen', 'Sie sind nicht allein').",
+      "scoring_guidance": {
+        "2": "Gemeinsames Vorgehen / Partnerschaft explizit kommuniziert — Kliniker signalisiert klar dass Arzt und Familie/Bezugsperson gemeinsam handeln.",
+        "1": "Andeutung vorhanden aber nicht explizit ausgedrückt.",
+        "0": "Kein Statement gemeinsamen Handelns."
+      },
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_S2_22",
+      "name": "Verständnisfrage stellen",
+      "category": "S2",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Kliniker prüft aktiv ob Bezugsperson das Besprochene verstanden hat ('Habe ich mich verständlich ausgedrückt?', 'Was haben Sie verstanden?').",
+      "scoring_guidance": {
+        "2": "Aktive Verständnisüberprüfung — Kliniker fragt ob Bezugsperson verstanden hat oder lädt zur Wiederholung ein. Geht über Standard-'Haben Sie noch Fragen?' hinaus.",
+        "1": "Standard-Abschlussformel ('Haben Sie noch Fragen?') oder sehr vage Einladung.",
+        "0": "Keine Verständnisfrage; Kliniker beendet das Gespräch ohne Verständnis zu prüfen."
+      },
+      "evaluation_notes": [
+        "'Haben Sie noch Fragen?' allein → Score 1, nicht Score 2.",
+        "Score 2 erfordert explizite Verständnisprüfung: 'Was haben Sie verstanden?', 'Kann ich nochmal erklären?'"
+      ],
+      "critical": false,
+      "type": "standard"
+    },
+    {
+      "id": "DM_S2_23",
+      "name": "Unrealistische Erwartungen im Summary ansprechen",
+      "category": "S2",
+      "scale": [
+        0,
+        1,
+        2,
+        "NA"
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig",
+        "NA": "Nicht eingetreten"
+      },
+      "description": "Kliniker spricht unrealistische Erwartungen im Abschlussteil des Gesprächs an und korrigiert sie.",
+      "condition": "Unrealistische Erwartungen treten im Abschlussteil auf",
+      "scoring_guidance": {
+        "2": "Im Abschlussteil unrealistische Erwartung aktiv erkannt und respektvoll korrigiert.",
+        "1": "Angedeutet aber nicht vollständig adressiert.",
+        "0": "Unrealistische Erwartung ignoriert oder verstärkt.",
+        "NA": "Im Abschlussteil keine unrealistischen Erwartungen erkennbar."
+      },
+      "critical": false,
+      "type": "conditional"
+    },
+    {
+      "id": "DM_S2_24",
+      "name": "Subjektive Ziele des SP aufgreifen",
+      "category": "S2",
+      "scale": [
+        0,
+        1,
+        2,
+        "NA"
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig",
+        "NA": "Nicht eingetreten"
+      },
+      "description": "Kliniker greift subjektive Ziele oder Wünsche der Bezugsperson auf und integriert sie in die Planung.",
+      "condition": "Subjektive Ziele des SP kommen zur Sprache",
+      "scoring_guidance": {
+        "2": "Subjektive Ziele der Bezugsperson aktiv aufgegriffen und in die Behandlungsplanung integriert.",
+        "1": "Ziele erwähnt aber nicht aktiv in die Planung integriert.",
+        "0": "Subjektive Ziele ignoriert.",
+        "NA": "Keine subjektiven Ziele der Bezugsperson im Gespräch erkennbar."
+      },
+      "critical": false,
+      "type": "conditional"
+    }
+  ]
+}

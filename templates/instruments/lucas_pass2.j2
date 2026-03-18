@@ -1,0 +1,53 @@
+{{ scoring_preamble }}
+
+## PASS 2 — Items C und E
+
+{% for item in items %}
+---
+
+### {{ item.id }}) {{ item.name }} (0, 1 oder 2)
+
+LUCAS-Kriterien:
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
+{% endfor %}
+
+Bewertungsanleitung:
+{% for note in item.get('evaluation_notes', []) %}
+{{ loop.index }}. {{ note }}
+{% endfor %}
+{% endfor %}
+
+---
+
+## Vollständiges Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Bewerte Items C und E auf Basis des gesamten Transkripts.
+
+**C** — Identifiziere alle medizinischen Fachbegriffe und prüfe ob sie proaktiv (vor Rückfrage) oder reaktiv (nach Rückfrage) erklärt wurden. Beurteile das Gesamtbild.
+
+**E** — Scanne das gesamte Transkript nach Fragen von SPEAKER_00 die die Perspektive, Sorgen oder das Verständnis der Bezugsperson explorieren. Unterscheide proaktive Exploration (SPEAKER_00 initiiert) von reaktiver Antwort. Hinweis: E bewertet Exploration; emotionale Reaktionen und Empathie gehören zu F.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "item": "{{ item.id }}",
+      "rating": <0, 1 oder 2>,
+      "rating_label": "<Competent|Borderline|Unacceptable>",
+      "justification": "<Gesamtbild — max 3 Sätze>",
+      "evidence": ["<[MM:SS] SPEAKER_XX: 'Zitat'>"],
+      "confidence": "<high|medium|low>"
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ]
+}
