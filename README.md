@@ -432,7 +432,7 @@ If you use this pipeline in academic work, please cite:
 
 ```bibtex
 @software{paed_sim_pipeline_2025,
-  title     = {Automated Multimodal Feedback Generation for Paediatric Simulation Training},
+  title     = {Harmonized Assessment of Multimodal Observations and Joint Feedback Prospective Evaluation Study},
   author    = {[Mohamed Alhaskir, Hannah Haven, Jonas Bienzeisler]},
   year      = {2026},
   version   = {0.3.0},
