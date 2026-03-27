@@ -1,107 +1,241 @@
 {
   "id": "Diabetes_CC",
   "name": "Checkliste fachlicher Erwartungshorizont — Überbringen schlechter Nachrichten: Diagnoseübermittlung Diabetes Mellitus Typ 1",
-  "version": "1.0",
+  "version": "1.1",
   "domain": "clinical_content",
-  "description": "Bewertet den klinischen Inhalt der Diagnoseübermittlung Diabetes Mellitus Typ 1 anhand von 19 Items (davon 1 konditional). Version 1.0, 09-10-2025.",
+  "description": "Bewertet den klinischen Inhalt der Diagnoseübermittlung Diabetes Mellitus Typ 1 anhand von 19 Items (davon 1 konditional). Version 1.1, revidiert zur Angleichung an die Original-Checkliste.",
   "reference": "Deutsche Diabetes Gesellschaft, S3-Leitlinie Diabetes mellitus im Kindes- und Jugendalter, AWMF 057-016, Version 4.0, 2023.",
-
-  "scoring_preamble": "Vergib Score 2 nur wenn die klinische Aussage korrekt UND vollständig ist. Score 1 wenn die richtige Richtung erkennbar ist, aber wesentliche Inhalte fehlen oder zu vage bleiben. Score 0 wenn das Thema fehlt oder die Aussage klinisch falsch ist — beginne die justification mit 'FALSCH:' wenn die Aussage aktiv falsch war. Konditionale Items (type: conditional) werden nur bewertet wenn die Bedingung im Gespräch eingetreten ist — andernfalls 'NA'. Im Zweifelsfall zwischen 1 und 2 wähle 1. Im Zweifelsfall zwischen 0 und 1 wähle 0, es sei denn, es liegt ein klarer Transkriptbeleg vor.\n\nGESPRÄCHSKONTEXT:\n- Das Gespräch findet NICHT direkt mit dem Patienten statt.\n- SPEAKER_00 = Kliniker (zu bewerten)\n- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)\n- Bewerte AUSSCHLIESSLICH den klinischen Inhalt — Korrektheit und Vollständigkeit medizinischer Aussagen.\n- Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet (LUCAS, SPIKES).",
-
+  "scoring_preamble": "Vergib Score 2 nur wenn die klinische Aussage korrekt UND vollständig ist. Score 1 wenn die richtige Richtung erkennbar ist, aber wesentliche Inhalte fehlen oder zu vage bleiben. Score 0 wenn das Thema fehlt oder die Aussage klinisch falsch ist — beginne die justification mit 'FALSCH:' wenn die Aussage aktiv falsch war. Konditionale Items (type: conditional) werden nur bewertet wenn die Bedingung im Gespräch eingetreten ist — andernfalls 'NA'. Im Zweifelsfall zwischen 1 und 2 wähle 1. Im Zweifelsfall zwischen 0 und 1 wähle 0, es sei denn ein klarer Transkriptbeleg für teilweises Vorhandensein liegt vor.\n\nGESPRÄCHSKONTEXT:\n- Das Gespräch findet NICHT direkt mit dem Patienten statt.\n- SPEAKER_00 = Kliniker (zu bewerten)\n- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)\n- Bewerte AUSSCHLIESSLICH den klinischen Inhalt — Korrektheit und Vollständigkeit medizinischer Aussagen.\n- Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet (LUCAS, SPIKES).\n⚠ KALIBRIERUNGSHINWEIS: Vermeide sowohl Mittenkategorie-Bias (blindes Score-1-Vergeben) ALS AUCH Unterbewertung (Score 0 bei Unsicherheit).\n- Score 0 NUR wenn das Thema im GESAMTEN Transkript NICHT angesprochen wurde ODER die Aussage klinisch FALSCH ist.\n- Score 1 wenn das Thema ERKENNBAR angesprochen wurde, aber wesentliche Inhalte fehlen oder zu vage bleiben.\n- Score 2 wenn die klinische Aussage im Kern KORREKT und die wesentlichen Punkte ERKENNBAR vermittelt wurden — auch wenn nicht jedes Detail perfekt formuliert ist.\n- ZWEIFELSFALLREGEL: Wähle den Score der am besten durch konkrete Transkriptbelege gestützt wird. Score 1 ist ein VALIDER Score für teilweise vorhandenes Verhalten — wähle ihn nicht automatisch ab.\n\nSELBSTKONTROLLE vor jedem Rating:\n(a) Habe ich ein konkretes Transkriptzitat das diesen Score stützt?\n(b) Wenn rating=0: Habe ich das GESAMTE Transkript durchsucht und WIRKLICH nichts gefunden — oder ist die Aussage aktiv FALSCH?\n(c) Wenn rating=1: Kann ich benennen was vorhanden UND was unvollständig war?\n(d) Wenn rating=2: Ist die Kernaussage korrekt und erkennbar vermittelt — auch wenn einzelne Aspekte fehlen?\n\nJSON-REGEL: Verwende in justification-Strings KEINE doppelten Anfuehrungszeichen. Nutze einfache Anfuehrungszeichen (') fuer Zitate innerhalb von justification.",
   "passes": [
     {
       "id": "pass1",
-      "name": "Pathophysiologie (Abschnitt A)",
+      "name": "Pathophysiologie — Typ-1 vs. Typ-2 Grundaussage",
       "type": "standard",
-      "item_ids": ["DM_A_1", "DM_A_2", "DM_A_3", "DM_A_5"],
-      "template": "diabetes_cc_content.j2",
-      "max_tokens": 3000,
+      "item_ids": [
+        "DM_A_1",
+        "DM_A_2"
+      ],
+      "template": "diabetes_cc_pathophysio.j2",
+      "max_tokens": 2500,
       "context_requirements": {
         "transcript": "full",
-        "phase_focus": "Abschnitt A — Typ-1/Typ-2-Unterscheidung, Pathophysiologie beider Typen und Insulinmechanismus."
+        "phase_focus": "Typ-1 vs. Typ-2 Unterscheidung (DM_A_1) und autoimmune Pathophysiologie des Typ-1-Diabetes (DM_A_2)."
       }
     },
     {
       "id": "pass2",
-      "name": "Diagnose und Epidemiologie (Abschnitte B, C)",
+      "name": "Pathophysiologie — Typ-2 und Insulin",
       "type": "standard",
-      "item_ids": ["DM_B_6", "DM_B_7", "DM_C_8"],
-      "template": "diabetes_cc_content.j2",
-      "max_tokens": 3000,
+      "item_ids": [
+        "DM_A_3",
+        "DM_A_5"
+      ],
+      "template": "diabetes_cc_pathophysio.j2",
+      "max_tokens": 2500,
       "context_requirements": {
         "transcript": "full",
-        "phase_focus": "Abschnitte B, C — Diagnostische Sicherheit (Symptomatik, Blutzuckerwerte) und Epidemiologie des Typ-1-Diabetes."
+        "phase_focus": "Typ-2-Pathophysiologie / Insulinresistenz (DM_A_3) und Insulin-Erklärung bei Nachfrage (DM_A_5, konditional)."
       }
     },
     {
       "id": "pass3",
-      "name": "Therapieprinzipien (Abschnitt D)",
+      "name": "Diagnostische Sicherheit — Symptomatik und Blutzuckerwerte",
       "type": "standard",
-      "item_ids": ["DM_D_9", "DM_D_10", "DM_D_11", "DM_D_12", "DM_D_13", "DM_D_14"],
-      "template": "diabetes_cc_content.j2",
-      "max_tokens": 4000,
+      "item_ids": [
+        "DM_B_6",
+        "DM_B_7"
+      ],
+      "template": "diabetes_cc_diagnostik.j2",
+      "max_tokens": 2500,
       "context_requirements": {
         "transcript": "full",
-        "phase_focus": "Abschnitt D — Therapieprinzipien: Chronizität, Insulintherapie (Basis-Bolus), Technologie (CGM/Pumpe), Ernährung, Sport und psychosoziale Schulung."
+        "phase_focus": "Typische Symptomatik als Diagnosebegründung (DM_B_6) und pathologische Blutzuckerwerte (DM_B_7)."
       }
     },
     {
       "id": "pass4",
-      "name": "Langzeitfolgen und Schuldfrage (Abschnitte E, S)",
+      "name": "Epidemiologie",
       "type": "standard",
-      "item_ids": ["DM_E_15", "DM_E_16", "DM_E_17", "DM_E_18", "DM_E_19", "DM_S_20"],
+      "item_ids": [
+        "DM_C_8"
+      ],
+      "template": "diabetes_cc_diagnostik.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Epidemiologie und Häufigkeit des Typ-1-Diabetes (DM_C_8)."
+      }
+    },
+    {
+      "id": "pass5",
+      "name": "Therapieprinzipien — Chronizität und Insulintherapie",
+      "type": "standard",
+      "item_ids": [
+        "DM_D_9",
+        "DM_D_10"
+      ],
+      "template": "diabetes_cc_therapie.j2",
+      "max_tokens": 2500,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Chronizität und lebenslange Insulinpflicht (DM_D_9) und Insulintherapie im Alltag / Basis-Bolus (DM_D_10)."
+      }
+    },
+    {
+      "id": "pass6",
+      "name": "Therapieprinzipien — Technologische Unterstützung",
+      "type": "standard",
+      "item_ids": [
+        "DM_D_11"
+      ],
+      "template": "diabetes_cc_therapie.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Technologische Unterstützung — Insulinpumpe, CGM, automatisierte Insulinabgabesysteme (DM_D_11)."
+      }
+    },
+    {
+      "id": "pass7",
+      "name": "Therapieprinzipien — Ernährung und Sport",
+      "type": "standard",
+      "item_ids": [
+        "DM_D_12",
+        "DM_D_13"
+      ],
+      "template": "diabetes_cc_therapie.j2",
+      "max_tokens": 2500,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Kohlenhydratbewusste Ernährung ohne klassische Diät (DM_D_12) und Sport und Bewegung mit Anpassung (DM_D_13)."
+      }
+    },
+    {
+      "id": "pass8",
+      "name": "Therapieprinzipien — Schulung und psychosoziale Unterstützung",
+      "type": "standard",
+      "item_ids": [
+        "DM_D_14"
+      ],
+      "template": "diabetes_cc_therapie.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Strukturierte Schulungsprogramme und psychosoziale Begleitung (DM_D_14)."
+      }
+    },
+    {
+      "id": "pass9",
+      "name": "Langzeitfolgen 1–4 und Beruhigung",
+      "type": "standard",
+      "item_ids": [
+        "DM_E_15",
+        "DM_E_16",
+        "DM_E_17",
+        "DM_E_18",
+        "DM_E_19"
+      ],
       "template": "diabetes_cc_complications.j2",
       "max_tokens": 4000,
       "context_requirements": {
         "transcript": "full",
-        "phase_focus": "Abschnitte E, S — Langzeitfolgen-Scan (4 Slots aus 6 Kategorien), Präventionsmöglichkeiten und Schuldfrage der Eltern."
+        "phase_focus": "Langzeitfolgen des Diabetes — alle 4 Slots (DM_E_15 bis DM_E_18) und Beruhigung (DM_E_19). Führe ZUERST den vollständigen Langzeitfolgen-Scan durch, dann verteile die gefundenen Kategorien auf Items 15–18. Jede Kategorie darf nur EINMAL vergeben werden."
+      }
+    },
+    {
+      "id": "pass12",
+      "name": "Schuldfrage",
+      "type": "standard",
+      "item_ids": [
+        "DM_S_20"
+      ],
+      "template": "diabetes_cc_schuldfrage.j2",
+      "max_tokens": 2500,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Schuldfrage / Präventabilität — haben die Eltern die Erkrankung verhindern können? (DM_S_20)."
       }
     }
   ],
-
   "items": [
     {
       "id": "DM_A_1",
       "name": "Typ-1 vs. Typ-2 Unterscheidung — Grundaussage",
       "category": "A",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Verdeutlicht dass es sich um Typ-1-Diabetes handelt und es nicht dieselbe Erkrankung wie Typ-2 ist.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Verdeutlicht, dass es sich hier um einen Typ 1 Diabetes handelt und es nicht dieselbe Erkrankung ist.",
       "scoring_guidance": {
-        "2": "Explizit und klar kommuniziert dass Typ-1 und Typ-2 verschiedene Erkrankungen sind — Bezugsperson versteht dass das Kind NICHT dieselbe Erkrankung wie die Großmutter hat. Keine Verwechslung oder Gleichsetzung.",
-        "1": "Unterschied angedeutet aber nicht klar erklärt (z.B. 'Das ist ein bisschen anders als bei der Oma' ohne Erklärung warum).",
+        "2": "Jede klare Aussage, dass das Kind Typ-1-Diabetes hat und dies NICHT dieselbe Erkrankung wie Typ-2 ist. Eine mechanistische Erklärung ist NICHT erforderlich — es genügt, wenn der Unterschied klar benannt wird (z.B. 'Ihr Kind hat Typ 1, das ist etwas anderes als bei der Oma').",
+        "1": "Unterschied angedeutet aber nicht klar erklärt (z.B. 'Das ist ein bisschen anders als bei der Oma' ohne weitere Einordnung).",
         "0": "Kein Hinweis auf den Unterschied, oder Erkrankungen gleichgesetzt."
       },
+      "evaluation_notes": [
+        "Scanne das GESAMTE Transkript nach expliziten Erwahnungen von 'Typ 1', 'Typ 2', 'Typ I', 'Typ II', und nach Aussagen die einen Unterschied zwischen dem Diabetes des Kindes und Diabetes bei anderen Familienmitgliedern herstellen (z.B. 'bei Kindern ist das anders', 'Oma hatte wahrscheinlich Typ zwei').",
+        "Jeder erkennbare Unterscheidungsversuch — auch ohne vollstaendige Erklaerung — genuegt fuer mindestens Score 1. Score 0 nur wenn KEIN Hinweis auf einen Unterschied im gesamten Transkript gefunden wird."
+      ],
       "critical": true,
       "type": "standard"
     },
     {
       "id": "DM_A_2",
-      "name": "Typ-1-Diabetes — Pathophysiologie",
+      "name": "Grundsätzliche Unterschiede zwischen Typ 1 und Typ 2 Diabetes — Typ-1-Pathophysiologie",
       "category": "A",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erklärt die Pathophysiologie des Typ-1-Diabetes.",
-      "scoring_guidance": {
-        "2": "Typ-1 korrekt als Autoimmunerkrankung erklärt: Zerstörung der insulinproduzierenden Betazellen in der Bauchspeicheldrüse → absoluter Insulinmangel. Beide Aspekte (Autoimmun UND absoluter Insulinmangel) müssen im Transkript belegbar sein.",
-        "1": "Autoimmunerkrankung oder absoluter Insulinmangel nur angedeutet — ein Aspekt fehlt oder ist zu vage.",
-        "0": "Pathophysiologie des Typ-1 nicht erklärt, oder klinisch falsche Aussage."
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
       },
+      "description": "Typ 1: Autoimmunerkrankung → Zerstörung der insulinproduzierenden Betazellen in der Bauchspeicheldrüse → absoluter Insulinmangel.",
+      "scoring_guidance": {
+        "2": "Typ-1 korrekt erklärt mit MINDESTENS EINEM der folgenden Aspekte: (a) Autoimmunerkrankung / Immunsystem greift eigene Zellen an, ODER (b) absoluter Insulinmangel / Bauchspeicheldrüse produziert kein Insulin mehr / Betazellen zerstört. EIN Aspekt genügt für Score 2 — beide zusammen sind nicht erforderlich.",
+        "1": "Pathophysiologie nur vage angedeutet (z.B. 'die Bauchspeicheldrüse funktioniert nicht richtig' ohne Erklärung warum oder was fehlt).",
+        "0": "Pathophysiologie des Typ-1 NICHT erklärt (weder Autoimmun noch Insulinmangel erwähnt), oder klinisch falsche Aussage."
+      },
+      "evaluation_notes": [
+        "Wenn absoluter Insulinmangel beschrieben wird ('Bauchspeicheldruese produziert kein Insulin mehr', 'die Zellen die Insulin produzieren sind kaputt') → mindestens Score 1, auch wenn der Autoimmunaspekt fehlt oder falsch attribuiert wird (z.B. 'nach einem Infekt' statt 'Autoimmun').",
+        "Wenn NUR Autoimmunerkrankung erwaehnt wird ohne Bezug zu Insulinmangel → auch Score 1.",
+        "Score 0 NUR wenn WEDER Autoimmun NOCH Insulinmangel im Transkript erkennbar sind."
+      ],
       "critical": true,
       "type": "standard"
     },
     {
       "id": "DM_A_3",
-      "name": "Typ-2-Diabetes — Pathophysiologie",
+      "name": "Grundsätzliche Unterschiede — Typ-2-Pathophysiologie",
       "category": "A",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erklärt die Pathophysiologie des Typ-2-Diabetes.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Typ 2: progressiver Verlusts der Insulin-Sekretion der Beta-Zelle → aufgrund einer Insulinresistenz bei Übergewicht oder Adipositas.",
       "scoring_guidance": {
-        "2": "Typ-2 korrekt erklärt: Insulinresistenz (häufig bei Übergewicht oder Adipositas) mit progressivem Verlust der Insulinsekretion der Betazellen. Beide Aspekte (Insulinresistenz UND Zusammenhang mit Übergewicht/Adipositas) müssen im Transkript belegbar sein.",
+        "2": "Typ-2 korrekt erklärt: progressiver Verlust der Insulin-Sekretion der Betazellen aufgrund einer Insulinresistenz bei Übergewicht oder Adipositas. Beide Aspekte (Insulinresistenz UND Zusammenhang mit Übergewicht/Adipositas) müssen im Transkript belegbar sein.",
         "1": "Typ-2 nur oberflächlich erklärt — z.B. nur 'hat mit Übergewicht zu tun' ohne Insulinresistenz, oder nur 'Insulinresistenz' ohne Kontextbezug.",
         "0": "Typ-2-Pathophysiologie nicht erklärt, oder klinisch falsche Aussage."
       },
+      "evaluation_notes": [
+        "Auch eine kurze kontrastierende Erwaehnung zaehlt fuer Score 1: 'das ist ein anderer Typ' / 'Oma hat Typ 2, das ist anders' / 'bei Erwachsenen ist das anders' / 'das hat eine ganz andere Ursache' genuegt fuer Score 1 wenn der Kontext impliziert dass Typ 2 eine andere Pathophysiologie hat. Score 0 NUR wenn Typ 2 im gesamten Transkript NICHT erwaehnt wird oder nicht als unterschiedlich dargestellt wird."
+      ],
       "critical": true,
       "type": "standard"
     },
@@ -109,13 +243,23 @@
       "id": "DM_A_5",
       "name": "Insulin erklären (konditional)",
       "category": "A",
-      "scale": [0, 1, 2, "NA"],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig", "NA": "Nicht eingetreten"},
-      "description": "Erklärt was Insulin ist wenn die Bezugsperson danach fragt.",
+      "scale": [
+        0,
+        1,
+        2,
+        "NA"
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig",
+        "NA": "Nicht eingetreten"
+      },
+      "description": "If: Das Wort Insulin fällt, Nachfrage der Mutter was Insulin ist. Erklärt: Peptidhormon → Regulation der Aufnahme von Glucose in Körperzellen → Wirkung: blutzuckersenkend → spielt eine wesentliche Rolle bei der Entstehung und Therapie des Diabetes mellitus.",
       "condition": "Das Wort Insulin fällt und die Mutter fragt nach was Insulin ist",
       "scoring_guidance": {
-        "2": "Insulin korrekt erklärt: Peptidhormon, das die Aufnahme von Glucose in Körperzellen reguliert, blutzuckersenkende Wirkung, zentrale Rolle bei Entstehung und Therapie des Diabetes mellitus.",
-        "1": "Insulin teilweise erklärt — z.B. nur 'senkt den Blutzucker' ohne weitere Erklärung der Funktion.",
+        "2": "Insulin im Kern korrekt erklaert: Hormon das von der Bauchspeicheldruese (Pankreas) produziert wird UND den Blutzucker reguliert/senkt. Die Kernaussage 'Hormon + Bauchspeicheldruese + blutzuckersenkend' genuegt fuer Score 2. Die zellulaere Mechanismus-Ebene (Glucoseaufnahme in Koerperzellen) ist ein Plus aber NICHT erforderlich fuer Score 2 in einem Elterngespraech.",
+        "1": "Insulin teilweise erklaert — z.B. nur 'senkt den Blutzucker' OHNE Bezug zur Bauchspeicheldruese/Hormon, oder nur 'Hormon' ohne Funktion.",
         "0": "Insulin nicht erklärt obwohl nachgefragt, oder falsche Erklärung.",
         "NA": "Bezugsperson hat nicht nach Insulin gefragt."
       },
@@ -124,76 +268,143 @@
     },
     {
       "id": "DM_B_6",
-      "name": "Diagnostische Sicherheit — Symptomatik",
+      "name": "Diagnostische Sicherheit — Typische Symptomatik",
       "category": "B",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Nennt typische Symptome als Begründung für die Diagnose.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Typische Symptomatik: Polyurie, Polydipsie, Gewichtsabnahme, Müdigkeit/Leistungsabfall.",
       "scoring_guidance": {
-        "2": "Mindestens drei typische Symptome des Typ-1-Diabetes korrekt genannt: Polyurie (vermehrtes Wasserlassen), Polydipsie (vermehrter Durst), Gewichtsabnahme, Müdigkeit/Leistungsabfall.",
-        "1": "Ein oder zwei Symptome genannt, oder Symptome nur vage umschrieben (z.B. 'er war nicht fit' ohne Spezifizierung).",
+        "2": "Mindestens ZWEI typische Symptome des Typ-1-Diabetes korrekt genannt: Polyurie (vermehrtes Wasserlassen), Polydipsie (vermehrter Durst), Gewichtsabnahme, Müdigkeit/Leistungsabfall.",
+        "1": "EIN Symptom korrekt genannt, oder Symptome nur vage umschrieben (z.B. 'er war nicht fit' ohne Spezifizierung).",
         "0": "Keine Symptome genannt oder klinisch falsche Symptome angegeben."
       },
       "critical": true,
-      "type": "standard"
+      "type": "standard",
+      "evaluation_notes": [
+        "Scanne das GESAMTE Transkript — Symptome können früh erwähnt, später wiederholt oder implizit beschrieben sein (z.B. 'er hatte viel getrunken' = Polydipsie). Akzeptiere auch umgangssprachliche Umschreibungen wenn das Symptom klar erkennbar ist.",
+        "Zähle: Polyurie (viel Urinieren), Polydipsie (viel Trinken), Gewichtsabnahme, Müdigkeit / Leistungsabfall. Mindestens 2 dieser 4 → Score 2. 1 → Score 1. Keine oder klinisch falsche Symptome → Score 0.",
+        "⚠ PFLICHT: Berichte VOR der Score-Vergabe fuer JEDE der 4 Kategorien einzeln ob sie im Transkript vorkommt: (1) Polyurie — gefunden? (2) Polydipsie — gefunden? (3) Gewichtsabnahme — gefunden? (4) Muedigkeit/Leistungsabfall — gefunden? Akzeptiere auch umgangssprachliche Umschreibungen und Berichte von SPEAKER_01. Zaehle dann die Treffer. ≥2 → Score 2.",
+        "HINWEIS: DM_B_6 bewertet NUR Symptome (Polyurie, Polydipsie, Gewichtsabnahme, Muedigkeit). Blutzuckerwerte gehoeren zu DM_B_7.",
+        "⚠ SYMPTOMQUELLEN: Symptome zaehlen unabhaengig davon WER sie im Gespraech erwaehnt. Wenn SPEAKER_01 (die Bezugsperson) berichtet 'er trinkt so viel' oder 'er musste staendig auf Toilette' und SPEAKER_00 dies aufgreift oder nicht widerspricht → zaehlt als genanntes Symptom. Auch Symptome aus der Aufnahmeanamnese zaehlen. ACHTUNG: Symptome die sich auf ANDERE Personen beziehen (z.B. Grossmutter, Geschwister) zaehlen NICHT — nur Symptome des aktuellen Patienten.",
+        "⚠ Bauchschmerzen, Uebelkeit, Erbrechen sind PRAESENTATIONSSYMPTOME aber KEINE typischen DM1-Symptome fuer DM_B_6. Zaehle diese NICHT."
+      ]
     },
     {
       "id": "DM_B_7",
-      "name": "Diagnostische Sicherheit — Blutzuckerwerte",
+      "name": "Diagnostische Sicherheit — Pathologische Blutzuckermessung",
       "category": "B",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Nennt pathologische Blutzuckermessung als Grundlage der Diagnose.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Pathologische Blutzuckermessung (mindestens eins zutreffend): HbA1c ≥ 6,5% (48 mmol/mol Hb), Gelegenheits-/Plasma-Glukose ≥ 200 mg/dl (11,1 mmol/l) bei vorliegender Symptomatik, 2h-Plasma-Glukose im oGTT von ≥ 200 mg/dl (11,1 mmol/l), Nüchtern-Plasma-Glukose ≥ 126 mg/dl (7,0 mmol/l).",
       "scoring_guidance": {
-        "2": "⚠️ Score 2 NUR wenn ein konkreter Zahlenwert UND eine Einheit oder Messmethode im Transkript wörtlich erkennbar sind — mindestens eines der folgenden: HbA1c ≥ 6,5% (oder '48 mmol/mol'), Gelegenheits-Plasmaglukose ≥ 200 mg/dl (oder mmol/l), 2h-Wert im oGTT ≥ 200 mg/dl, Nüchtern-Plasmaglukose ≥ 126 mg/dl. Ohne Zahl → maximal Score 1, nie Score 2. 'Der Blutzucker war erhöht' oder 'der Nüchternblutzucker war zu hoch' ohne Zahlenwert → Score 1.",
-        "1": "Erhöhter Blutzucker oder eine Blutzuckermessung erwähnt, aber ohne konkreten Zahlenwert (z.B. 'der Blutzucker war sehr hoch', 'der Nüchternwert war erhöht', 'wir haben einen erhöhten Blutzucker festgestellt').",
-        "0": "Kein Blutzuckerwert, keine Messung, kein Laborparameter erwähnt."
+        "2": "Score 2 wenn BEIDE Bedingungen erfuellt sind: (1) Ein konkreter NUMERISCHER Blutzucker- oder HbA1c-Wert steht WOERTLICH im Transkript (z.B. 'dreihundertzwanzig', '320', '8,2', '200'), UND (2) der Kliniker bewertet den Blutzucker IRGENDWO im Transkript EXPLIZIT als pathologisch/erhoht (z.B. 'zu hoch', 'sehr hoch', 'nicht normal', 'erhoht', 'ueber dem Normalwert'). Zahlenwert und Bewertung DUERFEN in VERSCHIEDENEN Aeusserungen stehen — durchsuche das GESAMTE Transkript. Eine Einheit (mg/dl, %) ist ein Plus aber NICHT zwingend erforderlich.",
+        "1": "Score 1 wenn ein konkreter NUMERISCHER Wert (z.B. '320', '8,2') im Transkript steht ABER nirgendwo im Transkript eine explizite Bewertung als pathologisch/erhoht zu finden ist. Qualitative Aussagen OHNE Zahl ('der Blutzucker war hoch') → Score 0.",
+        "0": "Score 0 wenn KEIN konkreter Zahlenwert im Transkript vorkommt, ODER nur qualitative Aussagen ohne numerischen Wert."
       },
       "critical": true,
-      "type": "standard"
+      "type": "standard",
+      "evaluation_notes": [
+        "EINHEIT OPTIONAL: Eine Einheit (mg/dl, mmol/l, %) ist ein zusaetzlicher Qualitaetsindikator, aber NICHT Voraussetzung fuer Score 2.",
+        "GETRENNTE AEUSSERUNGEN ERLAUBT: Der Zahlenwert kann in einer anderen Aeusserung stehen als die pathologische Bewertung. Durchsuche das GESAMTE Transkript nach BEIDEN Elementen. Beispiel: [00:38] 'Blutzuckerwert zu hoch' + [04:18] 'der ist bei dreihundertzwanzig' → Score 2 (Bewertung + Zahlenwert vorhanden).",
+        "DIAGNOSTISCHE RAHMUNG: Der Kliniker muss den Wert IRGENDWO als abweichend/pathologisch bewerten — z.B. 'zu hoch', 'viel zu hoch', 'nicht normal', Vergleich mit Normalwert ('normalerweise unter 100'). Blosse Praesentation eines Zahlenwerts OHNE jede Bewertung = Score 1.",
+        "AUSSCHLUSS: 'Langzeitblutzucker' (HbA1c) allein ohne konkreten Zahlenwert zaehlt nicht. Allgemeine Erklaerungen zu Diabetes ohne numerischen Wert zaehlen nicht."
+      ]
     },
     {
       "id": "DM_C_8",
-      "name": "Epidemiologie Typ-1-Diabetes",
+      "name": "Epidemiologie Typ-1-Diabetes — Wie häufig ist diese Erkrankung?",
       "category": "C",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
       "description": "Gibt korrekte epidemiologische Informationen zum Typ-1-Diabetes.",
       "scoring_guidance": {
-        "2": "⚠️ Scanne das GESAMTE Transkript nach epidemiologischen Aussagen, bevor du bewertest. Mindestens zwei epidemiologische Fakten korrekt genannt. Akzeptierte Fakten: (a) häufigste oder eine der häufigsten Stoffwechselerkrankungen im Kindesalter, (b) konkrete Prävalenz- oder Inzidenzangabe — auch annähernd (z.B. 'etwa 1% der Kinder', 'jedes hundertste Kind', 'mehrere hunderttausend Betroffene in Deutschland'), (c) >90% der Diabetesfälle unter 25 Jahren in Europa sind Typ-1, (d) Inzidenzgipfel zwischen 10 und 14 Jahren, (e) Deutschland unter den Ländern mit hoher Prävalenz. Eine allgemeine Häufigkeitsaussage ('viele Kinder', 'häufig im Kindesalter') PLUS eine annähernde Zahl oder ein weiteres Fakt = Score 2.",
+        "2": "⚠️ Scanne das GESAMTE Transkript nach epidemiologischen Aussagen, bevor du bewertest. Mindestens zwei epidemiologische Fakten korrekt genannt. Akzeptierte Fakten: (a) häufigste Stoffwechselerkrankung im Kindesalter, (b) in Europa über 90% der Diabetesfälle im jungen Lebensalter (unter 25 Jahren) sind Typ-1, (c) schätzungsweise 8,4 Mio. Menschen mit Typ-1-Diabetes weltweit, (d) Deutschland unter den 10 Ländern mit der höchsten Prävalenz (nach USA, Indien, Brasilien und China), (e) Inzidenzgipfel im Alter zwischen 10 und 14 Jahren, (f) konkrete Prävalenz- oder Inzidenzangabe — auch annähernd (z.B. 'etwa 1% der Kinder', 'jedes hundertste Kind'). Eine allgemeine Häufigkeitsaussage ('viele Kinder', 'häufig im Kindesalter') PLUS ein weiteres spezifisches Fakt = Score 2.",
         "1": "Ein epidemiologisches Fakt korrekt genannt, ODER nur eine allgemeine Häufigkeitsaussage ohne jede weitere Spezifizierung ('das ist nicht so selten', 'mehrere Kinder betroffen') ohne zweites Fakt.",
         "0": "Keine epidemiologischen Informationen gegeben, oder falsche Angaben."
       },
+      "evaluation_notes": [
+        "Scanne das GESAMTE Transkript — epidemiologische Aussagen koennen an verschiedenen Stellen vorkommen. Akzeptiere auch implizite Aussagen: 'das ist die haeufigste Stoffwechselerkrankung bei Kindern' = 1 Fakt. 'da sind Sie nicht allein, das betrifft viele Familien' + 'gerade im Alter von 10-14 tritt das haeufig auf' = 2 Fakten.",
+        "Zaehle: haeufigste Stoffwechselerkrankung, >90% bei Jungen, Millionen weltweit, Deutschland Top 10, Inzidenzgipfel 10-14, konkrete Praevalenz, Aetiologie/Ausloeser (z.B. Infekt kann Autoimmunreaktion ausloesen, genetische Praedisposition). ZWEI verschiedene Fakten → Score 2. EIN Fakt → Score 1. ⚠ Auch korrekte aetiologische Aussagen (z.B. 'ein Infekt kann das ausloesen', 'das Immunsystem greift die Bauchspeicheldruese an') zaehlen als epidemiologisches/medizinisches Wissen."
+      ],
       "critical": false,
       "type": "standard"
     },
     {
       "id": "DM_D_9",
-      "name": "Chronizität und Insulinpflicht",
+      "name": "Chronische Erkrankung — lebenslang insulinpflichtig",
       "category": "D",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erklärt dass Typ-1-Diabetes eine chronische, lebenslang insulinpflichtige Erkrankung ist.",
-      "scoring_guidance": {
-        "2": "Beide Aspekte klar kommuniziert: (1) chronische Erkrankung — lebenslang UND (2) lebenslange Insulinpflicht — ohne Insulin keine Überlebensfähigkeit. Beide müssen im Transkript belegbar sein.",
-        "1": "Nur ein Aspekt kommuniziert, oder Chronizität/Insulinpflicht nur angedeutet ohne klare Aussage.",
-        "0": "Weder Chronizität noch Insulinpflicht erwähnt, oder falsche Aussage (z.B. 'das kann sich wieder normalisieren')."
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
       },
+      "description": "Chronische Erkrankung — lebenslang insulinpflichtig — Ohne Insulin keine Überlebensfähigkeit.",
+      "scoring_guidance": {
+        "2": "Mindestens ZWEI der drei Aspekte klar kommuniziert: (1) chronische Erkrankung — lebenslang, (2) lebenslange Insulinpflicht, (3) ohne Insulin keine Überlebensfähigkeit. Zwei von drei genügen für Score 2.",
+        "1": "EIN Aspekt kommuniziert, oder Chronizität/Insulinpflicht nur angedeutet ohne klare Aussage.",
+        "0": "KEINER der drei Aspekte erwähnt, oder falsche Aussage (z.B. 'das kann sich wieder normalisieren')."
+      },
+      "evaluation_notes": [
+        "⚠ Durchsuche das GESAMTE Transkript — die drei Aspekte (chronisch/lebenslang, Insulinpflicht, ohne Insulin kein Ueberleben) koennen an VERSCHIEDENEN Stellen erwaehnt werden. Insulinpflicht kann z.B. bei der Therapieerklaerung erwaehnt werden ('muss man substituieren', 'braucht Insulin', 'Insulinpumpe', 'spritzen'), Chronizitaet bei der Prognoseerklaerung ('geht nicht wieder weg', 'lebenslang'). Wenn Chronizitaet UND Insulinbezug irgendwo im Transkript vorhanden sind → 2 Aspekte → Score 2.",
+        "Akzeptierte Formulierungen: 'geht nicht wieder weg' / 'bleibt lebenslang' / 'chronisch' / 'das geht nicht weg' = Aspekt 1. 'muss Insulin bekommen' / 'substituieren' / 'Insulinpumpe' / 'spritzen' / 'Insulin geben' = Aspekt 2. 'ohne Insulin geht es nicht' / 'lebenswichtig' = Aspekt 3."
+      ],
       "critical": true,
       "type": "standard"
     },
     {
       "id": "DM_D_10",
-      "name": "Therapieprinzipien — Insulintherapie",
+      "name": "Therapieprinzipien im Alltag — Insulintherapie",
       "category": "D",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erklärt die empfohlene Insulintherapie im Alltag.",
-      "scoring_guidance": {
-        "2": "Intensivierte Insulintherapie erklärt: Basis-Bolus-Prinzip UND/ODER Pen oder Pumpe erwähnt. Bezugsperson erhält ein realistisches Bild wie die Insulingabe im Alltag aussieht.",
-        "1": "Insulintherapie erwähnt aber ohne Erklärung des Prinzips (z.B. 'er muss Insulin spritzen' ohne Erklärung von Basis-Bolus oder Pumpe).",
-        "0": "Insulintherapie nicht erklärt."
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
       },
+      "description": "Therapieprinzipien im Alltag — Empfehlung zu intensivierter Insulintherapie (Basis-Bolus, Pen, Pumpe).",
+      "scoring_guidance": {
+        "2": "Insulintherapie im Alltag erklärt — z.B. tägliche Insulininjektionen, Basis-Bolus-Prinzip, Pen, Pumpe, oder wie Insulin im täglichen Leben verabreicht wird. Die Benennung 'Basis-Bolus' ist NICHT erforderlich — jede verständliche Erklärung der täglichen Insulingabe genügt.",
+        "1": "Insulintherapie erwähnt aber nur oberflächlich (z.B. 'er muss Insulin bekommen' ohne jede Erklärung wie das im Alltag aussieht).",
+        "0": "Insulintherapie im Alltag nicht erklärt."
+      },
+      "evaluation_notes": [
+        "Score 2 wenn der Kliniker beschreibt WIE Insulin im Alltag verabreicht wird — z.B. 'mehrmals taeglich spritzen', 'mit einem Pen', 'mit einer Pumpe', 'vor dem Essen und einmal abends'. Auch Beschreibungen wie 'das Kind muss vor jeder Mahlzeit Insulin bekommen und abends ein Langzeitinsulin' genuegen fuer Score 2.",
+        "Score 1 NUR wenn Insulin erwaehnt wird aber KEINE Verabreichungsdetails (weder Methode noch Haeufigkeit noch Prinzip). Score 0 wenn Insulintherapie nicht erwaehnt.",
+        "⚠ CROSS-REFERENZ: Wenn der Kliniker eine Insulinpumpe beschreibt ('gibt Insulin automatisch ab', 'Pumpe die das Insulin abgibt'), ist dies AUCH eine Beschreibung der taeglichen Insulinverabreichung → zaehlt fuer D_10 Score 2. Evidence kann fuer BEIDE Items D_10 und D_11 gelten."
+      ],
       "critical": true,
       "type": "standard"
     },
@@ -201,14 +412,26 @@
       "id": "DM_D_11",
       "name": "Technologische Unterstützung",
       "category": "D",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erwähnt technologische Hilfsmittel (Insulinpumpe, CGM, AID-Systeme).",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Technologische Unterstützung — Verwendung von Insulinpumpen, kontinuierlicher Glukosemessung und automatisierter Insulinabgabesysteme empfohlen.",
       "scoring_guidance": {
         "2": "Mindestens zwei technologische Hilfsmittel erwähnt und kurz erklärt: Insulinpumpe UND/ODER kontinuierliche Glukosemessung (CGM/Sensor) UND/ODER automatisierte Insulinabgabesysteme (AID/Closed-Loop).",
         "1": "Ein technologisches Hilfsmittel erwähnt ohne weitere Erklärung.",
         "0": "Keine technologischen Hilfsmittel erwähnt."
       },
+      "evaluation_notes": [
+        "Akzeptierte Technologien (jede zaehlt als EIGENE Technologie): (1) Insulinpumpe / 'kleine Pumpe', (2) CGM / Sensor / 'Sensor am Arm' / kontinuierliche Glukosemessung, (3) AID / Closed-Loop / 'das Geraet regelt das automatisch', (4) Diabetes-Apps / 'Apps auf dem Handy' / 'spezielle Apps' — zaehlt SEPARAT von der Pumpe, (5) Pen mit Speicherfunktion / smarter Pen, (6) Blutzuckermessgeraet. Wenn der Kliniker mindestens ZWEI verschiedene Technologien aus dieser Liste erwaehnt (auch kurz) → Score 2.",
+        "⚠ 'Apps auf dem Handy' oder 'spezielle Apps' ist eine eigenstaendige Technologie und zaehlt SEPARAT von Insulinpumpe oder CGM. Auch wenn der Kliniker die App nicht namentlich benennt — die Erwaehnung von 'Apps' als Hilfsmittel genuegt."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -216,14 +439,26 @@
       "id": "DM_D_12",
       "name": "Ernährung",
       "category": "D",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erklärt den Umgang mit Ernährung bei Typ-1-Diabetes.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Ernährung — kohlenhydratbewusst, keine 'Diät' im klassischen Sinn.",
       "scoring_guidance": {
         "2": "Kohlenhydratbewusste Ernährung erklärt UND klargestellt dass keine klassische 'Diät' nötig ist — normales Essen möglich mit Anpassung der Insulindosis.",
         "1": "Ernährung erwähnt aber nur vage (z.B. 'er muss auf das Essen achten') oder nur Diät erwähnt ohne Differenzierung.",
         "0": "Ernährung nicht thematisiert."
       },
+      "evaluation_notes": [
+        "Score 0 wenn Ernaehrung im GESAMTEN Transkript NICHT als eigenstaendiges Thema besprochen wird. ⚠ Eine reine Erwaehnung im Rahmen einer Schulungsankuendigung (z.B. 'Sie werden in die Ernaehrung eingewiesen') ist KEIN eigenstaendiges Ernaehrungsthema → Score 0. Score 1 NUR wenn der Kliniker INHALTLICH ueber Essen/Ernaehrung spricht.",
+        "Score 2 erfordert BEIDES: (a) Ernaehrung als Thema inhaltlich besprochen UND (b) Normalisierung des Essens (keine strenge Diaet noetig / normales Essen moeglich / nur auf Kohlenhydrate achten). ⚠ IMPLIZITE Normalisierung zaehlt: Wenn der Kliniker im Kontext eines normalen Lebens ('er darf alles machen') Ernaehrung als EINZIGES zu beachtendes Thema hervorhebt → impliziert dies keine drastische Diaet → Score 2."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -231,14 +466,26 @@
       "id": "DM_D_13",
       "name": "Sport und Bewegung",
       "category": "D",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erklärt den Umgang mit Sport bei Typ-1-Diabetes.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Sport — Bewegung und Sport ausdrücklich empfohlen, mit Anpassung von Insulin/Ernährung.",
       "scoring_guidance": {
-        "2": "Sport ausdrücklich empfohlen UND Notwendigkeit der Anpassung von Insulin und/oder Ernährung bei sportlicher Aktivität erklärt.",
+        "2": "Sport und Bewegung ausdrücklich empfohlen UND Notwendigkeit der Anpassung von Insulin und/oder Ernährung bei sportlicher Aktivität erklärt.",
         "1": "Sport erwähnt ohne Hinweis auf notwendige Anpassungen, oder nur Risiken ohne positive Empfehlung.",
         "0": "Sport nicht thematisiert."
       },
+      "evaluation_notes": [
+        "Scanne das GESAMTE Transkript nach Erwahnungen von Sport, Bewegung, Spielen, Toben, koerperlicher Aktivitaet. Auch Aussagen wie 'er kann weiter Fussball spielen' oder 'Bewegung ist sogar gut' zaehlen.",
+        "Score 1 wenn Sport/Bewegung erwaehnt wird ohne Anpassungshinweis. Score 0 NUR wenn Sport/Bewegung NIRGENDS im Transkript vorkommt."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -246,14 +493,26 @@
       "id": "DM_D_14",
       "name": "Schulung und psychosoziale Unterstützung",
       "category": "D",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Informiert über Schulungsprogramme und psychosoziale Unterstützung.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Schulung und psychosoziale Unterstützung — Strukturierte Schulungsprogramme für Eltern und Kinder obligat — Ziel: selbstständiges Management (Insulin, Ernährung, Bewegung, Hypo-/Hyperglykämien) — Psychosoziale Begleitung (Belastung, Lebensqualität, Familie, Schule).",
       "scoring_guidance": {
-        "2": "Beides erwähnt: strukturierte Schulungsprogramme für Eltern und Kind (Ziel: selbstständiges Management) UND psychosoziale Begleitung (Belastung, Lebensqualität, Familie, Schule).",
-        "1": "Nur eines der beiden Elemente erwähnt.",
+        "2": "Beides erwähnt: (1) strukturierte Schulungsprogramme für Eltern und Kind mit Ziel des selbstständigen Managements (Insulin, Ernährung, Bewegung, Hypo-/Hyperglykämien) UND (2) psychosoziale Begleitung (Belastung, Lebensqualität, Familie, Schule).",
+        "1": "Nur eines der beiden Elemente erwähnt, ODER Schulung erwähnt aber ohne Nennung des Ziels des selbstständigen Managements.",
         "0": "Weder Schulung noch psychosoziale Unterstützung thematisiert."
       },
+      "evaluation_notes": [
+        "Schulung = jede Erwähnung von strukturierter Ausbildung/Training fuer Eltern und Kind (z.B. 'Sie werden geschult', 'wir zeigen Ihnen wie das funktioniert', 'Diabetesschulung'). Psychosoziale Begleitung = Erwaehnung von psychologischer Unterstuetzung, Familienberatung, Selbsthilfegruppen.",
+        "Score 1 wenn NUR eines der beiden Elemente erwaehnt wird. Score 2 wenn BEIDES erkennbar ist."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -261,27 +520,51 @@
       "id": "DM_E_15",
       "name": "Langzeitfolge 1 von 4",
       "category": "E",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "⚠️ PFLICHT vor Items 15–18: Führe einen LANGZEITFOLGEN-SCAN durch. Durchsuche das GESAMTE Transkript nach Erwähnungen von Langzeitfolgen aus der folgenden Liste. Notiere jede gefundene Folge mit Zeitstempel. Reihenfolge der Nennung spielt keine Rolle.\n\nMögliche Langzeitfolgen (6 Kategorien):\n1. Augen: diabetische Retinopathie → Sehstörungen bis Erblindung\n2. Nieren: diabetische Nephropathie → bis hin zu Nierenversagen\n3. Nerven: diabetische Neuropathie → Sensibilitätsstörungen, Schmerzen\n4. Gefäße: erhöhte Gefahr für Herzinfarkt, Schlaganfall (kardiovaskuläre Erkrankungen)\n5. Wachstums- und Pubertätsstörungen bei jahrelang schlechter Einstellung\n6. Erhöhtes Risiko für psychische Belastungen (Depression, Essstörungen, Diabetes-Stress)\n\nNach dem Scan: Vergib Scores für Items 15–18 basierend auf wie vielen unterschiedlichen Langzeitfolgen korrekt genannt wurden. Jede Kategorie zählt nur einmal.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "⚠️ PFLICHT vor Items 15–18: Führe einen LANGZEITFOLGEN-SCAN durch. Durchsuche das GESAMTE Transkript nach Erwähnungen von Langzeitfolgen aus der folgenden Liste. Notiere jede gefundene Folge mit Zeitstempel. Nenne mindestens 4. Reihenfolge der Nennung spielt keine Rolle.\n\nMögliche Langzeitfolgen (6 Kategorien):\n1. Augen: diabetische Retinopathie → Sehstörungen bis Erblindung\n2. Nieren: diabetische Nephropathie → bis hin zu Nierenversagen\n3. Nerven: diabetische Neuropathie → Sensibilitätsstörungen, Schmerzen\n4. Gefäße: erhöhte Gefahr für Herzinfarkt, Schlaganfall (kardiovaskuläre Erkrankungen)\n5. Wachstums- und Pubertätsstörungen bei jahrelang schlechter Einstellung\n6. Erhöhtes Risiko für psychische Belastungen (Depression, Essstörungen, Diabetes-Stress)\n\nNach dem Scan: Vergib Scores für Items 15–18 basierend auf wie vielen unterschiedlichen Langzeitfolgen korrekt genannt wurden. Jede Kategorie zählt nur einmal.",
       "scoring_guidance": {
-        "2": "Mindestens 1 Langzeitfolge aus der Liste korrekt und spezifisch benannt — Organsystem und Komplikation erkennbar (z.B. 'Retinopathie', 'Nierenversagen', 'Neuropathie', 'Herzinfarkt', 'Wachstumsstörungen', 'Depression/Diabetes-Stress').",
-        "1": "Die erste Langzeitfolge nur vage angedeutet — Organsystem erkennbar aber ohne konkrete Komplikation (z.B. 'Augenprobleme', 'Nierenprobleme', 'Herzprobleme').",
+        "2": "Mindestens 1 Langzeitfolge aus der Liste erkennbar benannt — auch Laien-Formulierungen zählen (z.B. 'kann auf die Augen gehen', 'Nieren können Schaden nehmen', 'Herz-Kreislauf-Probleme', 'Füße können taub werden'). Medizinische Fachbegriffe sind NICHT erforderlich. Es genügt, wenn das Organsystem und die Richtung der Schädigung erkennbar sind.",
+        "1": "Eine Langzeitfolge nur sehr vage angedeutet ohne erkennbares Organsystem (z.B. 'es kann Folgeschäden geben' ohne jede Spezifizierung).",
         "0": "Keine Langzeitfolge aus der Liste benannt."
       },
       "critical": true,
-      "type": "standard"
+      "type": "standard",
+      "evaluation_notes": [
+        "AUSSCHLUSS Chronizität: \"Lebenslang\", \"chronisch\", \"geht nicht weg\" und ähnliche Aussagen über die DAUER der Erkrankung sind KEINE Langzeitkomplikationen — sie beschreiben nur den Verlauf. Solche Aussagen zählen nicht für Score 1 oder 2.",
+        "AUSSCHLUSS Therapieaussagen: Aussagen über Insulinpflicht, Pumpen, Sensoren, Schulungen oder Lebensqualität zählen NICHT als Langzeitkomplikationen.",
+        "AUSSCHLUSS allgemeine Lebenserwartung: \"Diabetes war früher eine Todeserkrankung\" oder Aussagen über Lebenserwartung sind KEINE Langzeitkomplikationen.",
+        "NUR SPEZIFISCHE ORGANSCHÄDEN zählen: Retinopathie/Sehstörungen (Auge), Nephropathie/Nierenversagen (Niere), Neuropathie/Sensibilitätsstörungen (Nerven), kardiovaskuläre Erkrankungen (Herzinfarkt/Schlaganfall), Wachstumsstörungen, psychische Belastungen (Depression/Essstörungen). Ohne konkrete Benennung eines Organsystems → Score 0.",
+        "⚠ LAIENSPRACHE ERKENNEN: Suche auch nach indirekten Formulierungen die auf Organschaeden hinweisen: 'Augen' / 'sehen' / 'blind' / 'Sehkraft' → Retinopathie. 'Nieren' / 'Dialyse' / 'Nierenschaden' → Nephropathie. 'Fuesse' / 'Gefuehl in den Fuessen' / 'taub' / 'kribbeln' → Neuropathie. 'Herz' / 'Herzinfarkt' / 'Schlaganfall' / 'Gefaesse' / 'Durchblutung' → kardiovaskulaer. 'Wachstum' / 'Pubertaet' / 'Entwicklung' → Wachstumsstoerungen. 'Depression' / 'psychisch' / 'Essstoerung' / 'Belastung' / 'seelisch' → psychische Belastung. Auch wenn der Kliniker sagt 'das kann auf die Augen gehen' oder 'die Nieren koennen Schaden nehmen' → zaehlt als spezifische Langzeitfolge.",
+        "⚠ SCAN-VOLLSTAENDIGKEIT: Durchsuche das GESAMTE Transkript von Anfang bis Ende. Langzeitfolgen koennen an JEDER Stelle im Gespraech erwaehnt werden — nicht nur im Abschnitt ueber Komplikationen. Auch beilaeufige Erwahnungen zaehlen (z.B. 'spaeter koennte es Probleme mit den Augen geben' mitten in einem anderen Thema)."
+      ]
     },
     {
       "id": "DM_E_16",
       "name": "Langzeitfolge 2 von 4",
       "category": "E",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Zweite Langzeitfolge aus dem Langzeitfolgen-Scan (Items 15–18 teilen denselben Scan). Muss eine andere Kategorie sein als die erste.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Zweite Langzeitfolge aus dem Langzeitfolgen-Scan (Items 15–18 teilen denselben Scan). Nenne mindestens 4. Muss eine andere Kategorie sein als die erste.",
       "scoring_guidance": {
-        "2": "Eine zweite, von Item 15 verschiedene Langzeitfolge aus der Liste korrekt und spezifisch benannt.",
-        "1": "Eine zweite Langzeitfolge nur vage angedeutet (Organsystem erkennbar, aber keine konkrete Komplikation).",
+        "2": "Eine zweite, von Item 15 verschiedene Langzeitfolge erkennbar benannt — auch Laien-Formulierungen zählen. Medizinische Fachbegriffe NICHT erforderlich.",
+        "1": "Eine zweite Langzeitfolge nur sehr vage angedeutet ohne erkennbares Organsystem.",
         "0": "Keine zweite Langzeitfolge aus der Liste benannt."
       },
       "critical": true,
@@ -291,12 +574,20 @@
       "id": "DM_E_17",
       "name": "Langzeitfolge 3 von 4",
       "category": "E",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Dritte Langzeitfolge aus dem Langzeitfolgen-Scan (Items 15–18 teilen denselben Scan). Muss eine andere Kategorie sein als Items 15 und 16.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Dritte Langzeitfolge aus dem Langzeitfolgen-Scan (Items 15–18 teilen denselben Scan). Nenne mindestens 4. Muss eine andere Kategorie sein als Items 15 und 16.",
       "scoring_guidance": {
-        "2": "Eine dritte, von Items 15–16 verschiedene Langzeitfolge aus der Liste korrekt und spezifisch benannt.",
-        "1": "Eine dritte Langzeitfolge nur vage angedeutet.",
+        "2": "Eine dritte, von Items 15–16 verschiedene Langzeitfolge erkennbar benannt — auch Laien-Formulierungen zählen. Medizinische Fachbegriffe NICHT erforderlich.",
+        "1": "Eine dritte Langzeitfolge nur sehr vage angedeutet ohne erkennbares Organsystem.",
         "0": "Keine dritte Langzeitfolge aus der Liste benannt."
       },
       "critical": true,
@@ -306,12 +597,20 @@
       "id": "DM_E_18",
       "name": "Langzeitfolge 4 von 4",
       "category": "E",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Vierte Langzeitfolge aus dem Langzeitfolgen-Scan (Items 15–18 teilen denselben Scan). Muss eine andere Kategorie sein als Items 15, 16 und 17.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Vierte Langzeitfolge aus dem Langzeitfolgen-Scan (Items 15–18 teilen denselben Scan). Nenne mindestens 4. Muss eine andere Kategorie sein als Items 15, 16 und 17.",
       "scoring_guidance": {
-        "2": "Eine vierte, von Items 15–17 verschiedene Langzeitfolge aus der Liste korrekt und spezifisch benannt.",
-        "1": "Eine vierte Langzeitfolge nur vage angedeutet.",
+        "2": "Eine vierte, von Items 15–17 verschiedene Langzeitfolge erkennbar benannt — auch Laien-Formulierungen zählen. Medizinische Fachbegriffe NICHT erforderlich.",
+        "1": "Eine vierte Langzeitfolge nur sehr vage angedeutet ohne erkennbares Organsystem.",
         "0": "Keine vierte Langzeitfolge aus der Liste benannt."
       },
       "critical": true,
@@ -321,13 +620,21 @@
       "id": "DM_E_19",
       "name": "Beruhigung bei Langzeitfolgen — Prävention durch gute Einstellung",
       "category": "E",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Beruhigt die Mutter mit sachlich korrekter Aussage über Prävention der Spätfolgen.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Arzt beruhigt die Mutter auf den Kommentar: 'Oh das ist ja schrecklich kann man dagegen gar nichts tun?' — Mit guter Blutzuckereinstellung (HbA1c-Ziel < 7,0% und Time in Range > 70%) sind diese Spätfolgen deutlich zu verhindern oder hinauszuzögern. Deshalb werden regelmäßige Vorsorgeuntersuchungen (Augen, Nieren, Blutdruck, Lipide, Neuropathie-Screening) empfohlen.",
       "scoring_guidance": {
-        "2": "Beide Aspekte kommuniziert: (1) Mit guter Blutzuckereinstellung (HbA1c-Ziel < 7,0% und/oder Time in Range > 70%) können Spätfolgen deutlich verhindert oder verzögert werden UND (2) regelmäßige Vorsorgeuntersuchungen (Augen, Nieren, Blutdruck, Lipide, Neuropathie-Screening) empfohlen.",
-        "1": "Nur ein Aspekt kommuniziert, oder Beruhigung ohne konkreten Zielwert oder ohne Vorsorgeempfehlung.",
-        "0": "Keine Beruhigung oder falsche Beruhigung (z.B. 'das passiert meistens nicht' ohne Begründung)."
+        "2": "Beruhigung erkennbar vermittelt: Der Kliniker erklaert dass Komplikationen durch gute Blutzuckereinstellung verhindert oder deutlich verzoegert werden koennen ODER dass ein normales Leben bei guter Einstellung moeglich ist UND nennt mindestens EINE konkrete praeventive Massnahme oder positive Perspektive (z.B. gute Einstellung, regelmaessige Kontrollen, Vorsorgeuntersuchungen, Schulungen, moderne Technologie, 'kann ein ganz normales Leben fuehren wenn er gut eingestellt ist'). Konkrete Zielwerte (HbA1c < 7%) sind ein Plus aber NICHT erforderlich.",
+        "1": "Beruhigung nur allgemein: Der Kliniker sagt dass ein normales Leben moeglich ist oder dass es Behandlungsmoeglichkeiten gibt, OHNE explizit auf Komplikationspraevention oder konkrete Massnahmen einzugehen (z.B. 'Das wird schon', 'Man kann damit gut leben' ohne weitere Erklaerung).",
+        "0": "Keine Beruhigung bei Langzeitfolgen. Das Thema Langzeitfolgen-Praevention oder positive Prognose bei guter Einstellung wird nicht angesprochen."
       },
       "critical": true,
       "type": "standard"
@@ -336,16 +643,30 @@
       "id": "DM_S_20",
       "name": "Präventabilität — Eltern haben keine Schuld",
       "category": "S",
-      "scale": [0, 1, 2],
-      "scale_labels": {"0": "Fehlt/Falsch", "1": "Ansatz", "2": "Vollständig"},
-      "description": "Erklärt dass Typ-1-Diabetes nicht vermeidbar ist und die Eltern keine Schuld haben.",
+      "scale": [
+        0,
+        1,
+        2
+      ],
+      "scale_labels": {
+        "0": "Fehlt/Falsch",
+        "1": "Ansatz",
+        "2": "Vollständig"
+      },
+      "description": "Nein, Typ-1-Diabetes ist nicht vermeidbar. Die Eltern haben keine Schuld und hätten die Erkrankung auch nicht verhindern können.",
       "scoring_guidance": {
-        "2": "⚠️ Score 2 erfordert eine DIREKTE Reaktion auf die Frage 'Hätten wir die Krankheit verhindern können?' (oder eine proaktive Ansprache der Schuldfrage). Der Arzt muss explizit sagen dass die Eltern KEINE Schuld haben UND eine Begründung geben (Autoimmunerkrankung, genetisch, kein vermeidbarer Auslöser). Der entlastende Ton muss im Transkript erkennbar sein. ACHTUNG: Eine frühere Erklärung von Autoimmunerkrankung aus dem Abschnitt A (Typ-1 vs. Typ-2) zählt NICHT als Beleg für DM_S_20 — die Schuldfrage muss separat und direkt adressiert werden.",
-        "1": "Nicht-Vermeidbarkeit erwähnt aber ohne explizite Entlastung der Eltern, ODER Entlastung ohne Begründung, ODER die Antwort ist zu vage ('Das ist einfach passiert') ohne klare Aussage über Schuld.",
-        "0": "Frage nicht beantwortet oder übergangen. ODER: Keine direkte Reaktion auf die Schuldfrage — auch wenn Autoimmunerkrankung an anderer Stelle erklärt wurde, ohne Bezug zur Schuldfrage der Eltern → Score 0."
+        "2": "SPEAKER_00 kommuniziert EXPLIZIT dass die Eltern keine Schuld tragen UND liefert eine medizinische Begruendung (Autoimmunerkrankung, genetisch, nicht durch Lebensstil verursacht, nicht vermeidbar). Dies kann auf ZWEI Wegen geschehen: (a) REAKTIV: SPEAKER_01 stellt eine Schuldfrage oder deutet Schuld an UND SPEAKER_00 antwortet mit Entlastung + Begruendung. (b) PROAKTIV: SPEAKER_00 spricht das Thema Schuld/Vermeidbarkeit von sich aus an UND liefert Entlastung + Begruendung. Beide Wege zaehlen fuer Score 2.",
+        "1": "SPEAKER_00 spricht das Thema Schuld/Vermeidbarkeit an und entlastet die Eltern, aber OHNE medizinische Begruendung (z.B. 'Das ist einfach so passiert', 'Dafuer koennen Sie nichts' ohne Erklaerung warum). ODER: SPEAKER_01 deutet Schuld an und SPEAKER_00 reagiert nur ausweichend oder allgemein.",
+        "0": "Das Thema Schuld/Vermeidbarkeit wird im gesamten Gespraech weder von SPEAKER_01 noch von SPEAKER_00 angesprochen. ODER: SPEAKER_01 stellt eine Schuldfrage aber SPEAKER_00 reagiert gar nicht darauf."
       },
       "critical": true,
-      "type": "standard"
+      "type": "standard",
+      "evaluation_notes": [
+        "SCHULD-TRIGGER von SPEAKER_01: Akzeptierte Formulierungen die eine Schuldfrage/Schuldandeutung darstellen: 'Schuld', 'schuldig', 'verhindern koennen', 'falsch gemacht', 'meine Verantwortung', 'anders machen muessen', 'haette ich verhindern koennen', 'lag es an mir', 'haette ich etwas anders machen sollen', 'was habe ich falsch gemacht'. Auch IMPLIZITE Schuldandeutungen zaehlen wenn der Kontext eindeutig auf Selbstvorwuerfe hinweist (z.B. Aufzaehlung gesunder Lebensweise als Reaktion auf die Diagnose).",
+        "PROAKTIVE ENTLASTUNG durch SPEAKER_00: Wenn SPEAKER_00 das Thema Schuld PROAKTIV anspricht (z.B. 'Sie trifft keine Schuld', 'Sie koennen dafuer gar nichts') UND eine Begruendung liefert (nicht vermeidbar, Autoimmun, nicht durch Lebensstil) → Score 2. Proaktive Entlastung ohne Begruendung → Score 1.",
+        "BEGRUENDUNGEN die als medizinische Basis zaehlen: Autoimmunerkrankung, Immunsystem greift eigene Zellen an, genetische Praedisposition, nicht durch Ernaehrung/Lebensstil/Erziehung verursacht, nicht vermeidbar, 'passiert im Koerper', 'haetten es nicht vorhersehen koennen'.",
+        "⚠ HALLUZINATIONS-CHECK: Zitiere das WOERTLICHE Transkriptzitat. Pruefe dass die Entlastung oder Schuldfrage tatsaechlich im Transkript vorkommt."
+      ]
     }
   ]
 }

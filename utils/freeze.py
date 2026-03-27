@@ -57,7 +57,7 @@ class FreezeManifest:
                     "context_length": self.config.get("llm", {}).get("context_length"),
                 },
             },
-            "prompt_template_hash": self._hash_prompt_template(),
+            "prompt_template_hashes": self._hash_prompt_templates(),
             "config_hash": self._hash_config(),
         }
 
@@ -76,12 +76,30 @@ class FreezeManifest:
             pass
         return None
 
-    def _hash_prompt_template(self) -> str | None:
-        template_path = self.config.get("llm", {}).get("prompt_template")
-        if template_path and Path(template_path).exists():
-            content = Path(template_path).read_bytes()
-            return hashlib.sha256(content).hexdigest()
-        return None
+    @staticmethod
+    def _hash_prompt_templates() -> dict:
+        """Hash all Jinja2 templates and instrument JSON definitions.
+
+        Returns a dict with per-file hashes and a combined digest so that
+        any single-file change is both traceable and detectable.
+        """
+        dirs = [
+            Path("templates/instruments"),
+            Path("instruments"),
+        ]
+        file_hashes = {}
+        for d in dirs:
+            if not d.exists():
+                continue
+            for p in sorted(d.iterdir()):
+                if p.suffix in (".j2", ".json") and p.is_file():
+                    content = p.read_bytes()
+                    file_hashes[str(p)] = hashlib.sha256(content).hexdigest()
+
+        combined = hashlib.sha256(
+            json.dumps(file_hashes, sort_keys=True).encode()
+        ).hexdigest()
+        return {"files": file_hashes, "combined": combined}
 
     def _hash_config(self) -> str:
         config_str = json.dumps(self.config, sort_keys=True)
@@ -114,9 +132,14 @@ class FreezeManifest:
 
         # Compare critical fields
         mismatches = []
-        for key in ["pipeline_version", "config_hash", "prompt_template_hash"]:
+        for key in ["pipeline_version", "config_hash"]:
             if saved.get(key) != current_dict.get(key):
                 mismatches.append(key)
+
+        saved_combined = (saved.get("prompt_template_hashes") or {}).get("combined")
+        current_combined = (current_dict.get("prompt_template_hashes") or {}).get("combined")
+        if saved_combined != current_combined:
+            mismatches.append("prompt_template_hashes")
 
         if saved.get("models") != current_dict.get("models"):
             mismatches.append("models")

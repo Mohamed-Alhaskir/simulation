@@ -109,6 +109,8 @@ class LLMAnalysisStage(BaseStage):
         # ── 2. Assemble context ────────────────────────────────────────────
 
         context = self._build_context(ctx)
+        context["scenario_context"] = scenario_cfg.get("scenario_context", {})
+        context["scenario_display_name"] = scenario_cfg.get("display_name", "")
         self.logger.info(
             f"Context assembled: "
             f"{len(context['diarized_transcript'])} transcript segments, "

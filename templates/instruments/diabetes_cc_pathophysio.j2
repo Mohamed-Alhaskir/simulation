@@ -1,0 +1,116 @@
+Du bist ein Spezialist für pädiatrische Diabetologie und klinische Simulationsausbildung.
+Deine Aufgabe ist es, den **klinischen Inhalt** eines Gesprächs zur Diagnoseübermittlung Diabetes Mellitus Typ 1 zu bewerten.
+
+## ⚠ GESPRÄCHSKONTEXT — BITTE ZUERST LESEN
+
+Das Gespräch findet **NICHT** direkt mit dem Patienten statt.
+Der Kliniker (SPEAKER_00) spricht ausschließlich mit einer **Bezugsperson des Patienten** (SPEAKER_01) — in der Regel einem Elternteil oder Angehörigen.
+
+- SPEAKER_00 = Kliniker (zu bewerten)
+- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
+
+**Szenario:** Diagnoseübermittlung Typ-1-Diabetes mellitus bei einem pädiatrischen Patienten (Diabetische Ketoazidose bei Erstmanifestation).
+
+---
+
+## ⚠ WICHTIGE ABGRENZUNG
+
+Bewertest du AUSSCHLIESSLICH den **klinischen Inhalt** — Korrektheit und Vollständigkeit medizinischer Aussagen.
+Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet.
+
+Unterscheide:
+- **Fehlt (0):** Thema wurde nicht angesprochen
+- **Klinisch falsch (0):** Aussage inhaltlich falsch oder irreführend → beginne justification mit **"FALSCH:"**
+
+---
+
+## Abschnittskontext — Pathophysiologie (SP-Frage A)
+
+⚠ **Dieser Abschnitt bewertet die pathophysiologische Erklärung:**
+- Unterschied Typ-1 vs. Typ-2 Diabetes (DM_A_1, DM_A_2, DM_A_3)
+- Insulin-Erklärung bei Nachfrage (DM_A_5, konditional)
+
+Schlüsselkonzepte die korrekt vermittelt werden müssen:
+- Typ-1: Autoimmunerkrankung → Zerstörung der Betazellen → absoluter Insulinmangel
+- Typ-2: Insulinresistenz bei Übergewicht → progressiver Sekretionsverlust
+- Insulin: Peptidhormon → Glucoseaufnahme in Körperzellen → blutzuckersenkend
+
+---
+
+## Bewertungsmaßstab
+
+⚠ **Szenariospezifische Bewertungshinweise — haben Vorrang vor den allgemeinen Regeln:**
+
+{{ scoring_preamble }}
+
+---
+
+## Bewertungsfokus für diesen Durchgang
+
+⚠ **{{ phase_focus }}**
+
+Durchsuche das GESAMTE Transkript, konzentriere dich aber besonders auf Gesprächsabschnitte, die zum oben genannten Fokus gehören.
+
+---
+
+## Bewertungsitems
+
+{% for item in items %}
+---
+
+### {{ item.id }} — {{ item.name }}{% if item.critical %} [KRITISCH]{% endif %}{% if item.get('type') == 'conditional' %} [KONDITIONAL]{% endif %}
+
+{{ item.description }}
+
+{% if item.get('type') == 'conditional' %}
+**Bedingung:** {{ item.condition }}
+Wenn die Bedingung NICHT eingetreten ist → rating: "NA"
+{% endif %}
+
+{% for level, text in item.scoring_guidance.items() %}
+- **{{ level }}**: {{ text }}
+{% endfor %}
+{% if item.get('evaluation_notes') %}
+{% for note in item.evaluation_notes %}
+*Hinweis:* {{ note }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+---
+
+## Diarisiertes Transkript
+
+{{ transcript_text }}
+
+---
+
+## Anweisungen
+
+Bewerte jedes Item auf der 0/1/2/NA-Skala gemäß den Bewertungshinweisen oben.
+
+Für jedes Item:
+- **rating**: 0, 1, 2 oder "NA"
+- **justification**: Ein Satz. Bei Score 0 wegen aktivem Fehler: beginne mit "FALSCH:". Bei Score 0 wegen Fehlen: beginne mit "Fehlt:". Bei Score 1: benenne explizit was vorhanden war UND was fehlte.
+- **evidence**: 1–2 Transkriptzitate mit Zeitstempel [MM:SS] die das Rating belegen. Bei Score 0 wegen Fehlen: "kein Beleg — nicht erwähnt".
+
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN medizinisches Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
+
+⚠ **Transkriptbindung:** Jedes evidence-Zitat MUSS einem tatsächlichen Segment im Transkript oben entsprechen. Erlaubte Zeitstempel sind ausschließlich die im Transkript erscheinenden Zeiten. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel — schreibe stattdessen: `"kein direktes Zitat — [kurze Beschreibung]"`
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "items": [
+{% for item in items %}
+    {
+      "id": "{{ item.id }}",
+      "name": "{{ item.name }}",
+      "rating": <0, 1, 2 oder "NA">,
+      "justification": "<ein Satz>",
+      "evidence": ["<[MM:SS] 'Zitat'>"]
+    }{% if not loop.last %},{% endif %}
+{% endfor %}
+  ],
+  "overall_clinical_note": "<2–3 Sätze klinische Gesamtbewertung der pathophysiologischen Erklärung>"
+}

@@ -171,8 +171,6 @@ IRIS_V_VALID_MAX =  1.5
 # filtered out before computing D3 summary stats.
 ARM_OPENNESS_MAX = 3.0
 
-SMILE_Z_THRESHOLD       = 1.0
-PERIODICITY_THRESHOLD   = 0.3
 ARM_CROSSED_DEV         = -1.0
 ARM_CROSSED_DEV_WARN    = -0.5
 ARM_CROSSED_ABS         = 0.5
@@ -274,51 +272,6 @@ def _value_distribution(values: List[str]) -> Dict[str, float]:
         counts[v] = counts.get(v, 0) + 1
     total = len(values)
     return {k: round(v / total, 3) for k, v in counts.items()}
-
-
-def _detect_periodicity(signal: List[float], fps: float) -> Dict[str, Any]:
-    """
-    Detect repetitive (periodic) patterns in a 1-D signal via autocorrelation.
-    Only periods >= 0.3 s are considered.
-    """
-    if len(signal) < 20 or fps <= 0:
-        return {"dominant_period_s": None, "periodicity_strength": 0.0, "is_repetitive": False}
-
-    arr = np.array(signal, dtype=float)
-    smooth_window = max(3, int(fps * 0.2))
-    if smooth_window < len(arr):
-        kernel = np.ones(smooth_window) / smooth_window
-        arr = np.convolve(arr, kernel, mode="valid")
-
-    if len(arr) < 10:
-        return {"dominant_period_s": None, "periodicity_strength": 0.0, "is_repetitive": False}
-
-    arr = arr - np.mean(arr)
-    norm = np.dot(arr, arr)
-    if norm < 1e-9:
-        return {"dominant_period_s": None, "periodicity_strength": 0.0, "is_repetitive": False}
-
-    autocorr = np.correlate(arr, arr, mode="full")
-    autocorr = autocorr[len(autocorr) // 2:]
-    autocorr = autocorr / norm
-
-    min_lag = max(3, int(fps * 0.3))
-    peaks = [
-        (i, autocorr[i])
-        for i in range(min_lag, len(autocorr) - 1)
-        if autocorr[i] > autocorr[i - 1] and autocorr[i] > autocorr[i + 1]
-    ]
-    if not peaks:
-        return {"dominant_period_s": None, "periodicity_strength": 0.0, "is_repetitive": False}
-
-    best_lag, best_strength = max(peaks, key=lambda p: p[1])
-    period_s    = round(best_lag / fps, 2) if fps > 0 else None
-    is_repetitive = bool(best_strength > PERIODICITY_THRESHOLD)
-    return {
-        "dominant_period_s": period_s,
-        "periodicity_strength": round(float(best_strength), 3),
-        "is_repetitive": is_repetitive,
-    }
 
 
 def _reliability_level(detection_rate: float) -> str:
@@ -748,11 +701,8 @@ class VideoAnalysisStage(BaseStage):
     """LUCAS-aligned NVB video analysis stage."""
 
     # ── Face landmark indices ──
-    NOSE_TIP        = 1
     LEFT_EYE_INNER  = 133;  RIGHT_EYE_INNER = 362
     LEFT_EYE_OUTER  = 33;   RIGHT_EYE_OUTER = 263
-    CHIN            = 152;  FOREHEAD        = 10
-    LEFT_MOUTH      = 61;   RIGHT_MOUTH     = 291
 
     # ── Iris landmark indices (MediaPipe 478-point model) ──
     LEFT_IRIS_CENTER  = 468
@@ -803,7 +753,7 @@ class VideoAnalysisStage(BaseStage):
             _ensure_model(key)
         _ensure_dnn_model()
 
-        sample_fps = cfg.get("sample_fps", 2)
+        sample_fps = cfg.get("sample_fps", 10)
 
         results    = self._analyze_video(video_path, sample_fps, cfg)
         frame_data = results["frame_data"]
@@ -1174,9 +1124,7 @@ class VideoAnalysisStage(BaseStage):
                                 "face_detected": False,
                                 "pose_detected": False,
                                 "eye_contact": None,
-                                "facial_expression": None,
                                 "positioning_and_posture": None,
-                                "gestures": None,
                             })
                             frames_analyzed += 1
                             frame_idx += 1
@@ -1249,8 +1197,6 @@ class VideoAnalysisStage(BaseStage):
                         faces_detected += 1
                         frame_features["face_detected"]    = True
                         frame_features["eye_contact"]      = self._extract_iris_gaze(face_landmarks, orig_w, orig_h)
-                        frame_features["facial_expression"] = self._extract_facial_expression(blendshapes, face_landmarks, orig_w, orig_h)
-
                         if pose_landmarks and len(pose_landmarks) > 0:
                             frame_features["pose_detected"]           = True
                             frame_features["positioning_and_posture"] = self._extract_positioning_posture(
@@ -1260,17 +1206,6 @@ class VideoAnalysisStage(BaseStage):
                         else:
                             frame_features["pose_detected"]           = False
                             frame_features["positioning_and_posture"] = None
-
-                        has_left  = left_hand_lms  and len(left_hand_lms)  > 0
-                        has_right = right_hand_lms and len(right_hand_lms) > 0
-                        if has_left or has_right:
-                            frame_features["gestures"] = self._extract_gestures(
-                                left_hand_lms  if has_left  else None,
-                                right_hand_lms if has_right else None,
-                                pose_landmarks, pose_img_w, pose_img_h,
-                            )
-                        else:
-                            frame_features["gestures"] = None
 
                         frame_data.append(frame_features)
                         frames_analyzed += 1
@@ -1282,9 +1217,7 @@ class VideoAnalysisStage(BaseStage):
                             "face_detected": False,
                             "pose_detected": False,
                             "eye_contact": None,
-                            "facial_expression": None,
                             "positioning_and_posture": None,
-                            "gestures": None,
                             "error": str(_frame_err),
                         })
                         frames_analyzed += 1
@@ -1337,9 +1270,6 @@ class VideoAnalysisStage(BaseStage):
             if eye_y is not None:
                 pp["eye_level_baseline_deviation"] = baseline.eye_level_deviation(eye_y)
 
-        fe = frame.get("facial_expression")
-        if fe and fe.get("blendshape_smile") is not None:
-            fe["baseline_deviation"] = baseline.expression_deviation(fe["blendshape_smile"])
 
     # ═══════════════════════════════════════════════════════════════════════
     # D1 — Eye-contact via iris landmark gaze direction
@@ -1399,33 +1329,6 @@ class VideoAnalysisStage(BaseStage):
         }
 
     # ═══════════════════════════════════════════════════════════════════════
-    # D4 — Facial expressions (blendshape-based)
-    # ═══════════════════════════════════════════════════════════════════════
-    def _extract_facial_expression(self, blendshapes, face_landmarks, img_w, img_h) -> Dict[str, Any]:
-        if blendshapes:
-            smile = (blendshapes.get("mouthSmileLeft", 0.0) + blendshapes.get("mouthSmileRight", 0.0)) / 2
-            return {"source": "blendshapes", "blendshape_smile": round(smile, 4)}
-
-        def lm_2d(idx):
-            lm = face_landmarks[idx]
-            return np.array([lm.x * img_w, lm.y * img_h])
-
-        left_mouth  = lm_2d(self.LEFT_MOUTH)
-        right_mouth = lm_2d(self.RIGHT_MOUTH)
-        nose_tip    = lm_2d(self.NOSE_TIP)
-        chin        = lm_2d(self.CHIN)
-        face_height = np.linalg.norm(chin - nose_tip)
-        mouth_center = (left_mouth + right_mouth) / 2
-        smile_score  = ((mouth_center[1] - left_mouth[1]) + (mouth_center[1] - right_mouth[1])) / 2
-        normalized   = smile_score / face_height if face_height > 0 else 0
-
-        return {
-            "source":           "landmark_geometry_fallback",
-            "blendshape_smile": round(float(normalized), 4),
-            "reliability_note": "Blendshapes unavailable; using landmark geometry fallback which is less reliable.",
-        }
-
-    # ═══════════════════════════════════════════════════════════════════════
     # D2 — Positioning  &  D3 — Posture
     # ═══════════════════════════════════════════════════════════════════════
     def _extract_positioning_posture(self, pose_landmarks, face_landmarks=None, img_w=None, img_h=None) -> Dict[str, Any]:
@@ -1459,38 +1362,6 @@ class VideoAnalysisStage(BaseStage):
             "eye_level_y":          eye_level_y,
             "landmark_confidence":  round(avg_vis, 3),
         }
-
-    # ═══════════════════════════════════════════════════════════════════════
-    # D5 — Gestures & mannerisms
-    # ═══════════════════════════════════════════════════════════════════════
-    def _extract_gestures(self, left_hand_lms, right_hand_lms, pose_landmarks, img_w, img_h) -> Dict[str, Any]:
-        hands_info = []
-        for label, hand_lms in [("left", left_hand_lms), ("right", right_hand_lms)]:
-            if hand_lms is None or len(hand_lms) == 0:
-                continue
-            wrist      = hand_lms[0]
-            middle_tip = hand_lms[12]
-            cy     = float(np.mean([lm.y for lm in hand_lms]))
-            spread = float(np.linalg.norm(
-                np.array([middle_tip.x - wrist.x, middle_tip.y - wrist.y])
-            ))
-
-            position = "unknown"
-            if pose_landmarks and len(pose_landmarks) > self.POSE_RIGHT_HIP:
-                shoulder_y = (pose_landmarks[self.POSE_LEFT_SHOULDER].y + pose_landmarks[self.POSE_RIGHT_SHOULDER].y) / 2
-                hip_y      = (pose_landmarks[self.POSE_LEFT_HIP].y      + pose_landmarks[self.POSE_RIGHT_HIP].y)      / 2
-                if   cy < shoulder_y: position = "above_shoulders"
-                elif cy < hip_y:      position = "torso_level"
-                else:                 position = "below_hips"
-
-            hands_info.append({
-                "hand":     label,
-                "spread":   round(spread, 3),
-                "center_y": round(cy, 3),
-                "position": position,
-            })
-
-        return {"num_hands_visible": len(hands_info), "hands": hands_info}
 
     # ═══════════════════════════════════════════════════════════════════════
     # Aggregate LUCAS NVB metrics
@@ -1684,92 +1555,12 @@ class VideoAnalysisStage(BaseStage):
             ),
         }
 
-        # ── D4: Facial expressions ───────────────────────────────────────────
-        smile_scores = [
-            f["facial_expression"]["blendshape_smile"]
-            for f in face_frames
-            if f.get("facial_expression") and f["facial_expression"].get("blendshape_smile") is not None
-        ]
-        if baseline.valid and baseline.expression_valid:
-            smile_deviations         = [f["facial_expression"]["baseline_deviation"]["smile_deviation"]  for f in face_frames if f.get("facial_expression") and f["facial_expression"].get("baseline_deviation")]
-            smile_z_scores           = [f["facial_expression"]["baseline_deviation"]["smile_z_score"]    for f in face_frames if f.get("facial_expression") and f["facial_expression"].get("baseline_deviation")]
-            positive_expression_frames = [z > SMILE_Z_THRESHOLD for z in smile_z_scores]
-            # Count frames where raw smile is exactly 0.0 — these create a
-            # left-censoring floor in the deviation distribution at -baseline_smile.
-            smile_zero_count = sum(1 for s in smile_scores if s == 0.0)
-            smile_zero_rate  = round(smile_zero_count / len(smile_scores), 3) if smile_scores else None
-        else:
-            smile_deviations = smile_z_scores = positive_expression_frames = []
-            smile_zero_count = 0
-            smile_zero_rate  = None
-
-        sources = [f["facial_expression"]["source"] for f in face_frames if f.get("facial_expression") and f["facial_expression"].get("source")]
-
-        d4 = {
-            "smile_distribution":          _distribution_summary(smile_scores),
-            "baseline_smile_deviation":    _distribution_summary(smile_deviations),
-            "positive_expression_rate":    _proportion_and_count(positive_expression_frames),
-            "smile_zero_rate":             smile_zero_rate,
-            "data_source_distribution":    _value_distribution(sources),
-            "face_detection_rate":         round(face_rate, 3),
-            "reliability":                 _reliability_level(face_rate),
-            "method_note": (
-                "Smile from MediaPipe blendshapes (mouthSmileLeft + mouthSmileRight / 2). "
-                "Positive expression rate = frames where smile z-score > 1.0 above person's resting baseline. "
-                "smile_zero_rate = fraction of frames where raw smile score is exactly 0.0 — "
-                "these produce a hard floor in baseline_smile_deviation at -resting_smile, "
-                "left-censoring the lower tail of the distribution. "
-                "The LLM scorer should treat the distribution minimum with caution when "
-                "smile_zero_rate is high (> 0.3)."
-            ),
-        }
-
-        # ── D5: Gestures & mannerisms ────────────────────────────────────────
-        gesture_frames     = [f for f in frame_data if f.get("gestures")]
-        hand_visible_rate  = len(gesture_frames) / total if total > 0 else 0
-        hand_spreads, hand_positions = [], []
-        left_hand_y_series, right_hand_y_series = [], []
-
-        for f in gesture_frames:
-            for h in f["gestures"].get("hands", []):
-                hand_spreads.append(h["spread"])
-                hand_positions.append(h["position"])
-                if h["hand"] == "left":
-                    left_hand_y_series.append(h["center_y"])
-                elif h["hand"] == "right":
-                    right_hand_y_series.append(h["center_y"])
-
-        left_p  = _detect_periodicity(left_hand_y_series,  video_fps)
-        right_p = _detect_periodicity(right_hand_y_series, video_fps)
-        hand_periodicity = (
-            {**left_p,  "hand": "left"}  if left_p["periodicity_strength"]  >= right_p["periodicity_strength"]
-            else {**right_p, "hand": "right"}
-        )
-
-        d5 = {
-            "hand_visibility_rate":      round(hand_visible_rate, 3),
-            "hand_spread_distribution":  _distribution_summary(hand_spreads),
-            "hand_position_distribution": _value_distribution(hand_positions),
-            "hand_movement_periodicity": hand_periodicity,
-            "reliability":               _reliability_level(hand_visible_rate),
-            "method_note": (
-                "Fidgeting detected via autocorrelation periodicity analysis on "
-                "hand Y-position time series. periodicity_strength > 0.3 indicates "
-                "repetitive movement. Hand position relative to body landmarks. "
-                "Head movement periodicity is intentionally not computed: the camera "
-                "is head-mounted on the patient and patient conversational nodding "
-                "is indistinguishable from clinician head movement."
-            ),
-        }
-
         # ── Item I: Professional behaviour ──────────────────────────────────
         d_i = {
             "gaze_on_target":            d1["gaze_on_target"],
             "positioning_at_eye_level":  d2["at_patient_eye_level_rate"],
             "positioning_above_eye_level": d2["above_patient_eye_level_rate"],
-            "positive_expression_rate":  d4["positive_expression_rate"],
             "arm_openness_distribution": d3["arm_openness_distribution"],
-            "hand_movement_periodicity": d5["hand_movement_periodicity"],
             "overall_reliability":       _reliability_level(min(face_rate, pose_rate)),
             "method_note": (
                 "Video-observable demeanour cues only. LUCAS Item I is primarily "
@@ -1784,8 +1575,6 @@ class VideoAnalysisStage(BaseStage):
             "D1_eye_contact":                  d1,
             "D2_positioning":                  d2,
             "D3_posture":                      d3,
-            "D4_facial_expressions":           d4,
-            "D5_gestures_and_mannerisms":      d5,
             "I_professional_behaviour_demeanour": d_i,
         }
 
@@ -1813,7 +1602,6 @@ class VideoAnalysisStage(BaseStage):
                     "D1 uses iris landmark offsets (no baseline needed — self-referencing). "
                     "D2 uses rolling Hough horizon as the primary positioning metric. "
                     "D3 uses person-relative arm openness baseline. "
-                    "D4 uses person-relative smile baseline. "
                     "Distribution summaries are provided instead of binary classifications."
                 ),
                 "reliability_scale": {
@@ -2055,37 +1843,10 @@ class VideoAnalysisStage(BaseStage):
             put("No pose detected", color=DIM, gap=GAP_S)
         spacer()
 
-        # D4
-        header("D4  EXPRESSION")
-        fe = features.get("facial_expression")
-        if fe and fe.get("blendshape_smile") is not None:
-            smile   = fe["blendshape_smile"]
-            smile_z = (fe.get("baseline_deviation") or {}).get("smile_z_score")
-            z_txt   = f"  z={smile_z:.2f}" if smile_z is not None else ""
-            put(f"Smile  {smile:.3f}{z_txt}", gap=GAP_S)
-            if "fallback" in fe.get("source", ""):
-                put("(landmark fallback)", color=DIM, scale=SCALE_LBL, gap=GAP_S)
-        else:
-            put("No face detected", color=DIM, gap=GAP_S)
-        spacer()
-
-        # D5
-        header("D5  GESTURES")
-        gest = features.get("gestures")
-        if gest and gest.get("num_hands_visible", 0) > 0:
-            put(f"Hands  {gest['num_hands_visible']} visible", gap=GAP_S)
-        else:
-            put("No hands detected", color=DIM, gap=GAP_S)
-        spacer()
-
         # Item I
         header("Professional Behaviour")
         if ec and ec.get("on_target") is not None:
             put(f"Gaze  {'on target' if ec['on_target'] else 'off target'}", gap=GAP_S)
-        if fe and fe.get("baseline_deviation"):
-            sz = (fe["baseline_deviation"] or {}).get("smile_z_score")
-            if sz is not None:
-                put(f"Expr  {'positive' if sz > SMILE_Z_THRESHOLD else 'neutral'}", gap=GAP_S)
         if pp and pp.get("arm_openness") is not None:
             arm   = pp["arm_openness"]
             arm_d = (pp.get("baseline_deviation") or {}).get("arm_openness_deviation")
@@ -2096,7 +1857,6 @@ class VideoAnalysisStage(BaseStage):
         ts = features.get("timestamp_s", 0)
         cv2.putText(frame, f"{ts:.1f}s", (width - 70, height - 14), FONT, 0.45, DIM, 1, cv2.LINE_AA)
         parts  = (["F"] if features.get("face_detected") else []) + \
-                 (["P"] if features.get("pose_detected") else []) + \
-                 (["H"] if gest and gest.get("num_hands_visible", 0) > 0 else [])
+                 (["P"] if features.get("pose_detected") else [])
         status = "+".join(parts) if parts else "none"
         cv2.putText(frame, f"Track: {status}", (x, height - 14), FONT, 0.40, DIM, 1, cv2.LINE_AA)

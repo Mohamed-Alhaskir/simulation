@@ -14,7 +14,7 @@ Config:
     language: de
     batch_size: 8
     device: cuda
-    suppress_numerals: false
+    suppress_numerals: True
     diarization:
       enabled: true
       repo_path: /path/to/whisper-diarization   # clone of MahmoudAshraf97/whisper-diarization
@@ -100,19 +100,6 @@ class ASRStage(BaseStage):
                 seg["speaker"] = "UNKNOWN"
 
         # ------------------------------------------------------------------
-        # Restore original timeline
-        # ------------------------------------------------------------------
-        #if conversation_start > 0:
-        #    for seg in transcript:
-        #        seg["start"] += conversation_start
-        #        seg["end"] += conversation_start
-
-        # ------------------------------------------------------------------
-        # Speaker post-processing
-        # ------------------------------------------------------------------
-        #transcript = self._postprocess_speakers(transcript)
-
-        # ------------------------------------------------------------------
         # Save outputs
         # ------------------------------------------------------------------
         transcript_path = output_dir / "transcript.json"
@@ -152,7 +139,7 @@ class ASRStage(BaseStage):
                 "Clone https://github.com/MahmoudAshraf97/whisper-diarization "
                 "and set diarization.repo_path in config."
             )
-        device = "cuda" 
+        device = cfg.get("device", "cuda")
 
         # whisper-diarization writes output next to the input file
         # so we work in a temp dir to keep things clean
@@ -172,18 +159,15 @@ class ASRStage(BaseStage):
                 "--whisper-model", cfg.get("model_name", "large-v3"),
                 "--device", device,
                 "--language", cfg.get("language", "de"),
-                "--batch-size", "16",
-                "--beam-size", "7",
-                "--temperature", "0",
-                "--suppress_numerals",
-                "--no-stem",
+                "--batch-size", str(diar_cfg.get("batch_size", 16)),
+                "--beam-size", str(cfg.get("beam_size", 7)),
+                "--temperature", str(diar_cfg.get("temperature", 0)),
             ]
 
-
-            if cfg.get("suppress_numerals", False):
+            if cfg.get("suppress_numerals", True):
                 cmd.append("--suppress_numerals")
 
-            if diar_cfg.get("no_stem", False):
+            if diar_cfg.get("no_stem", True):
                 cmd.append("--no-stem")
 
             self.logger.info(f"Running: {' '.join(cmd)}")
@@ -378,7 +362,7 @@ class ASRStage(BaseStage):
         segments_gen, info = self._whisper_model.transcribe(
             audio_path,
             language=cfg.get("language", "de"),
-            beam_size=cfg.get("beam_size", 5),
+            beam_size=cfg.get("beam_size", 7),
             word_timestamps=True,
             vad_filter=True,
             vad_parameters=dict(min_silence_duration_ms=500, speech_pad_ms=200),
@@ -409,23 +393,6 @@ class ASRStage(BaseStage):
             })
 
         return segments
-
-    # ------------------------------------------------------------------
-    # Speaker post-processing
-    # ------------------------------------------------------------------
-    def _postprocess_speakers(self, transcript: list[dict]) -> list[dict]:
-        if not transcript:
-            return transcript
-        # Fix A-B-A glitches
-        for i in range(1, len(transcript) - 1):
-            prev_sp  = transcript[i - 1]["speaker"]
-            curr_sp  = transcript[i]["speaker"]
-            next_sp  = transcript[i + 1]["speaker"]
-            duration = transcript[i]["end"] - transcript[i]["start"]
-            if prev_sp == next_sp and curr_sp != prev_sp and duration < 2.0:
-                transcript[i]["speaker"] = prev_sp
-
-        return transcript
 
     # ------------------------------------------------------------------
     # Audio trimming

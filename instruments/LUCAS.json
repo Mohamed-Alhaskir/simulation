@@ -1,22 +1,20 @@
 {
   "id": "LUCAS",
   "name": "Liverpool Undergraduate Communication Assessment Scale",
-  "version": "2.1",
+  "version": "2.2",
   "domain": "Global Communication",
   "description": "10-item communication skills assessment scale for clinical simulations. Items A-J covering introductions, speech, non-verbal behaviour, empathy, professionalism.",
   "reference": "Liverpool Undergraduate Communication Assessment Scale (LUCAS), University of Liverpool.",
-  "scoring_preamble": "Du bist ein Experte fuer medizinische Ausbildung und bewertest eine klinische Simulationsuebung anhand der Liverpool Undergraduate Communication Assessment Scale (LUCAS).\n\nGESPRAECHSKONTEXT:\n- SPEAKER_00 = Kliniker (wird bewertet)\n- SPEAKER_01 = Bezugsperson / Angehoeriger (wird NICHT bewertet)\n- Das Gespraech findet zwischen dem Kliniker und der Bezugsperson statt, NICHT direkt mit dem Patienten.\n- Bewerte ausschliesslich das Verhalten von SPEAKER_00.\n\nABGRENZUNG:\nBewerte AUSSCHLIESSLICH die Kommunikationsqualitaet und das kommunikative Verhalten von SPEAKER_00 — Gespraechsoeffnung, Ausdruck, Koerpersprache, Empathie, Professionalitaet.\nKlinische Korrektheit von Fachinformationen und Gespraechsstrukturierung werden durch separate Instrumente bewertet — nicht durch LUCAS.\n\nEVIDENCE-REGELN (gelten fuer ALLE Items):\nJeder evidence-Eintrag ist ein woertliches Transkriptzitat:\n  Format A (Einzelaussage):  \"[MM:SS] SPEAKER_00: 'Zitat'\"\n  Format B (Interaktion):    \"[MM:SS] SPEAKER_01: 'Stimulus' -> SPEAKER_00: 'Reaktion'\"\nVERBOTEN in evidence: Analysen, Checklisten, Scan-Ergebnisse, Platzhalter\n\nJSON-REGEL: Verwende in justification-Strings KEINE doppelten Anfuehrungszeichen. Nutze einfache Anfuehrungszeichen (') fuer Zitate innerhalb von justification.\n\nKUERZE-REGEL:\n- justification: max 3 Saetze\n- evidence: max 5 Eintraege\n\nAntworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown, kein Text davor/danach.",
+  "scoring_preamble": "Du bist ein Experte fuer medizinische Ausbildung und bewertest eine klinische Simulationsuebung anhand der Liverpool Undergraduate Communication Assessment Scale (LUCAS).\n\nGESPRAECHSKONTEXT:\n- SPEAKER_00 = Kliniker (wird bewertet)\n- SPEAKER_01 = Bezugsperson / Angehoeriger (wird NICHT bewertet)\n- Das Gespraech findet zwischen dem Kliniker und der Bezugsperson statt, NICHT direkt mit dem Patienten.\n- Bewerte ausschliesslich das Verhalten des KLINIKERS.\n\n⚠ SPEAKER-VERIFIZIERUNG (PFLICHT vor allen Items):\nPruefe in den ersten 2 Minuten des Transkripts wer sich als Arzt/Aerztin/Kliniker vorstellt oder medizinische Erklärungen gibt. Falls SPEAKER_01 sich als Arzt/Aerztin identifiziert (z.B. 'Ich bin die Aerztin', 'Ich bin einer der zustaendigen Aerzte') und SPEAKER_00 dies NICHT tut → die Sprecherbezeichnungen sind VERTAUSCHT. In diesem Fall: bewerte SPEAKER_01 als Kliniker und SPEAKER_00 als Bezugsperson fuer ALLE Items. Passe auch die Evidence-Formate entsprechend an.\n\nABGRENZUNG:\nBewerte AUSSCHLIESSLICH die Kommunikationsqualitaet und das kommunikative Verhalten von SPEAKER_00 — Gespraechsoeffnung, Ausdruck, Koerpersprache, Empathie, Professionalitaet.\nKlinische Korrektheit von Fachinformationen und Gespraechsstrukturierung werden durch separate Instrumente bewertet — nicht durch LUCAS.\n\nEVIDENCE-REGELN (gelten fuer ALLE Items):\nJeder evidence-Eintrag ist ein woertliches Transkriptzitat:\n  Format A (Einzelaussage):  \"[MM:SS] SPEAKER_00: 'Zitat'\"\n  Format B (Interaktion):    \"[MM:SS] SPEAKER_01: 'Stimulus' -> SPEAKER_00: 'Reaktion'\"\nVERBOTEN in evidence: Analysen, Checklisten, Scan-Ergebnisse, Platzhalter\n\nJSON-REGEL: Verwende in justification-Strings KEINE doppelten Anfuehrungszeichen. Nutze einfache Anfuehrungszeichen (') fuer Zitate innerhalb von justification.\n\nKUERZE-REGEL:\n- justification: max 3 Saetze\n- evidence: max 5 Eintraege\n\nAntworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown, kein Text davor/danach.\n⚠ KALIBRIERUNGSHINWEIS: Vermeide sowohl Mittenkategorie-Bias (blindes Score-1-Vergeben) ALS AUCH Unterbewertung (Score 0 bei Unsicherheit).\n- Score 0 NUR wenn das Verhalten/Thema im GESAMTEN Transkript NICHT erkennbar ist.\n- Score 1 wenn das Verhalten/Thema ERKENNBAR aber UNVOLLSTÄNDIG umgesetzt/angesprochen wurde.\n- Score 2 wenn das Verhalten/Thema KLAR BELEGT ist — auch wenn nicht perfekt oder lehrbuchmäßig.\n- ZWEIFELSFALLREGEL: Wähle den Score der am besten durch konkrete Transkriptbelege gestützt wird. Score 1 ist ein VALIDER Score für teilweise vorhandenes Verhalten — wähle ihn nicht automatisch ab.\n\nSELBSTKONTROLLE vor jedem Rating:\n(a) Habe ich ein konkretes Transkriptzitat das diesen Score stützt?\n(b) Wenn rating=0: Habe ich das GESAMTE Transkript durchsucht und WIRKLICH nichts gefunden?\n(c) Wenn rating=1: Kann ich benennen was vorhanden UND was unvollständig war?\n(d) Wenn rating=2: Ist das Kernverhalten/-thema klar erkennbar — auch wenn Details fehlen?",
   "passes": [
     {
       "id": "pass1",
       "name": "Introductions",
       "type": "standard",
-      "item_ids": [
-        "A",
-        "B"
-      ],
+      "item_ids": ["A", "B"],
       "context_requirements": {
-        "transcript": "full",
+        "transcript": "opening",
+        "opening_max_seconds": 120,
         "phase_focus": "Eroeffnungssequenz / Begruessung und Identifikation"
       },
       "template": "lucas_pass1.j2",
@@ -26,10 +24,7 @@
       "id": "pass2",
       "name": "Clarity and Exploration",
       "type": "standard",
-      "item_ids": [
-        "C",
-        "E"
-      ],
+      "item_ids": ["C", "E"],
       "context_requirements": {
         "transcript": "full"
       },
@@ -40,9 +35,7 @@
       "id": "pass3",
       "name": "Non-verbal Behaviour",
       "type": "standard",
-      "item_ids": [
-        "D"
-      ],
+      "item_ids": ["D"],
       "context_requirements": {
         "transcript": "video_only",
         "video_features": true
@@ -54,10 +47,7 @@
       "id": "pass4",
       "name": "Empathy and Summarising",
       "type": "standard",
-      "item_ids": [
-        "F",
-        "G"
-      ],
+      "item_ids": ["F", "G"],
       "context_requirements": {
         "transcript": "full"
       },
@@ -68,9 +58,7 @@
       "id": "pass5",
       "name": "Consulting Style",
       "type": "standard",
-      "item_ids": [
-        "H"
-      ],
+      "item_ids": ["H"],
       "context_requirements": {
         "transcript": "full",
         "verbal_features": true
@@ -82,13 +70,11 @@
       "id": "pass6",
       "name": "Professional Conduct",
       "type": "standard",
-      "item_ids": [
-        "I",
-        "J"
-      ],
+      "item_ids": ["I", "J"],
       "context_requirements": {
         "transcript": "full",
-        "register_warning": true
+        "register_warning": true,
+        "video_features": true
       },
       "template": "lucas_pass6.j2",
       "max_tokens": 4000
@@ -108,47 +94,54 @@
       "id": "A",
       "name": "Greeting and Introduction",
       "category": "Introductions",
-      "scale": [
-        0,
-        1
-      ],
+      "scale": [0, 1],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Competent"
       },
       "description": "Bewertet ob der Kliniker die Bezugsperson begruesst, sich vorstellt und den Gespraechsgrund erklaert. Alle vier Elemente muessen vorhanden sein fuer volle Punktzahl.",
       "scoring_guidance": {
-        "1": "Mindestens drei der vier Elemente klar vorhanden: (i) Begruesst die Bezugsperson, (ii) Nennt den eigenen Namen, (iii) Nennt die eigene Rolle/Berufsbezeichnung, (iv) Erklaert warum das Gespraech stattfindet. Element (iv) darf implizit sein — wenn aus dem unmittelbaren Kontext eindeutig hervorgeht warum der Kliniker da ist (z.B. Nennung der Station oder direkte Einleitung des klinischen Themas), zaehlt das als erfuellt. Elemente (i) und mindestens eines von (ii) oder (iii) muessen immer explizit vorhanden sein.",
-        "0": "Begruessung fehlt voellig, ODER Kliniker nennt weder Namen noch Rolle/Berufsbezeichnung."
+        "1": "Mindestens DREI der vier Elemente vorhanden, darunter zwingend (i) Begruessung UND (iv) Nennung des Gespraechsgrunds. Das Fehlen eines einzelnen Elements — insbesondere (ii) Name oder (iii) Rolle — fuehrt NICHT zu Score 0, solange der Gespraechseinstieg insgesamt erkennbar und angemessen ist.",
+        "0": "Zwei oder mehr der Elemente (i)-(iv) fehlen, ODER sowohl Begruessung (i) als auch Gespraechsgrund (iv) fehlen."
       },
       "evaluation_notes": [
         "Scanne die Eroeffnungssequenz des Gespraechs — sie kann nach 30 Sekunden oder nach 5 Minuten einsetzen. Bewerte die ERSTE vollstaendige Eroeffnungssequenz, unabhaengig vom Zeitpunkt.",
         "Dokumentiere in der justification, welche Elemente vorhanden/fehlend sind.",
-        "Fuer Element iv): Die Bezugsperson muss nach dem Satz verstehen koennen, WARUM der Kliniker mit ihr spricht. Blosse Nennung der Anwesenheit des Kindes ohne inhaltlichen Kontext reicht nicht."
+        "Score 1 erfordert mindestens 3 der 4 Elemente. Das Fehlen eines einzelnen Elements (z.B. nur Name oder nur Rolle fehlt) fuehrt NICHT automatisch zu Score 0.",
+        "Element (iv) 'Erklaert warum er/sie die Bezugsperson anspricht' erfordert KEINEN expliziten Meta-Satz ('Ich bin hier weil...'). Es genuegt, wenn der Kliniker den medizinischen Anlass nennt der das Gespraech notwendig macht — Symptome, Befunde, geplante Massnahmen. Jede Nennung eines medizinischen Sachverhalts, einer Symptomatik, eines Befunds oder einer geplanten Massnahme erfuellt Element (iv). Pruefe die gesamte Eroeffnungssequenz als Einheit."
       ],
       "critical": false,
-      "validation_rules": []
+      "validation_rules": [
+        {
+          "type": "llm_medical_reason_check",
+          "speaker": "SPEAKER_00",
+          "max_seconds": 120,
+          "justification_pattern": "(iv)",
+          "blocked_score": 0,
+          "forced_score": 1,
+          "prompt": "Prüfe ob SPEAKER_00 in den folgenden Transkriptsegmenten einen medizinischen Anlass für das Gespräch nennt — z.B. Symptome, Befunde, eine Diagnose oder eine geplante Maßnahme. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt:\n{\"medical_reason_found\": true/false, \"keyword\": \"<das gefundene medizinische Thema oder leer>\", \"timestamp\": \"<MM:SS des Segments oder leer>\"}",
+          "message": "A LLM-CHECK: Medical reason '{keyword}' detected at [{timestamp}] but LLM rated (iv) fehlend -> forced to A:1"
+        }
+      ]
     },
     {
       "id": "B",
       "name": "Identity Check",
       "category": "Introductions",
-      "scale": [
-        0,
-        1
-      ],
+      "scale": [0, 1],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Competent"
       },
       "description": "Bewertet ob der Kliniker aktiv die Identitaet der Bezugsperson/des Patienten verifiziert. Beide Elemente muessen vorhanden sein.",
       "scoring_guidance": {
-        "1": "Beide Elemente vorhanden: (i) Ueberprueft den vollstaendigen Namen der Bezugsperson/des Patienten, (ii) Ueberprueft mindestens einen weiteren Identifikator (z.B. Geburtsdatum, Adresse, Zimmernummer, Patientenarmband).",
-        "0": "Mindestens ein Element fehlt."
+        "1": "Beide Elemente vorhanden: (i) Ueberprueft den vollstaendigen Namen der Bezugsperson (bei Gespraechen mit Angehoerigen: prueft den Namen der Person, mit der gesprochen wird, und deren Beziehung zum Patienten), (ii) Ueberprueft mindestens einen weiteren Identifikator (z.B. Geburtsdatum, Adresse des Patienten).",
+        "0": "Eines der beiden Elemente (i) oder (ii) fehlt."
       },
       "evaluation_notes": [
         "Nur AKTIVE Verifikation durch SPEAKER_00 zaehlt — wenn SPEAKER_01 sich ungefragt vorstellt, ist das kein Beleg fuer aktive Ueberpruefung.",
-        "Der zweite Identifikator muss geeignet sein, den Patienten von anderen Patienten zu unterscheiden. Beziehungsbeschreibungen ('Ihr Sohn', 'die Mutter von') allein sind keine eindeutigen Identifikatoren."
+        "Der zweite Identifikator muss geeignet sein, den Patienten von anderen Patienten zu unterscheiden. Beziehungsbeschreibungen ('Ihr Sohn', 'die Mutter von') allein sind keine eindeutigen Identifikatoren.",
+        "Bei Gespraechen mit Angehoerigen sollte der Kliniker sowohl den Namen des Angehoerigen als auch dessen Beziehung zum Patienten pruefen."
       ],
       "critical": false,
       "validation_rules": []
@@ -157,26 +150,23 @@
       "id": "C",
       "name": "Audibility and Clarity of Speech",
       "category": "General Skills",
-      "scale": [
-        0,
-        1,
-        2
-      ],
+      "scale": [0, 1, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
         "2": "Competent"
       },
-      "description": "Bewertet Verstaendlichkeit und Sprachklarheit des Klinikers, insbesondere den Umgang mit medizinischen Fachbegriffen.",
+      "description": "Bewertet Hoerbarkeit und Verstaendlichkeit der Sprache des Klinikers, einschliesslich Stimmmodulation und Wiederholung bei Bedarf.",
       "scoring_guidance": {
-        "2": "Kliniker spricht durchgehend klar und verstaendlich. Medizinische Fachbegriffe werden in laienverstaendliche Sprache uebersetzt, ueberwiegend bevor die Bezugsperson nachfragen muss.",
-        "1": "Sprache grundsaetzlich verstaendlich, aber Fachbegriffe werden haeufig erst nach Rueckfrage erklaert, oder Erklaerungen sind teilweise unklar.",
-        "0": "Sprache unverstaendlich, oder Fachbegriffe werden nicht erklaert."
+        "2": "Sprache ist klar oder ueberwiegend klar. Der Kliniker moduliert seine Stimme oder wiederholt bei Bedarf, sodass die Bezugsperson wahrscheinlich alle wichtigen Punkte hoert.",
+        "1": "Sprache ist stellenweise unklar. Versuche, die Stimme zu modulieren oder zu wiederholen, aber die Bezugsperson hoert moeglicherweise einige wichtige Punkte nicht.",
+        "0": "Sprache ist ueberwiegend unklar — Stimme zu leise, Aussprache zu schnell oder undeutlich. Keine Anpassung der Stimme oder Wiederholung, sodass die Bezugsperson wesentliche Punkte nicht hoeren kann."
       },
       "evaluation_notes": [
-        "Identifiziere alle medizinischen Fachbegriffe, die SPEAKER_00 verwendet.",
-        "Pruefe fuer jeden: Wurde er proaktiv erklaert (vor einer Rueckfrage) oder erst reaktiv (nach Rueckfrage von SPEAKER_01)?",
-        "Beurteile das Gesamtbild — ueberwiegend proaktiv = C:2, ueberwiegend reaktiv oder gemischt = C:1, kaum Erklaerungen = C:0."
+        "Beurteile die allgemeine Hoerbarkeit und Deutlichkeit der Sprache von SPEAKER_00 ueber das gesamte Gespraech.",
+        "Achte auf Stimmmodulation: Passt SPEAKER_00 Lautstaerke oder Sprechtempo an, wenn die Bezugsperson Schwierigkeiten hat zu folgen?",
+        "Achte auf Wiederholungen: Wiederholt SPEAKER_00 wichtige Punkte, wenn noetig?",
+        "C bewertet primaer Hoerbarkeit und Klarheit der Sprache — nicht den medizinischen Inhalt (der wird separat bewertet)."
       ],
       "critical": false,
       "validation_rules": []
@@ -185,27 +175,23 @@
       "id": "D",
       "name": "Non-verbal Behaviour",
       "category": "General Skills",
-      "scale": [
-        0,
-        1,
-        2
-      ],
+      "scale": [0, 1, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
         "2": "Competent"
       },
-      "description": "Bewertet nonverbales Verhalten: Blickkontakt, Positionierung, Koerperhaltung, Gesichtsausdruck, Gesten. Basiert auf Videometriken.",
+      "description": "Bewertet nonverbales Verhalten: ob es das Engagement foerdert oder behindert. Basiert auf Videometriken.",
       "scoring_guidance": {
-        "2": "Alle auswertbaren Kriterien erfuellt: angemessener Blickkontakt (gaze_on_target >= 75%), offene Koerperhaltung, angemessene Positionierung.",
-        "1": "Ein Kriterium auffaellig, ODER reliability=low, ODER keine Videodaten verfuegbar (nicht beurteilbar).",
-        "0": "Deutlich unangemessenes nonverbales Verhalten in mehreren Bereichen."
+        "2": "Nonverbales Verhalten foerdert das Engagement (ruhig und selbstsicher) oder foerdert es weitgehend (mag etwas unsicher wirken, aber dies beeintraechtigt das Engagement der Bezugsperson wahrscheinlich nicht nachteilig).",
+        "1": "Nonverbales Verhalten ist unbeholfen und lenkt die Bezugsperson wahrscheinlich zeitweise ab, sodass ihr Engagement mit der Konsultation eingeschraenkt wird.",
+        "0": "Nonverbales Verhalten ist fuer das klinische Setting unangemessen oder wirkt auf die Bezugsperson so befremdlich, dass es die Konsultation verhindert oder wesentlich stoert."
       },
       "evaluation_notes": [
-        "D1 — Blickkontakt: gaze_on_target >= 75% → gut; < 75% → D:2 ist ausgeschlossen (hartes Kriterium).",
-        "D2 — Positionierung (nur wenn horizon_valid=true UND reliability != low): at_patient_eye_level_rate >= 50% → gut; above_patient_eye_level_rate >= 60% → problematisch.",
+        "D1 — Blickkontakt: gaze_on_target >= 65% → gut; < 65% → D:2 ist ausgeschlossen (hartes Kriterium).",
+        "D2 — Positionierung (nur wenn horizon_valid=true UND reliability != low): at_patient_eye_level_rate >= 20% → gut; above_patient_eye_level_rate >= 60% → problematisch.",
         "D3 — Koerperhaltung: arm_deviation_median > -0.5 → offen/neutral; <= -0.5 → verschraenkt/geschlossen.",
-        "Rating-Logik: Alle auswertbaren Kriterien gut → D:2 (aber D1 < 75% sperrt D:2 absolut); Ein Kriterium auffaellig → D:1; reliability=low → D:1 maximum; Keine Videodaten → D:1.",
+        "D1 — Blickkontakt: gaze_on_target >= 65% → gut; < 65% → D:2 ist durch Validierungsregel ausgeschlossen. Die Validierungsregel (nicht du) setzt D:2 auf D:1 herunter falls gaze < 65%.",
         "Nenne in der justification die konkreten Metrikwerte fuer jedes Kriterium."
       ],
       "critical": false,
@@ -233,27 +219,24 @@
       "id": "E",
       "name": "Questions, Prompts and/or Explanations",
       "category": "General Skills",
-      "scale": [
-        0,
-        1,
-        2
-      ],
+      "scale": [0, 1, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
         "2": "Competent"
       },
-      "description": "Bewertet Exploration der Beduerfnisse, Gefuehle und Sorgen der Bezugsperson sowie Verstaendlichkeit von Fragen und Erklaerungen. NICHT: medizinischer Inhalt, Empathie (->F).",
+      "description": "Bewertet ob Fragen, Impulse und Erklaerungen die wesentlichen Beduerfnisse, Ansichten, Gefuehle und Sorgen der Bezugsperson ansprechen und ob sie verstaendlich formuliert sind. NICHT: medizinischer Inhalt der Anamnese (wird separat bewertet).",
       "scoring_guidance": {
-        "2": "Kliniker exploriert aktiv die Beduerfnisse, Gefuehle und Sorgen der Bezugsperson. Fragen und Erklaerungen sind verstaendlich.",
-        "1": "Einige Exploration vorhanden, aber lueckenhaft oder oberflaechlich.",
-        "0": "Wesentliche Themen nicht exploriert; Bezugsperson wird nicht einbezogen."
+        "2": "Fragen, Impulse und Erklaerungen adressieren die wesentlichen Beduerfnisse, Gefuehle und Sorgen der Bezugsperson; etwaige Auslassungen sind geringfuegig. Formulierungen sind ueberwiegend leicht verstaendlich (Fachsprache wird sparsam und erklaert eingesetzt).",
+        "1": "Versuche, die Beduerfnisse, Ansichten und Gefuehle der Bezugsperson anzusprechen, aber Fragen/Erklaerungen sind ungenuegend oder unvollstaendig, sodass wesentliche Beduerfnisse nur teilweise abgedeckt werden. Formulierungen sind teilweise schwer verstaendlich.",
+        "0": "Versaeumt es, fuer die Bezugsperson entscheidende Themen zu explorieren oder zu erklaeren. Fragen/Erklaerungen sind so schwer verstaendlich (z.B. schlechte Wortwahl, kein Versuch umzuformulieren), dass die wesentlichen Beduerfnisse der Bezugsperson nicht adressiert werden."
       },
       "evaluation_notes": [
-        "Scanne das gesamte Transkript nach Fragen von SPEAKER_00, die die Perspektive, Sorgen, Vorgeschichte oder das Verstaendnis der Bezugsperson explorieren.",
-        "Unterscheide proaktive Exploration (SPEAKER_00 initiiert) von reaktiver (SPEAKER_00 antwortet nur auf SPEAKER_01-Fragen).",
-        "Beurteile Breite und Tiefe der Exploration insgesamt.",
-        "Hinweis: E bewertet Exploration; emotionale Reaktionen und Empathie gehoeren zu F."
+        "Scanne das Transkript nach Fragen, Impulsen und Erklaerungen von SPEAKER_00, die Beduerfnisse, Ansichten, Gefuehle und Sorgen der Bezugsperson erkunden.",
+        "E bewertet sowohl den Inhalt (werden wesentliche Beduerfnisse/Gefuehle/Sorgen angesprochen?) als auch die Verstaendlichkeit (sind Fragen/Erklaerungen klar formuliert? Wird Fachsprache erklaert?).",
+        "E bewertet NICHT den medizinischen Inhalt der Anamnese — dieser wird in anderen OSCE-Stationen separat bewertet.",
+        "Beurteile Breite (werden die wichtigsten Themen abgedeckt?) und ob Luecken geringfuegig (E:2) oder wesentlich (E:1 oder E:0) sind.",
+        "ENTSCHEIDEND: Einzelne unklare oder holprige Erklaerungen bei insgesamt breiter Abdeckung aller wesentlichen Beduerfnisse begruenden KEIN E:1. E:1 erfordert, dass wesentliche Beduerfnisse NICHT adressiert wurden oder Formulierungen DURCHGAENGIG schwer verstaendlich sind."
       ],
       "critical": false,
       "validation_rules": []
@@ -262,26 +245,23 @@
       "id": "F",
       "name": "Empathy and Responsiveness",
       "category": "General Skills",
-      "scale": [
-        0,
-        1,
-        2
-      ],
+      "scale": [0, 1, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
         "2": "Competent"
       },
-      "description": "Bewertet Einfuehlungsvermoegen und Anpassung an emotionale Beduerfnisse der Bezugsperson.",
+      "description": "Bewertet Einfuehlungsvermoegen und Sensibilitaet gegenueber den Beduerfnissen, Ansichten und Gefuehlen der Bezugsperson.",
       "scoring_guidance": {
-        "2": "Reagiert einfuehlsam auf mindestens eine emotionale Aeusserung der Bezugsperson. Zeigt mindestens eines von: Perspektivuebernahme, explizite Emotionsanerkennung, Validierung, Normalisierung. Es genuegt ein einziger echter Moment genuinen Mitgefuehls — der Kliniker muss danach NICHT dauerhaft im emotionalen Modus bleiben. Score 2 auch wenn der Kliniker anschliessend zur Sachinformation zurueckkehrt, sofern der empathische Moment erkennbar authentisch war (kein blosses Formelwort).",
-        "1": "Emotionale Reaktionen vorhanden, aber ausschliesslich formelhaft oder einsilbig (z.B. nur 'Ich verstehe', 'Das ist schwer' ohne jede Elaboration). Kliniker geht auf keine einzige emotionale Aeusserung genuinen ein — alle empathischen Antworten bleiben oberflaechlich.",
-        "0": "Emotionen der Bezugsperson werden durchgehend ignoriert oder aktiv uebergangen."
+        "2": "Reagiert einfuehlsam und sensibel auf die Beduerfnisse, Ansichten und Gefuehle der Bezugsperson, auch wenn es noch Verbesserungspotenzial geben mag. Routinierte Reaktionen MIT erkennbarer Fuersorge qualifizieren fuer Score 2 — entscheidend ist dass Anteilnahme und Fuersorge fuer die Bezugsperson als Person erkennbar sind, nicht dass jede Reaktion individuell formuliert ist. Guter oder angemessener Einsatz von Reflexion/verbaler Anerkennung.",
+        "1": "Versuche, die wichtigsten Beduerfnisse, Ansichten und Gefuehle der Bezugsperson wahrzunehmen oder darauf einzugehen, aber Reaktionen sind insgesamt unvollstaendig oder ungenuegend (z.B. offensichtlich oberflaechlich oder fluechtig). Haltung gegenueber der Bezugsperson wirkt distanziert oder abgelenkt.",
+        "0": "Wenig oder keine Anerkennung der oder Sensibilitaet fuer die Beduerfnisse, Ansichten und Gefuehle der Bezugsperson (z.B. ignoriert die Hauptanliegen, oder reagiert gleichgueltig wenn die Bezugsperson ihre Ansichten und Gefuehle aeussert). Haltung gegenueber der Bezugsperson wirkt kalt oder teilnahmslos."
       },
       "evaluation_notes": [
         "Identifiziere emotionale Aeusserungen von SPEAKER_01 (Angst, Sorge, Unsicherheit, Ablehnung, Ueberwaltigung).",
         "Pruefe jeweils die Reaktion von SPEAKER_00.",
-        "F:2 vs F:1 Entscheidung: Ein einziger genuiner empathischer Moment (z.B. echte Perspektivuebernahme, nicht-formelhafte Validierung) reicht fuer F:2, auch wenn andere Reaktionen routinierter ausfallen. F:1 nur wenn ALLE Reaktionen formelhaft bleiben.",
+        "F:2 ist der Regelfall wenn Fuersorge erkennbar ist. F:1 erfordert einen PATTERN von distanziertem oder oberflaechlichem Verhalten ueber das gesamte Gespraech. F:0 bedeutet Ignorieren oder Gleichgueltigkeit.",
+        "KLASSIFIKATIONSREGEL: Eine Reaktion die spezifische Gefuehle, Sorgen oder Perspektiven der Bezugsperson BENENNT (nicht nur anerkennt) gilt als empathisch, auch wenn sie mit einer Standardformel beginnt ('Ich verstehe' + spezifische Benennung = empathisch, nur 'Ich verstehe' = routiniert).",
         "Evidence MUSS als Interaktionspaar formatiert sein: '[MM:SS] SPEAKER_01: '...' -> SPEAKER_00: '...'"
       ],
       "critical": false,
@@ -291,26 +271,24 @@
       "id": "G",
       "name": "Clarification and Summarising",
       "category": "General Skills",
-      "scale": [
-        0,
-        1,
-        2
-      ],
+      "scale": [0, 1, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
         "2": "Competent"
       },
-      "description": "Bewertet aktive Klaerung und Zusammenfassung durch den Kliniker sowie Einholung von Rueckfragen der Bezugsperson.",
+      "description": "Bewertet den Einsatz von Klaerung, Zusammenfassung und Einholung von Rueckfragen der Bezugsperson.",
       "scoring_guidance": {
-        "2": "Fasst aktiv zusammen ODER fuehrt explizites Verstaendnis-Checking durch.",
-        "1": "Mindestens ein echter Klaerungsmoment — SPEAKER_00 stellt aktiv sicher, dass SPEAKER_01 etwas verstanden hat.",
-        "0": "Keine aktive Klaerung durch SPEAKER_00."
+        "2": "Zeigt gutes oder angemessenes Bewusstsein und guten Einsatz von Klaerung, Zusammenfassung und Einholung von Rueckfragen (z.B. keine wichtigen Bereiche potenzieller Missverstaendnisse bleiben ungeklaert). Die Technik mag gelegentlich etwas forciert oder ungeschickt wirken, aber nicht so stark, dass sie das Engagement der Bezugsperson beeintraechtigt.",
+        "1": "Versuche, Klaerung, Zusammenfassung und Einholung einzusetzen, aber ineffektiv oder unvollstaendig (z.B. uebersieht wichtige Bereiche potenzieller Missverstaendnisse; Klaerung/Zusammenfassung wirkt aufdringlich oder kuenstlich oder beeintraechtigt wahrscheinlich das Engagement der Bezugsperson).",
+        "0": "Zeigt sehr wenig oder kein Bewusstsein fuer oder Einsatz von angemessener Klaerung und Zusammenfassung; gibt der Bezugsperson keine Gelegenheit, Rueckfragen zu stellen."
       },
       "evaluation_notes": [
-        "G bewertet AKTIVE Initiative von SPEAKER_00 — nicht reaktive Antworten auf Fragen von SPEAKER_01 (das gehoert zu Item E).",
-        "Standard-Abschlussformeln ('Haben Sie noch Fragen?') allein begruenden kein G:1.",
-        "Wenn kein aktiver Klaerungsmoment gefunden wird, schreibe dies explizit in evidence."
+        "G bewertet drei Techniken: (1) Klaerung, (2) Zusammenfassung, (3) Einholung von Rueckfragen der Bezugsperson.",
+        "G bewertet AKTIVE Initiative von SPEAKER_00 — nicht reaktive Antworten auf Fragen von SPEAKER_01.",
+        "Einladungen an SPEAKER_01 Fragen zu stellen ('Haben Sie Fragen?', 'Falls Sie irgendwelche Fragen haben...', 'Moechten Sie etwas wissen?') sind per Definition aktive Initiative von SPEAKER_00 und zaehlen IMMER fuer Technik (3) Einholung von Rueckfragen.",
+        "G:2 erfordert gutes oder angemessenes Bewusstsein fuer alle drei Techniken zusammen, nicht nur eine davon. Die Technik darf leicht ungeschickt sein, solange das Engagement nicht leidet.",
+        "G:0 umfasst auch das Versaeumnis, der Bezugsperson Gelegenheit fuer Rueckfragen zu geben."
       ],
       "critical": false,
       "validation_rules": []
@@ -319,25 +297,24 @@
       "id": "H",
       "name": "Consulting Style and Organisation",
       "category": "General Skills",
-      "scale": [
-        0,
-        1,
-        2
-      ],
+      "scale": [0, 1, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
         "2": "Competent"
       },
-      "description": "Bewertet Ordnung, Balance offener und geschlossener Fragen, Zeitmanagement und Beteiligung der Bezugsperson.",
+      "description": "Bewertet ob die Konsultation geordnet und gespraechsartig wirkt, den angemessenen Einsatz offener und geschlossener Fragen, sowie Zeitmanagement.",
       "scoring_guidance": {
-        "2": "Gespraech ist geordnet und gespraechsartig, Bezugsperson wird aktiv beteiligt.",
-        "1": "Leicht unorganisiert oder unausgewogen; Bezugsperson wird wenig einbezogen.",
-        "0": "Verhoer-artig, planlos, oder Gespraech endet abrupt."
+        "2": "Konsultation wirkt fuer die Bezugsperson wahrscheinlich gespraechsartig und geordnet, auch wenn gelegentliche Ausrutscher vorkommen koennen (z.B. unangenehme Pausen). Offene und geschlossene Fragen werden angemessen eingesetzt. Gutes oder angemessenes Zeitmanagement.",
+        "1": "Konsultation wirkt fuer die Bezugsperson wahrscheinlich leicht unorganisiert. Unausgewogener Einsatz offener und geschlossener Fragen. Ineffektives Zeitmanagement (z.B. Kliniker muss den Abschluss der Konsultation hasten).",
+        "0": "Konsultation ist verhoer-artig (z.B. Ueberreliance auf geschlossene Fragen oder wiederholte Mehrfachfragen) oder planlos und richtungslos (z.B. Ueberreliance auf offene Fragen). Sehr schlechtes Zeitmanagement (Konsultation endet abrupt)."
       },
       "evaluation_notes": [
-        "Beachte den Sprechangteil von SPEAKER_00. Wenn SPEAKER_00 deutlich dominiert (> 75%), pruefe ob aktive Strukturierungsmomente (Gespraechsuebergaenge, Einladungen zum Nachfragen, Zusammenfassungen zwischen Themenbloecken) dies kompensieren.",
-        "Evidence: Nur Strukturierungsmomente (Uebergaenge, Themenmarkierungen, aktive Beteiligung). NICHT: Begruessung (->A), Abschlussformeln (->G), Explorationsfragen (->E)."
+        "Ein hoher Sprechangteil von SPEAKER_00 ist in Aufklaerungsgespraechen normal und begruendet allein KEIN H:1. Entscheidend sind Ordnung, Fragenbalance und Zeitmanagement.",
+        "Pruefe die Balance zwischen offenen und geschlossenen Fragen ueber das gesamte Gespraech.",
+        "Beurteile ob das Gespraech fuer die Bezugsperson geordnet und gespraechsartig wirkt.",
+        "Pruefe das Zeitmanagement: Konnte der Kliniker das Gespraech in angemessener Zeit abschliessen, oder musste er/sie hasten bzw. endete es abrupt?",
+        "Evidence: Strukturierungsmomente (Uebergaenge, Themenmarkierungen, aktive Beteiligung), Fragetypen, Zeitmanagement-Indikatoren."
       ],
       "critical": false,
       "validation_rules": []
@@ -346,33 +323,32 @@
       "id": "I",
       "name": "Professional Behaviour",
       "category": "Professional Conduct",
-      "scale": [
-        0,
-        2
-      ],
+      "scale": [0, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "2": "Competent"
       },
-      "description": "Bewertet hoefliches, ruecksichtsvolles und wuerdevoles Verhalten. Kein Borderline — nur 0 oder 2.",
+      "description": "Bewertet ob Verhalten/Auftreten gegenueber der Bezugsperson hoeflich, ruecksichtsvoll und freundlich ist. Nur 0 oder 2 — kein Borderline.",
       "scoring_guidance": {
-        "2": "Hoefliches, ruecksichtsvolles, wuerdevoles Verhalten durchgehend.",
-        "0": "Uebermassig laessig, desinteressiert, unhoeflich oder gedankenlos. ODER: Registerwechsel (informelle 'du'-Formen direkt an SPEAKER_01). ODER: Ausweichen auf wiederholte direkte Fragen von SPEAKER_01."
+        "2": "Verhalten/Auftreten gegenueber der Bezugsperson ist hoeflich, ruecksichtsvoll, freundlich. Zeigt Anzeichen professionellen Engagements.",
+        "0": "Verhalten/Auftreten gegenueber der Bezugsperson ist unprofessionell: uebermassig laessig, desinteressiert, unhoeflich oder ruecksichtslos (z.B. Art und Weise legt nahe, dass die Bezugsperson nicht ernst genommen wird; Kliniker wahrt die Wuerde der Bezugsperson/des Patienten nicht)."
       },
       "evaluation_notes": [
-        "Scanne das GESAMTE Transkript — nicht nur den Anfang. Professionelles Verhalten muss DURCHGEHEND aufrechterhalten werden. Ein problematischer Austausch gegen Ende der Konsultation kann I:0 begruenden.",
-        "Wenn SPEAKER_01 explizit sagt, dass SPEAKER_00 ausweicht oder Fragen nicht beantwortet (z.B. 'Sie weichen meinen Fragen aus'), lies diesen Abschnitt genau. Wenn SPEAKER_00 danach weiterhin ausweicht, die Frage ignoriert oder auf schriftliche Materialien verweist anstatt direkt zu antworten -> I:0.",
-        "Registerwechsel: Wenn SPEAKER_00 informelle 'du'-Formen DIREKT gegenueber SPEAKER_01 verwendet (nicht ueber Dritte sprechend), ist das ein Registerwechsel -> I:0. WICHTIG — Paediatrischer Kontext: In Gespraechen mit Elternteil + Kind koennen 'du'-Formen an das KIND (Patienten) gerichtet sein — das ist kein Registerwechsel mit SPEAKER_01. Pruefe den Kontext: Spricht SPEAKER_00 gerade zum Kind oder zum Elternteil?",
-        "Einzelner Ausrutscher: Ein einzelner, isolierter 'du'-Ausdruck in einem ansonsten durchgehend professionellen Gespraech begruendet in der Regel KEIN I:0. Nur ein Muster von Informalitaet oder ein klar an SPEAKER_01 gerichtetes 'du' begruendet I:0.",
-        "Post-Simulation Metakommentare am Ende des Gespraechs liegen ausserhalb des Bewertungsfensters und sind kein I:0-Grund."
+        "Scanne das GESAMTE Transkript — nicht nur den Anfang. Ein problematisches Muster muss ueber mehrere Gespraechsmomente nachweisbar sein. Einzelvorfaelle genuegen nicht.",
+        "ACHTUNG: Scanne das GESAMTE Transkript bis zum Ende — unprofessionelles Verhalten kann auch in der zweiten Hälfte auftreten. Achte besonders auf: Ungeduld bei wiederholten Fragen der Bezugsperson, abrupte Themenwechsel wenn Bezugsperson emotional wird, herablassende Erklärungen, fehlende Bereitschaft auf Sorgen einzugehen.",
+        "Registerwechsel: Nur wenn SPEAKER_00 mehrfach 'du'-Formen DIREKT gegenueber SPEAKER_01 (nicht dem Kind) verwendet und dies ein klares Muster bildet → I:0. Paediatrischer Kontext: 'du'-Formen an das KIND sind kein Registerwechsel mit SPEAKER_01. Pruefe immer den Kontext: (1) An WEN ist die Aussage gerichtet — Kind oder Elternteil? (2) Ist es direkte Ansprache oder indirekte/erzaehlte Rede (Anekdote, Zitat, Nacherzaehlung)? (3) Ist es ein einzelner Ausrutscher oder ein Muster? Ein einzelner versehentlicher 'du'-Satz → kein I:0.",
+        "Ausweichen: Nur wenn (i) SPEAKER_01 den Ausweichvorwurf explizit ausspricht UND (ii) SPEAKER_00 danach noch mindestens zweimal weiteren konkreten Fragen ausweicht. Das Verweisen auf schriftliche Materialien als Ergaenzung (nicht als einzige Antwort) ist kein Ausweichen.",
+        "Post-Simulation Metakommentare am Ende des Gespraechs liegen ausserhalb des Bewertungsfensters und sind kein I:0-Grund.",
+        "Standardfall: Wenn du keinen klaren Anlass fuer I:0 findest → I:2. I:0 ist fuer offensichtliche, mehrdeutige professionelle Versagen reserviert.",
+        "⚠ SENSITIVITAET: Pruefe AKTIV ob SPEAKER_01 im Gespraechsverlauf frustriert, uebergangen oder nicht ernst genommen wirkt. Indikatoren: (a) SPEAKER_01 muss dieselbe Frage mehrfach stellen weil SPEAKER_00 ausweicht oder nicht antwortet, (b) SPEAKER_00 unterbricht SPEAKER_01 wiederholt mitten im Satz, (c) SPEAKER_00 bagatellisiert die Sorgen von SPEAKER_01 ('Das ist nicht so schlimm', 'Machen Sie sich keine Sorgen'), (d) SPEAKER_00 drueckt sich vor konkreten Antworten und verweist nur auf spaetere Gespraeche. Wenn EINES oder mehr dieser Muster im Transkript erkennbar ist → I:0."
       ],
       "critical": false,
       "validation_rules": [
         {
           "type": "disallow_score",
           "disallowed": 1,
-          "forced_score": 0,
-          "message": "I BORDERLINE VIOLATION: rating=1 not allowed for I -> forced to 0"
+          "forced_score": 2,
+          "message": "I: Score 1 not allowed on {0,2} scale -> forced to 2"
         }
       ]
     },
@@ -380,34 +356,33 @@
       "id": "J",
       "name": "Professional Spoken/Verbal Conduct",
       "category": "Professional Conduct",
-      "scale": [
-        0,
-        2
-      ],
+      "scale": [0, 2],
       "scale_labels": {
         "0": "Unacceptable",
         "2": "Competent"
       },
-      "description": "Bewertet sachliche Korrektheit, Respekt, Kompetenzrahmen und Angemessenheit von Beruhigungen. Kein Borderline — nur 0 oder 2.",
+      "description": "Bewertet ob sprachliches/verbales Verhalten professionell ist. Nur 0 oder 2 — kein Borderline.",
       "scoring_guidance": {
-        "2": "Aussagen sind respektvoll, fachlich korrekt, im Rahmen der eigenen Kompetenz, Beruhigung ist angemessen.",
-        "0": "Aussagen sind respektlos, enthalten grobe Sachfehler, ueberschreiten die eigene Kompetenz, oder Beruhigung ist unangemessen/verfruehrt."
+        "2": "Sprachliches/verbales Verhalten ist professionell. Aussagen vermeiden grobe Ungenauigkeiten, vermitteln Respekt gegenueber der Bezugsperson/dem Patienten und bleiben im Rahmen der eigenen Erfahrung, Ausbildung und Kompetenz. Beruhigung ist angemessen.",
+        "0": "Sprachliches/verbales Verhalten ist unprofessionell. Dies kann umfassen: (i) grobe sachliche Ungenauigkeit in dem was der Bezugsperson gesagt wird, (ii) Aussagen die in Ton oder Inhalt abweisend, wertend oder respektlos gegenueber der Bezugsperson/dem Patienten sind, (iii) Aussagen die ueber die Ausbildung und Kompetenz des Klinikers hinausgehen oder dieser widersprechen, (iv) falsche oder verfruehte Beruhigung (z.B. unangemessenes 'Machen Sie sich keine Sorgen' oder 'Alles wird gut')."
       },
       "evaluation_notes": [
         "Scanne das GESAMTE Transkript — J bewertet sachliche Korrektheit und Konsistenz der gesamten Konsultation, nicht nur des Anfangs.",
+        "ACHTUNG: Scanne das GESAMTE Transkript bis zum Ende — problematische Aussagen treten häufig in der zweiten Hälfte auf wenn der Kliniker unter Druck gerät. Achte besonders auf: Widersprüchliche Risikoeinschätzungen zur SELBEN Frage, vorschnelle Beruhigung ohne Evidenz, Aussagen die über die eigene Kompetenz hinausgehen.",
         "Pruefe ob medizinische Aussagen sachlich korrekt sind.",
         "Pruefe ob der Kliniker im Rahmen seiner Kompetenz bleibt.",
         "Pruefe ob Beruhigung angemessen ist (keine falschen Versprechen, keine Bagatellisierung).",
         "Widersprüchliche Risikoaussagen zu DERSELBEN Frage (z.B. erst 'das ist nahezu ausgeschlossen' und spaeter 'man weiss nie, was passiert') sind ein J:0-Indikator, besonders wenn sie zur aktiven Ablehnung oder Vertrauensverlust bei SPEAKER_01 fuehren.",
-        "Ehrliche Aussagen ueber eigene Grenzen sind kompetentes Verhalten, kein Fehler."
+        "Ehrliche Aussagen ueber eigene Grenzen sind kompetentes Verhalten, kein Fehler.",
+        "⚠ SENSITIVITAET: Pruefe AKTIV auf folgende J:0-Muster: (a) Kliniker gibt auf dieselbe Frage widersprüchliche Antworten (z.B. erst 'sehr sicher' dann 'man weiss nie'), (b) Kliniker macht Zusicherungen die er nicht halten kann ('das wird garantiert gut gehen'), (c) Kliniker bagatellisiert berechtigte Sorgen pauschal, (d) Kliniker macht Aussagen die deutlich ueber seine erkennbare Kompetenz hinausgehen. Wenn EINES dieser Muster klar belegbar ist → J:0."
       ],
       "critical": false,
       "validation_rules": [
         {
           "type": "disallow_score",
           "disallowed": 1,
-          "forced_score": 0,
-          "message": "J BORDERLINE VIOLATION: rating=1 not allowed for J -> forced to 0"
+          "forced_score": 2,
+          "message": "J: Score 1 not allowed on {0,2} scale -> forced to 2"
         }
       ]
     }

@@ -34,6 +34,94 @@ _ROOT = Path(__file__).parent.parent.parent
 _TEMPLATES_DIR = _ROOT / "templates" / "instruments"
 
 
+def _close_truncated_json(text: str) -> str:
+    """
+    Attempt to close a truncated JSON string so it can be parsed.
+
+    When the LLM response is cut off mid-string, the JSON is left open.
+    This function walks the text to determine what closers are needed
+    (closing quotes, brackets, braces) and appends them.
+    """
+    in_string = False
+    escape_next = False
+    stack: list[str] = []  # tracks open [ and {
+
+    for ch in text:
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == '\\' and in_string:
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch in ('{', '['):
+            stack.append(ch)
+        elif ch == '}' and stack and stack[-1] == '{':
+            stack.pop()
+        elif ch == ']' and stack and stack[-1] == '[':
+            stack.pop()
+
+    # Build closing sequence
+    suffix = ""
+    if in_string:
+        suffix += '"'  # close the truncated string
+    # Close any open arrays/objects in reverse order
+    for opener in reversed(stack):
+        suffix += ']' if opener == '[' else '}'
+
+    return text + suffix
+
+
+def _extract_partial_items(text: str) -> list[dict]:
+    """
+    Salvage completed item objects from a truncated or malformed JSON response.
+
+    Scans the text for fully-closed ``{ ... }`` blocks at any nesting depth that
+    contain at least ``"id"`` and ``"rating"`` keys and are individually valid
+    JSON.  Used as a last-resort fallback when the full response cannot be parsed.
+    """
+    items = []
+    seen_ids: set = set()
+    i = 0
+    while i < len(text):
+        if text[i] != "{":
+            i += 1
+            continue
+        # Walk forward to find the matching closing brace
+        depth = 0
+        j = i
+        while j < len(text):
+            if text[j] == "{":
+                depth += 1
+            elif text[j] == "}":
+                depth -= 1
+                if depth == 0:
+                    break
+            j += 1
+        if depth != 0:
+            i += 1  # This opening brace has no matching close; skip and keep scanning
+            continue
+        candidate = text[i: j + 1]
+        try:
+            obj = json.loads(candidate)
+            if (
+                isinstance(obj, dict)
+                and "id" in obj
+                and "rating" in obj
+                and obj["id"] not in seen_ids
+            ):
+                items.append(obj)
+                seen_ids.add(obj["id"])
+        except json.JSONDecodeError:
+            pass
+        i += 1  # Always advance by 1 so inner { chars are also visited
+    return items
+
+
 def _detect_register_break(diarized_transcript: list) -> tuple[bool, list]:
     """Detect informal 'du' forms used by SPEAKER_00."""
     pattern = re.compile(
@@ -58,11 +146,13 @@ def _detect_register_break(diarized_transcript: list) -> tuple[bool, list]:
 def _format_register_warning(hits: list) -> str:
     if not hits:
         return ""
-    lines = ["REGISTER BREAK DETECTED (automatic scan)"]
+    lines = ["du-Form Instanzen gefunden (automatischer Regex-Scan — KEINE Bewertung)"]
     lines.append(
-        "SPEAKER_00 uses informal 'du'-forms. Check whether each instance is "
-        "directed at SPEAKER_01 (= register break, relevant for Item I) or "
-        "refers to a third person (= not a register break)."
+        "Die folgenden Treffer sind ROHE REGEX-MATCHES und muessen einzeln im Kontext "
+        "geprueft werden. Moegliche Erklaerungen NEBEN einem Registerwechsel: "
+        "(a) an das Kind gerichtet, (b) indirekte/erzaehlte Rede oder Zitat, "
+        "(c) einzelner Ausrutscher. Nur ein KLARES MUSTER direkter Ansprache an "
+        "SPEAKER_01 mit 'du' begruendet I:0."
     )
     for h in hits[:5]:
         lines.append(f"  [{h['timestamp']}] \"{h['text']}\" (match: '{h['match']}')")
@@ -276,6 +366,19 @@ class InstrumentScorer:
                         self.logger.error(
                             f"Pass {pass_def['id']}: parse failed, skipping"
                         )
+                        # Save raw output for debugging
+                        try:
+                            debug_path = (
+                                _ROOT / "data" / "debug"
+                                / f"{instr['id']}_{pass_def['id']}_raw.txt"
+                            )
+                            debug_path.parent.mkdir(parents=True, exist_ok=True)
+                            debug_path.write_text(raw, encoding="utf-8")
+                            self.logger.info(
+                                f"Raw output saved to {debug_path}"
+                            )
+                        except Exception:
+                            pass
                         continue
 
                     for item in parsed_items:
@@ -319,6 +422,13 @@ class InstrumentScorer:
         transcript_mode = req.get("transcript", "full")
         if transcript_mode == "video_only":
             tc["transcript_text"] = None
+        elif transcript_mode == "opening":
+            # Send only the first N seconds of transcript for opening-focused passes.
+            # This prevents the LLM from skipping opening segments in long transcripts.
+            max_seconds = req.get("opening_max_seconds", 120)
+            diarized = context.get("diarized_transcript", [])
+            opening_segs = [s for s in diarized if s.get("start", 0) <= max_seconds]
+            tc["transcript_text"] = _format_full_transcript(opening_segs)
         else:
             tc["transcript_text"] = precomputed["transcript_text"]
 
@@ -342,6 +452,10 @@ class InstrumentScorer:
         # Video summary always available for video_only passes
         tc.setdefault("video_summary", precomputed["video_summary"])
 
+        # Scenario metadata — always available for templates
+        tc["scenario_context"] = context.get("scenario_context", {})
+        tc["scenario_display_name"] = context.get("scenario_display_name", "")
+
         return tc
 
     def _render_prompt(
@@ -363,11 +477,71 @@ class InstrumentScorer:
             **pass_context,
         )
 
+    @staticmethod
+    def _sanitize_json_strings(text: str) -> str:
+        """
+        Walk JSON text respecting string boundaries and escape any
+        unescaped double-quotes found INSIDE string values.
+
+        Unlike repair_unescaped_quotes (which uses heuristics about what
+        follows a quote), this walker uses a state machine: once we enter
+        a string (opening "), every subsequent " is checked against a
+        strict closing-quote rule: a " is only a closer if the NEXT
+        non-whitespace char is one of  : , ] } or EOF.
+        Everything else is escaped.
+        """
+        out: list[str] = []
+        in_string = False
+        i = 0
+        n = len(text)
+
+        while i < n:
+            ch = text[i]
+
+            # Handle escape sequences inside strings
+            if in_string and ch == '\\':
+                # Pass through the backslash and the next char unchanged
+                out.append(ch)
+                if i + 1 < n:
+                    out.append(text[i + 1])
+                    i += 2
+                else:
+                    i += 1
+                continue
+
+            if ch == '"':
+                if not in_string:
+                    # Entering a string
+                    in_string = True
+                    out.append(ch)
+                else:
+                    # Inside a string — is this the closing quote?
+                    # Look ahead past whitespace for a structural char
+                    j = i + 1
+                    while j < n and text[j] in ' \t\r\n':
+                        j += 1
+                    next_ch = text[j] if j < n else ''
+                    if next_ch in (':', ',', '}', ']', ''):
+                        # This is the real closing quote
+                        in_string = False
+                        out.append(ch)
+                    else:
+                        # Embedded quote — escape it
+                        out.append('\\"')
+            else:
+                out.append(ch)
+
+            i += 1
+
+        return ''.join(out)
+
     def _parse_response(self, raw: str) -> list[dict] | None:
         """Parse LLM JSON response; returns items list or None on failure."""
         text = raw.strip()
         text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.MULTILINE)
         text = re.sub(r"\s*```$", "", text, flags=re.MULTILINE)
+        # Remove invalid JSON escape sequences: \' → ' (single quotes never need escaping in JSON)
+        text = text.replace("\\'", "'")
 
         parsed = None
 
@@ -386,16 +560,86 @@ class InstrumentScorer:
                 try:
                     parsed = json.loads(candidate)
                 except json.JSONDecodeError:
+                    pass
+
+        # Sanitize embedded quotes (e.g. SPEAKER_XX: "citation" inside JSON strings)
+        # using a state-machine approach that operates on clean text.
+        if parsed is None:
+            sanitized = self._sanitize_json_strings(text)
+            start_s = sanitized.find("{")
+            end_s = sanitized.rfind("}")
+            if start_s != -1 and end_s > start_s:
+                try:
+                    parsed = json.loads(sanitized[start_s:end_s + 1])
+                    self.logger.warning(
+                        "JSON recovered by sanitizing embedded quotes"
+                    )
+                except json.JSONDecodeError:
                     try:
-                        repaired = repair_unescaped_quotes(candidate)
+                        repaired = repair_unescaped_quotes(
+                            sanitized[start_s:end_s + 1]
+                        )
                         parsed = json.loads(repaired)
+                        self.logger.warning(
+                            "JSON recovered by sanitize + quote repair"
+                        )
                     except Exception:
                         pass
 
+        # Try closing truncated JSON (LLM output cut off mid-string/array)
         if parsed is None:
+            closed = _close_truncated_json(text)
+            if closed != text:
+                start_c = closed.find("{")
+                end_c = closed.rfind("}")
+                if start_c != -1 and end_c > start_c:
+                    try:
+                        parsed = json.loads(closed[start_c:end_c + 1])
+                        self.logger.warning(
+                            "JSON recovered by closing truncated structures"
+                        )
+                    except json.JSONDecodeError:
+                        # Try sanitize on closed text too
+                        try:
+                            sanitized_closed = self._sanitize_json_strings(
+                                closed[start_c:end_c + 1]
+                            )
+                            parsed = json.loads(sanitized_closed)
+                            self.logger.warning(
+                                "JSON recovered by closing + sanitize"
+                            )
+                        except Exception:
+                            pass
+
+        if parsed is None:
+            # Diagnostic: find exact failure position
+            try:
+                json.loads(text[text.find("{"):text.rfind("}") + 1] if "{" in text else text)
+            except json.JSONDecodeError as _je:
+                _pos = _je.pos
+                _snippet = text[max(0, _pos - 80): _pos + 80]
+                self.logger.error(
+                    f"JSON parse failed at char {_pos}: {_snippet!r}"
+                )
             self.logger.error(
-                f"JSON parse failed. Raw (first 400): {raw[:400]!r}"
+                f"JSON parse failed. Raw (first 600): {raw[:600]!r}"
             )
+            # Last resort: extract any fully-completed item objects from truncated output
+            partial = _extract_partial_items(text)
+            if partial:
+                self.logger.warning(
+                    f"Partial recovery: salvaged {len(partial)} item(s) from malformed response"
+                )
+                return partial
+            # Final attempt: close truncated text then extract partial items
+            if closed != text:
+                partial_closed = _extract_partial_items(closed)
+                if partial_closed:
+                    self.logger.warning(
+                        f"Partial recovery (after closing): "
+                        f"salvaged {len(partial_closed)} item(s)"
+                    )
+                    return partial_closed
             return None
 
         # Extract items list
@@ -495,6 +739,138 @@ class InstrumentScorer:
                     self.logger.warning(
                         f"Item {item.get('id', '?')}: {msg}"
                     )
+
+            elif rule_type == "transcript_keyword_floor":
+                blocked_score = rule.get("blocked_score")
+                forced_score = rule.get("forced_score")
+                justification_pattern = rule.get(
+                    "justification_pattern", "(iv) fehlend"
+                )
+                if (
+                    rating == blocked_score
+                    and justification_pattern
+                    in item.get("justification", "")
+                ):
+                    speaker = rule.get("speaker", "SPEAKER_00")
+                    max_seconds = rule.get("max_seconds", 120)
+                    keywords = rule.get("keywords", [])
+                    diarized = context.get("diarized_transcript", [])
+                    opening_segs = [
+                        s for s in diarized
+                        if s.get("start", 0) <= max_seconds
+                        and s.get("speaker") == speaker
+                    ]
+                    matched_kw = None
+                    matched_ts = None
+                    for seg in opening_segs:
+                        text_lower = seg.get("text", "").lower()
+                        for kw in keywords:
+                            if kw.lower() in text_lower:
+                                matched_kw = kw
+                                ts = seg.get("start", 0)
+                                mm = int(ts) // 60
+                                ss = int(ts) % 60
+                                matched_ts = f"{mm:02d}:{ss:02d}"
+                                break
+                        if matched_kw:
+                            break
+                    if matched_kw:
+                        msg = rule.get("message", "").replace(
+                            "{keyword}", matched_kw
+                        ).replace("{timestamp}", matched_ts or "?")
+                        flags.append(msg)
+                        item["rating"] = forced_score
+                        item["justification"] = (
+                            item.get("justification", "") +
+                            f" [VALIDATOR: {msg}]"
+                        )
+                        self.logger.warning(
+                            f"Item {item.get('id', '?')}: {msg}"
+                        )
+
+            elif rule_type == "llm_medical_reason_check":
+                blocked_score = rule.get("blocked_score")
+                forced_score = rule.get("forced_score")
+                justification_pattern = rule.get(
+                    "justification_pattern", "(iv) fehlend"
+                )
+                if (
+                    rating == blocked_score
+                    and justification_pattern
+                    in item.get("justification", "")
+                ):
+                    speaker = rule.get("speaker", "SPEAKER_00")
+                    max_seconds = rule.get("max_seconds", 120)
+                    diarized = context.get("diarized_transcript", [])
+                    opening_segs = [
+                        s for s in diarized
+                        if s.get("start", 0) <= max_seconds
+                        and s.get("speaker") == speaker
+                    ]
+                    if not opening_segs:
+                        continue
+
+                    # Format opening segments for LLM
+                    seg_lines = []
+                    for s in opening_segs:
+                        ts = s.get("start", 0)
+                        mm = int(ts) // 60
+                        ss_val = int(ts) % 60
+                        seg_lines.append(
+                            f"[{mm:02d}:{ss_val:02d}] {s.get('text', '')}"
+                        )
+                    transcript_excerpt = "\n".join(seg_lines)
+
+                    check_prompt = (
+                        rule.get("prompt", "")
+                        + "\n\nTranskript:\n"
+                        + transcript_excerpt
+                    )
+
+                    try:
+                        check_cfg = {
+                            **self.cfg,
+                            "max_tokens": 200,
+                        }
+                        raw_resp = self.backend.generate(
+                            check_prompt, check_cfg
+                        )
+                        # Parse JSON response
+                        resp_text = raw_resp.strip()
+                        resp_text = re.sub(
+                            r"^```(?:json)?\s*", "", resp_text,
+                            flags=re.MULTILINE
+                        )
+                        resp_text = re.sub(
+                            r"\s*```$", "", resp_text,
+                            flags=re.MULTILINE
+                        )
+                        start_idx = resp_text.find("{")
+                        end_idx = resp_text.rfind("}")
+                        if start_idx != -1 and end_idx > start_idx:
+                            resp_text = resp_text[start_idx:end_idx + 1]
+                        check_result = json.loads(resp_text)
+
+                        if check_result.get("medical_reason_found"):
+                            kw = check_result.get("keyword", "?")
+                            ts_str = check_result.get("timestamp", "?")
+                            msg = rule.get("message", "").replace(
+                                "{keyword}", str(kw)
+                            ).replace("{timestamp}", str(ts_str))
+                            flags.append(msg)
+                            item["rating"] = forced_score
+                            item["justification"] = (
+                                item.get("justification", "")
+                                + f" [VALIDATOR: {msg}]"
+                            )
+                            self.logger.warning(
+                                f"Item {item.get('id', '?')}: {msg}"
+                            )
+                    except (json.JSONDecodeError, Exception) as exc:
+                        self.logger.warning(
+                            f"llm_medical_reason_check failed for "
+                            f"item {item.get('id', '?')}: {exc} — skipping"
+                        )
 
         return item
 

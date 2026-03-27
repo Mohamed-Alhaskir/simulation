@@ -11,7 +11,7 @@ Bewerte die Eröffnungssequenz des Gesprächs, nicht nur die ersten Worte. Die B
 
 ### {{ item.id }}) {{ item.name }} (0 oder {{ item.scale | max }})
 
-LUCAS-Kriterien:
+Kriterien:
 {% for level, text in item.scoring_guidance.items() %}
 - **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
 {% endfor %}
@@ -24,6 +24,34 @@ Bewertungsanleitung:
 
 ---
 
+## Pflichtprozess — Elementprüfung für Item A (ZWINGEND vor A-Bewertung)
+
+⚠ **Lies diese Anleitung VOLLSTÄNDIG, BEVOR du das Transkript liest.**
+
+### Schritt 1: Eröffnungssequenz identifizieren
+
+Lies ALLE SPEAKER_00-Segmente von Gesprächsbeginn bis zum Einsetzen des eigentlichen Gesprächsinhalts (typischerweise die ersten 60–90 Sekunden, kann aber auch länger dauern). Notiere dir JEDES Segment mit Zeitstempel.
+
+⚠ **STOPP NICHT nach den ersten 3 Zeilen.** Die Eröffnungssequenz umfasst oft 5–10 Segmente. Lies MINDESTENS bis zur ersten inhaltlichen Frage oder Erklärung von SPEAKER_00.
+
+### Schritt 2: Jedes Element einzeln prüfen — MIT Zitat
+
+Prüfe JEDES der vier Elemente. Für jedes Element: suche ein passendes Zitat in den Segmenten aus Schritt 1.
+
+**(i) Begrüßung:** Grußformel (z.B. "Guten Tag", "Hallo", "Hi").
+**(ii) Eigener Name:** Namensnennung von SPEAKER_00 (z.B. "Mein Name ist...", "[Vorname Nachname]").
+**(iii) Eigene Rolle:** Rollenbezeichnung (z.B. "Assistenzärztin", "Arzt", "Ärztin auf der Station"). ⚠ Kann in einem ANDEREN Segment stehen als die Namensnennung.
+**(iv) Gesprächsgrund — Anlass des Gesprächs:** ⚠ **ENTSCHEIDENDE REGEL:** Element (iv) ist VORHANDEN, wenn der Kliniker innerhalb der Eröffnungssequenz den medizinischen Sachverhalt, die Symptome, Befunde ODER eine geplante Maßnahme nennt. Das IST der Gesprächsgrund — der medizinische Anlass erklärt automatisch warum der Kliniker die Bezugsperson anspricht. Ein separater Meta-Satz ("Ich bin hier weil...", "Der Grund für unser Gespräch...") ist NICHT erforderlich.
+ Beispiele die Element (iv) ERFÜLLEN: Jede Nennung eines medizinischen Sachverhalts, einer Symptomatik, eines Befunds oder einer geplanten Maßnahme — z.B. "Das Kind hat Beschwerden", "Wir müssen eine Untersuchung durchführen", "Die Befunde zeigen Auffälligkeiten".
+
+### Schritt 3: Bewertung
+
+Beginne die justification mit: `Elemente: (i) [vorhanden/fehlend] (ii) [vorhanden/fehlend] (iii) [vorhanden/fehlend] (iv) [vorhanden/fehlend]`
+
+Füge für JEDES als vorhanden markierte Element das Zitat in das evidence-Array ein. Insbesondere für Element (iv): wenn ein medizinischer Anlass genannt wird, MUSS dieses Zitat in evidence stehen.
+
+---
+
 ## Transkript
 
 {{ transcript_text }}
@@ -32,7 +60,11 @@ Bewertungsanleitung:
 
 ## Anweisungen
 
-Bewerte nur Items A und B. Scanne zunächst die Eröffnungssequenz des Gesprächs.
+Bewerte nur Items A und B. Führe für Item A zuerst die Elementprüfung durch (siehe oben).
+
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
+
+⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel.
 
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 

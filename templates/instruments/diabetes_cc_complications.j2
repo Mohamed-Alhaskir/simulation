@@ -14,7 +14,7 @@ Der Kliniker (SPEAKER_00) spricht ausschließlich mit einer **Bezugsperson des P
 ## ⚠ WICHTIGE ABGRENZUNG
 
 Bewertest du AUSSCHLIESSLICH den **klinischen Inhalt** — Korrektheit und Vollständigkeit medizinischer Aussagen.
-Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet (LUCAS, SPIKES).
+Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet.
 
 ---
 
@@ -38,14 +38,21 @@ Manche Items bilden eine **Gruppe**, in der dasselbe Thema über mehrere Items h
 Du erkennst sie daran, dass die item-Beschreibung "1 von N", "2 von N" etc. enthält
 oder einen expliziten **SCAN**-Hinweis hat.
 
-**Beispiel:** Items 15–18 ("Langzeitfolge 1 von 4" bis "Langzeitfolge 4 von 4").
+**Beispiel:** Items 15-18 ("Langzeitfolge 1 von 4" bis "Langzeitfolge 4 von 4").
 
 ### Vorgehensweise bei Gruppenitems
 
 **Schritt 1 — Vollständiger Scan VOR der Bewertung:**
-Durchsuche das GESAMTE Transkript (nicht nur den Abschnitt der zugehörigen SP-Frage)
+Durchsuche das GESAMTE Transkript VON ANFANG BIS ENDE (nicht nur den Abschnitt der zugehörigen SP-Frage)
 nach allen Erwähnungen, die zur Gruppe gehören.
 Erstelle eine vollständige Liste mit Zeitstempeln und Kategorien.
+⚠ Suche auch nach LAIENSPRACHE und indirekten Formulierungen:
+- 'Augen' / 'sehen' / 'blind' / 'Sehkraft' → Retinopathie (Auge)
+- 'Nieren' / 'Dialyse' / 'Nierenschaden' → Nephropathie (Niere)
+- 'Füße' / 'Gefühl' / 'taub' / 'kribbeln' → Neuropathie (Nerven)
+- 'Herz' / 'Herzinfarkt' / 'Schlaganfall' / 'Gefäße' / 'Durchblutung' → Kardiovaskulär
+- 'Wachstum' / 'Pubertät' / 'Entwicklung' → Wachstumsstörungen
+- 'Depression' / 'psychisch' / 'Essstörung' / 'seelisch' → Psychische Belastung
 
 **Schritt 2 — Deduplizierung:**
 Jede Kategorie zählt nur einmal — Wiederholungen derselben Kategorie
@@ -60,8 +67,8 @@ auf die Gruppenitems:
 
 **Schritt 4 — Qualitätsbewertung pro Slot:**
 Jeder zugeordnete Slot wird individuell nach der Scoring Guidance bewertet:
-- **2** = Kategorie korrekt und spezifisch benannt (Organsystem UND Komplikation)
-- **1** = Kategorie nur vage angedeutet (Organsystem erkennbar, aber keine konkrete Komplikation)
+- **2** = Kategorie erkennbar benannt — auch in Laiensprache (z.B. 'Augenprobleme' statt 'Retinopathie', 'Nierenschäden' statt 'Nephropathie')
+- **1** = Kategorie nur sehr vage angedeutet ohne erkennbaren Bezug zu einem Organsystem
 - **0** = Kein Eintrag für diesen Slot (nicht genug Kategorien gefunden)
 
 **Schritt 5 — Fehlende Slots:**
@@ -88,6 +95,11 @@ Gruppenitems, z.B.:
 {% for level, text in item.scoring_guidance.items() %}
 - **{{ level }}**: {{ text }}
 {% endfor %}
+{% if item.get('evaluation_notes') %}
+{% for note in item.evaluation_notes %}
+*Hinweis:* {{ note }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 
 ---
@@ -101,14 +113,16 @@ Gruppenitems, z.B.:
 ## Anweisungen
 
 Bewerte jedes Item auf der 0/1/2-Skala gemäß den Bewertungshinweisen oben.
-Führe für Items 15–18 **zuerst** den vollständigen Langzeitfolgen-Scan durch, bevor du Scores vergibst.
+Führe für Items 15-18 **zuerst** den vollständigen Langzeitfolgen-Scan durch, bevor du Scores vergibst.
 
 Für jedes Item:
 - **rating**: 0, 1 oder 2
 - **justification**: Ein Satz. Für Item 15: beginne mit dem SCAN-Ergebnis. Bei Score 0 wegen Fehlen: beginne mit "Fehlt:".
-- **evidence**: 1–2 Transkriptzitate mit Zeitstempel [MM:SS]. Bei Score 0 wegen Fehlen: "kein Beleg — nicht erwähnt".
+- **evidence**: 1-2 Transkriptzitate mit Zeitstempel [MM:SS]. Bei Score 0 wegen Fehlen: "kein Beleg — nicht erwähnt".
 
-⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden.
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN medizinisches Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
+
+⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel.
 
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 
@@ -124,5 +138,5 @@ Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text
     }{% if not loop.last %},{% endif %}
 {% endfor %}
   ],
-  "overall_clinical_note": "<2–3 Sätze klinische Gesamtbewertung>"
+  "overall_clinical_note": "<2-3 Sätze klinische Gesamtbewertung>"
 }

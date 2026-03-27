@@ -5,9 +5,9 @@
 {% for item in items %}
 ---
 
-### {{ item.id }}) {{ item.name }} (0 oder 2 — kein Borderline)
+### {{ item.id }}) {{ item.name }} (0 oder 2)
 
-LUCAS-Kriterien:
+Kriterien:
 {% for level, text in item.scoring_guidance.items() %}
 - **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
 {% endfor %}
@@ -33,16 +33,83 @@ Bewertungsanleitung:
 
 ---
 
+{% if video_summary and video_summary != "Keine Videodaten verfuegbar." %}
+## Videometriken (ergänzende Evidenz für Item I — Demeanour)
+
+{{ video_summary }}
+
+⚠ **Videometriken sind ERGÄNZEND, nicht primär.** Item I wird primär aus dem Transkript bewertet. Die Videometriken liefern unterstützende Evidenz für das Auftreten/die Haltung (demeanour) des Klinikers — z.B. ob Blickkontakt gehalten wurde oder die Körperhaltung offen war. Videometriken ALLEIN begründen KEIN I:0.
+
+{% endif %}
+---
+
+## Pflichtprozess — Gesamtscan (ZWINGEND vor allen Bewertungen)
+
+⚠ **Du MUSST beide Scans vollständig durchführen und dokumentieren BEVOR du I oder J bewertest.**
+
+### Scan 1 — Professionelles Verhalten und Auftreten (für Item I)
+
+**1a — Transkript-Scan:** Durchsuche das GESAMTE Transkript systematisch nach problematischem Verhalten von SPEAKER_00:
+- Informelle 'du'-Formen direkt gegenüber SPEAKER_01 (nicht ans Kind)
+- Momente wo SPEAKER_01 unprofessionelles Verhalten anspricht (z.B. Ausweichvorwurf, Beschwerde über Umgang)
+- Desinteressiertes, rücksichtsloses oder ungeduldiges Verhalten
+- Verhalten das die Würde der Bezugsperson/des Patienten nicht wahrt
+
+Notiere JEDEN auffälligen Moment mit Zeitstempel und Zitat. Dokumentiere auch, wenn SPEAKER_01 nach einem Ausweichvorwurf weiterhin Fragen stellt und SPEAKER_00 diesen ausweicht.
+
+**1b — Demeanour-Check (nur wenn Videometriken vorhanden):** Prüfe ob die Videometriken auf problematisches Auftreten hindeuten:
+- Dauerhaft fehlender Blickkontakt (gaze_on_target deutlich unter 50%) → kann Desinteresse signalisieren
+- Durchgehend über der Bezugsperson positioniert (above_eye_level sehr hoch) → kann einschüchternd wirken
+- Verschlossene Körperhaltung (arm_deviation stark negativ) → kann Abweisung signalisieren
+⚠ Videometriken sind NUR ergänzend. Sie können einen bestehenden Transkript-Befund VERSTÄRKEN, aber ALLEIN kein I:0 begründen. Ohne problematische Transkript-Befunde → Videometriken ignorieren.
+
+**Wenn Scan 1a und 1b KEINE problematischen Momente finden → I:2.**
+**Wenn problematische Momente gefunden werden → prüfe ob sie die I:0-Schwelle erreichen (siehe Bewertungsanleitung oben).**
+
+### Scan 2 — Sachliche Korrektheit und Konsistenz (für Item J)
+
+Durchsuche das GESAMTE Transkript systematisch nach:
+- Grob sachlich falschen Aussagen
+- Widersprüchlichen Risikoaussagen zur DERSELBEN Frage (z.B. erst "das ist nahezu ausgeschlossen" und später "man weiß nie, was passiert")
+- Aussagen die über die Kompetenz des Klinikers hinausgehen
+- Falscher oder verfrühter Beruhigung (Bagatellisierung)
+- Abweisenden, wertenden oder respektlosen Aussagen
+
+Notiere JEDEN auffälligen Moment mit Zeitstempel und Zitat. Achte besonders auf die ZWEITE HÄLFTE des Gesprächs — viele Probleme treten erst bei Rückfragen oder Eskalation auf.
+
+**Wenn der Scan KEINE Probleme findet → J:2.**
+**Wenn Widersprüche oder sachliche Fehler gefunden werden → prüfe ob sie die J:0-Schwelle erreichen (siehe Bewertungsanleitung oben).**
+
+### Scan-Dokumentation
+
+Schreibe das vollständige Scan-Ergebnis in das justification-Feld:
+- Für I: beginne mit `SCAN-I: [Anzahl] problematische Momente gefunden: [MM:SS] ... ; [MM:SS] ... | DEMEANOUR: [Befund oder "unauffällig"]` oder `SCAN-I: Keine problematischen Momente gefunden. DEMEANOUR: [Befund oder "unauffällig" oder "keine Videodaten"]`
+- Für J: beginne mit `SCAN-J: [Anzahl] auffällige Aussagen gefunden: [MM:SS] ... ; [MM:SS] ...` oder `SCAN-J: Keine auffälligen Aussagen gefunden.`
+
+---
+
 ## Anweisungen
 
-**I** — Scanne das GESAMTE Transkript — professionelles Verhalten muss DURCHGEHEND aufrechterhalten werden. Ein problematischer Austausch gegen Ende der Konsultation kann I:0 begründen, auch wenn der Anfang professionell war.
-Registerwechsel: Wenn SPEAKER_00 informelle 'du'-Formen DIREKT gegenüber SPEAKER_01 verwendet, ist das ein Registerwechsel → I:0.
-WICHTIG — Pädiatrischer Kontext: In Gesprächen mit Elternteil + Kind können 'du'-Formen an das KIND (Patienten) gerichtet sein — das ist kein Registerwechsel mit SPEAKER_01.
-WICHTIG — Einzelner Ausrutscher: Ein einzelner, isolierter 'du'-Ausdruck in einem ansonsten durchgehend professionellen Gespräch begründet in der Regel KEIN I:0.
+Führe zuerst den vollständigen Gesamtscan durch (Scan 1 und 2). Bewerte dann I und J basierend auf den Scan-Ergebnissen.
 
-**J** — Scanne das GESAMTE Transkript. Prüfe ob medizinische Aussagen sachlich korrekt sind, ob der Kliniker im Rahmen seiner Kompetenz bleibt, ob Beruhigung angemessen ist. Widersprüchliche Risikoaussagen zur DERSELBEN Frage sind ein J:0-Indikator.
+**I** — Professionelles Verhalten muss DURCHGEHEND aufrechterhalten werden. Ein problematischer Austausch gegen Ende der Konsultation kann I:0 begründen, auch wenn der Anfang professionell war.
 
-⚠ **Bewertungsregeln:** I und J haben KEIN Borderline. Erlaubte Scores: 0 oder 2.
+Registerwechsel-Prüfung (NUR wenn 'du'-Formen im Scan gefunden wurden):
+⚠ **Prüfe in dieser Reihenfolge — JEDER Schritt kann die Bewertung ändern:**
+1. **Zielprüfung:** Ist die 'du'-Form an das KIND (Patient) gerichtet? → Kein Registerwechsel, ignorieren.
+2. **Kontextprüfung:** Ist die 'du'-Form Teil einer Erzählung, eines Zitats oder indirekter Rede? (z.B. Kliniker erzählt von eigener Kindheit: "Das musst du bei mir auch einmal machen") → Kein Registerwechsel, ignorieren.
+3. **Einzelfallprüfung:** Ist es ein einzelner, isolierter 'du'-Ausdruck in einem ansonsten DURCHGEHEND professionellen Gespräch (durchgehend 'Sie'-Form)? → KEIN I:0. Einzelfälle begründen keinen Registerwechsel.
+4. **Musterprüfung:** Nur wenn SPEAKER_00 MEHRFACH 'du'-Formen DIREKT gegenüber SPEAKER_01 verwendet und dies ein KLARES MUSTER bildet → I:0.
+
+⚠ **Standardregel:** Wenn du nach dieser Prüfung keinen klaren Anlass für I:0 findest → I:2.
+
+**J** — Sachliche Korrektheit und Konsistenz über das GESAMTE Gespräch. Prüfe ob medizinische Aussagen sachlich korrekt sind, ob der Kliniker im Rahmen seiner Kompetenz bleibt, ob Beruhigung angemessen ist. Widersprüchliche Risikoaussagen zur DERSELBEN Frage sind ein J:0-Indikator.
+
+⚠ **Bewertungsregeln:** I und J erlauben nur Scores: 0 oder 2.
+
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
+
+⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel.
 
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 
@@ -54,7 +121,7 @@ Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text
       "item": "{{ item.id }}",
       "rating": <0 oder 2>,
       "rating_label": "<Competent|Unacceptable>",
-      "justification": "<max 3 Sätze>",
+      "justification": "<SCAN-I/J Ergebnis + max 3 Sätze Begründung>",
       "evidence": ["<[MM:SS] SPEAKER_XX: 'Zitat'>"],
       "confidence": "<high|medium|low>"
     }{% if not loop.last %},{% endif %}

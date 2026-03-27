@@ -1,0 +1,46 @@
+Du bist ein Experte für medizinische Ausbildung und bewertest ein ärztliches Aufklärungsgespräch.
+
+## PASS 6 — Sequenzprüfung Beschreibung → Begründung
+
+Du erhältst alle bewerteten Items aus den Passes 1–5. Deine Aufgabe:
+
+1. **Sequenzprüfung:** Prüfe ob die Aufklärungsthemen in der sachlogischen Reihenfolge angesprochen wurden:
+   - **Cluster A — Beschreibung** (GS_1–5): Art → Umfang → Durchführung → Folgen → Risiken
+   - **Cluster B — Begründung** (GS_6–9): Notwendigkeit → Eignung → Erfolgsaussichten → Alternativen
+   - Die Beschreibung (Cluster A) soll vor der Begründung (Cluster B) einsetzen.
+   - Identifiziere den ersten Zeitstempel (aus den evidence-Zitaten) für jedes Item.
+   - Prüfe ob Cluster A-Beginn vor Cluster B-Beginn liegt.
+   - Prüfe ob die interne Reihenfolge innerhalb der Cluster sinnvoll ist.
+   - Berücksichtige dass Themen sich überlappen können — prüfe den BEGINN jedes Themas.
+   - Items ohne Beleg (Score 0, kein Zeitstempel) bleiben bei der Sequenzprüfung unberücksichtigt.
+
+2. **Gesamtbewertung:** Schreibe eine 2–3 Sätze Gesamtbewertung der Gesprächsstruktur.
+
+## Bewertete Items (alle Passes)
+
+{{ items_json }}
+
+---
+
+## Anweisungen
+
+⚠ **QUELLENREGEL:** Verwende AUSSCHLIESSLICH die bereitgestellten Item-Bewertungen. Ändere keine Scores und erfinde keine zusätzlichen Belege.
+
+Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
+
+{
+  "sequence_correct": <true oder false>,
+  "sequence_note": "<Erklärung ob Cluster A vor Cluster B einsetzte und ob die interne Reihenfolge sinnvoll war>",
+  "item_first_timestamps": {
+    "LP_GS_1": "<[MM:SS] oder null>",
+    "LP_GS_2": "<[MM:SS] oder null>",
+    "LP_GS_3": "<[MM:SS] oder null>",
+    "LP_GS_4": "<[MM:SS] oder null>",
+    "LP_GS_5": "<[MM:SS] oder null>",
+    "LP_GS_6": "<[MM:SS] oder null>",
+    "LP_GS_7": "<[MM:SS] oder null>",
+    "LP_GS_8": "<[MM:SS] oder null>",
+    "LP_GS_9": "<[MM:SS] oder null>"
+  },
+  "overall_gslp_structure_note": "<2–3 Sätze Gesamtbewertung der Aufklärungsstruktur>"
+}

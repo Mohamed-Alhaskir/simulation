@@ -1,58 +1,84 @@
 {
   "id": "LP_Aufklaerung",
   "name": "Checkliste fachlicher Erwartungshorizont für die ärztliche Aufklärung nach § 630e BGB",
-  "version": "1.0",
+  "version": "1.1",
   "domain": "clinical_content",
-  "description": "Einwilligungsgespräch für Lumbalpunktion. Bewertet die ärztliche Aufklärung nach §630e BGB anhand des fachlichen Erwartungshorizonts. 9 Items A–I. Version 1.0, 09-10-2025.",
+  "description": "Einwilligungsgespräch für Lumbalpunktion. Bewertet die ärztliche Aufklärung nach §630e BGB anhand des fachlichen Erwartungshorizonts. 9 Items A–I. Version 1.1, revidiert zur Angleichung an die Original-Checkliste.",
   "reference": "Bürgerliches Gesetzbuch (BGB) – § 630e Aufklärungspflichten. 2013. p. 277.",
-  "scoring_preamble": "⚠️ KRITISCH: Bewerte VERSTÄNDNIS + AKZEPTANZ, nicht nur Informationspräsenz.\n\n**Score 2**: Die Anforderung ist klar und vollständig erfüllt UND beide Bedingungen erfüllt:\n1. VERSTÄNDNIS: Bezugsperson zeigt Verständnis — Stellt keine verwirrten Rückfragen zu diesem Punkt, ODER wiederholt/paraphrasiert das Verstandene, ODER der Arzt vergewissert sich explizit des Verständnisses\n2. AKZEPTANZ/KEINE AKTIVE ABLEHNUNG: Bezugsperson äußert Akzeptanz oder Zustimmung explizit, ODER stellt keine aktiven Einwände oder Fragen, die Ablehnung andeuten, ODER akzeptiert die Erklärung ohne Vorbehalte zu äußern\n\n**Score 1**: Das Thema ist erkennbar angesprochen, aber: ODER Verständnis vorhanden, aber Bezugsperson äußert Bedenken/Vorbehalte, ODER wesentliche Inhalte fehlen oder sind zu vage, ODER Bezugsperson wirkt verwirrt oder stellt Nachfragen, die Unverständnis andeuten, ODER der Arzt vergewissert sich NICHT, ob Bezugsperson verstanden hat\n\n**Score 0**: Das Thema wird nicht thematisiert, ODER die Aussage ist so unvollständig/evasiv, dass Bezugsperson keinen realistischen Eindruck erhält, ODER Bezugsperson äußert explizit Verwirrung, Unverständnis ODER aktive ABLEHNUNG/WIDERSPRUCH, ODER Bezugsperson sagt 'Nein' oder 'Das möchte ich nicht' oder verweigert aktiv\n\n**Im Zweifelsfall**: Wähle die niedrigere Stufe. Score 2 erfordert BEIDE Verständnis UND Akzeptanz mit positivem Transkriptbeleg.\n\nGESPRÄCHSKONTEXT:\n- SPEAKER_00 = Kliniker (zu bewerten)\n- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)",
+  "scoring_preamble": "⚠️ KRITISCH: Bewerte VERSTÄNDNIS + AKZEPTANZ, nicht nur Informationspräsenz.\n\n**Score 2**: Die Anforderung ist klar und vollständig erfüllt UND beide Bedingungen erfüllt:\n1. VERSTÄNDNIS: Bezugsperson zeigt Verständnis — Stellt keine verwirrten Rückfragen zu diesem Punkt, ODER wiederholt/paraphrasiert das Verstandene, ODER der Arzt vergewissert sich explizit des Verständnisses\n2. AKZEPTANZ/KEINE AKTIVE ABLEHNUNG: Bezugsperson äußert Akzeptanz oder Zustimmung explizit, ODER stellt keine aktiven Einwände oder Fragen, die Ablehnung andeuten, ODER akzeptiert die Erklärung ohne Vorbehalte zu äußern\n\n**Score 1**: Das Thema ist erkennbar angesprochen, aber: ODER Verständnis vorhanden, aber Bezugsperson äußert Bedenken/Vorbehalte, ODER wesentliche Inhalte fehlen oder sind zu vage, ODER Bezugsperson wirkt verwirrt oder stellt Nachfragen, die Unverständnis andeuten, ODER der Arzt vergewissert sich NICHT, ob Bezugsperson verstanden hat\n\n**Score 0**: Das Thema wird nicht thematisiert, ODER die Aussage ist so unvollständig/evasiv, dass Bezugsperson keinen realistischen Eindruck erhält, ODER Bezugsperson äußert explizit Verwirrung, Unverständnis ODER aktive ABLEHNUNG/WIDERSPRUCH, ODER Bezugsperson sagt 'Nein' oder 'Das möchte ich nicht' oder verweigert aktiv\n\n**Im Zweifelsfall: Wähle die niedrigere Stufe. Score 2 erfordert BEIDE Verständnis UND Akzeptanz mit positivem Transkriptbeleg.**\n\nGESPRÄCHSKONTEXT:\n- SPEAKER_00 = Kliniker (zu bewerten)\n- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)\n\n⚠ SPEAKER-VERIFIZIERUNG (PFLICHT): Pruefe in den ersten 2 Minuten wer sich als Arzt/Aerztin vorstellt. Falls SPEAKER_01 sich als Arzt/Aerztin identifiziert und SPEAKER_00 dies NICHT tut → Sprecherbezeichnungen sind VERTAUSCHT. Bewerte dann SPEAKER_01 als Kliniker und SPEAKER_00 als Bezugsperson fuer ALLE Items.\n\n⚠ KALIBRIERUNGSHINWEIS: Vermeide sowohl Mittenkategorie-Bias (blindes Score-1-Vergeben) ALS AUCH Unterbewertung (Score 0 bei Unsicherheit).\n- Score 0 NUR wenn das Verhalten/Thema im GESAMTEN Transkript NICHT erkennbar ist.\n- Score 1 wenn das Verhalten/Thema ERKENNBAR aber UNVOLLSTÄNDIG umgesetzt/angesprochen wurde.\n- Score 2 wenn das Verhalten/Thema KLAR BELEGT ist — auch wenn nicht perfekt oder lehrbuchmäßig.\n- ZWEIFELSFALLREGEL: Wähle den Score der am besten durch konkrete Transkriptbelege gestützt wird. Score 1 ist ein VALIDER Score für teilweise vorhandenes Verhalten — wähle ihn nicht automatisch ab.\n\nSELBSTKONTROLLE vor jedem Rating:\n(a) Habe ich ein konkretes Transkriptzitat das diesen Score stützt?\n(b) Wenn rating=0: Habe ich das GESAMTE Transkript durchsucht und WIRKLICH nichts gefunden?\n(c) Wenn rating=1: Kann ich benennen was vorhanden UND was unvollständig war?\n(d) Wenn rating=2: Ist das Kernverhalten/-thema klar erkennbar — auch wenn Details fehlen?\n\nJSON-REGEL: Verwende in justification-Strings KEINE doppelten Anfuehrungszeichen. Nutze einfache Anfuehrungszeichen (') fuer Zitate innerhalb von justification.",
   "passes": [
     {
       "id": "pass1",
-      "name": "Art, Umfang und Durchführung",
+      "name": "Art und Umfang",
       "type": "standard",
       "item_ids": [
         "LP_A",
-        "LP_B",
-        "LP_C"
+        "LP_B"
       ],
-      "template": "lp_aufklaerung.j2",
-      "max_tokens": 3000,
+      "template": "lp_aufklaerung_beschreibung.j2",
+      "max_tokens": 2000,
       "context_requirements": {
         "transcript": "full",
-        "phase_focus": "Art (LP_A), Umfang (LP_B) und Durchführung (LP_C) der Lumbalpunktion — was wird gemacht, in welchem Ausmaß, und wie läuft es ab."
+        "phase_focus": "Art des Eingriffs und diagnostischer Zweck (LP_A) und Umfang der Maßnahme (LP_B)."
       }
     },
     {
       "id": "pass2",
+      "name": "Durchführung",
+      "type": "standard",
+      "item_ids": [
+        "LP_C"
+      ],
+      "template": "lp_aufklaerung_beschreibung.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Durchführung der Lumbalpunktion — Technik, Lagerung, Narkose/Sedierung, Schritte (LP_C)."
+      }
+    },
+    {
+      "id": "pass3",
       "name": "Mögliche Folgen und Risiken",
       "type": "standard",
       "item_ids": [
         "LP_D",
         "LP_E"
       ],
-      "template": "lp_aufklaerung.j2",
+      "template": "lp_aufklaerung_risiken.j2",
       "max_tokens": 2000,
       "context_requirements": {
         "transcript": "full",
-        "phase_focus": "Mögliche unmittelbare Folgen/Nebenwirkungen (LP_D) und seltene Komplikationsrisiken (LP_E) der Lumbalpunktion."
+        "phase_focus": "Häufige Nebenwirkungen >3% (LP_D) und seltene Komplikationen <3% (LP_E) der Lumbalpunktion."
       }
     },
     {
-      "id": "pass3",
-      "name": "Notwendigkeit, Eignung, Erfolg und Alternativen",
+      "id": "pass4",
+      "name": "Notwendigkeit und Eignung",
       "type": "standard",
       "item_ids": [
         "LP_F",
-        "LP_G",
+        "LP_G"
+      ],
+      "template": "lp_aufklaerung_begruendung.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Notwendigkeit und Dringlichkeit der LP (LP_F) und Eignung der LP für Diagnose/Therapie (LP_G)."
+      }
+    },
+    {
+      "id": "pass5",
+      "name": "Erfolgsaussichten und Behandlungsalternativen",
+      "type": "standard",
+      "item_ids": [
         "LP_H",
         "LP_I"
       ],
-      "template": "lp_aufklaerung.j2",
-      "max_tokens": 3000,
+      "template": "lp_aufklaerung_begruendung.j2",
+      "max_tokens": 2000,
       "context_requirements": {
         "transcript": "full",
-        "phase_focus": "Notwendigkeit/Dringlichkeit (LP_F), Eignung der LP (LP_G), Erfolgsaussichten (LP_H) und Behandlungsalternativen (LP_I)."
+        "phase_focus": "Erfolgsaussichten und realistische Darstellung der LP (LP_H) und Behandlungsalternativen (LP_I)."
       }
     }
   ],
@@ -71,12 +97,15 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Benennt den geplanten Eingriff explizit und verständlich: Lumbalpunktion / Punktion des liquorgefüllten Subarachnoidalraums zu diagnostischen Zwecken. Bezugsperson versteht was durchgeführt wird und warum.",
+      "description": "Art — Welche Behandlung / welcher Eingriff ist geplant? Z.B. Punktion des liquorgefüllten Subarachnoidalraums zu diagnostischen Zwecken. Bei dem Kind soll eine kleine Menge Nervenflüssigkeit aus dem Wirbelkanal für einige Laboruntersuchungen entnommen werden.",
       "scoring_guidance": {
-        "2": "Eingriff explizit benannt (LP, Lumbalpunktion, Nervenwasserpunktion o.Ae.) UND der diagnostische Zweck klar erklaert (z.B. um Entzuendungszellen / Erreger im Nervenwasser nachzuweisen). Beide Bestandteile — Bezeichnung UND Zweck — muessen im Transkript belegbar sein. Fehlendes aktives Verstaendnis-Signaling der Bezugsperson wird nicht negativ gewertet, solange keine verwirrten Rueckfragen gestellt werden.",
-        "1": "Eingriff benannt aber diagnostischer Zweck nicht erklaert, ODER Zweck erklaert aber Bezeichnung des Eingriffs fehlt oder ist so umgangssprachlich, dass unklar bleibt was konkret gemacht wird.",
+        "2": "Eingriff explizit benannt (LP, Lumbalpunktion, Nervenwasserpunktion o.Ä.) UND der diagnostische Zweck klar erklärt (z.B. um Entzündungszellen / Erreger im Nervenwasser nachzuweisen, Laboruntersuchungen). Beide Bestandteile — Bezeichnung UND Zweck — müssen im Transkript belegbar sein. Fehlendes aktives Verständnis-Signaling der Bezugsperson wird nicht negativ gewertet, solange keine verwirrten Rückfragen gestellt werden.",
+        "1": "Eingriff benannt aber diagnostischer Zweck nicht erklärt, ODER Zweck erklärt aber Bezeichnung des Eingriffs fehlt oder ist so umgangssprachlich, dass unklar bleibt was konkret gemacht wird.",
         "0": "Eingriff nicht explizit benannt oder so vage umschrieben, dass Bezugsperson keinen klaren Eindruck erhält was geplant ist. ODER: Bezugsperson stellt Nachfragen, die zeigen, dass sie nicht verstanden hat was geplant ist."
       },
+      "evaluation_notes": [
+        "HINWEIS: Wenn der Kliniker sowohl den Namen des Eingriffs (LP, Lumbalpunktion, Nervenwasserpunktion) als auch den diagnostischen Zweck im GESAMTEN Transkript erwaehnt — auch an verschiedenen Stellen — zaehlt dies als Score 2. Die Erklaerung muss nicht in einem zusammenhaengenden Satz erfolgen."
+      ],
       "critical": true,
       "type": "standard"
     },
@@ -94,9 +123,9 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Erklärt in welchem Ausmaß die LP durchgeführt wird: eigentlicher Vorgang dauert nur wenige Minuten, kleine Menge Liquor wird entnommen, kleine Wunde wird mit Pflaster versorgt.",
+      "description": "Umfang — In welchem Ausmaß wird die Maßnahme durchgeführt? Z.B. der eigentliche Vorgang, die sogenannte 'Punktion', dauert im Normalfall nur wenige Minuten. Im Anschluss wird die kleine Wunde mit einem Pflaster versorgt.",
       "scoring_guidance": {
-        "2": "Mindestens zwei voneinander unabhaengige Aspekte des Umfangs klar benannt: Dauer des Eingriffs (Minuten) UND/ODER Menge des entnommenen Liquors (wenige ml) UND/ODER Wundversorgung danach. Die Angaben muessen konkret sein — vage Aeusserungen wie 'das geht schnell' ohne Zeitangabe zaehlen nicht.",
+        "2": "Mindestens zwei voneinander unabhängige Aspekte des Umfangs klar benannt: Dauer des Eingriffs (wenige Minuten) UND/ODER Menge des entnommenen Liquors (wenige ml) UND/ODER Wundversorgung danach (Pflaster). Die Angaben müssen konkret sein — vage Äußerungen wie 'das geht schnell' ohne Zeitangabe zählen nicht.",
         "1": "Genau ein konkreter Aspekt des Umfangs benannt. ODER: Mehrere Aspekte genannt, aber Bezugsperson wirkt verwirrt oder stellt Nachfragen.",
         "0": "Kein Hinweis auf den Umfang der Maßnahme, oder ausschließlich vage Formulierungen ohne jeden konkreten Anhaltspunkt."
       },
@@ -105,7 +134,7 @@
     },
     {
       "id": "LP_C",
-      "name": "Durchführung — Wie läuft die Maßnahme ab? (Technik, Betäubung, Schritte, Dauer)",
+      "name": "Durchführung — Wie läuft die Maßnahme ab? (Technik, Narkose, Schritte, Dauer)",
       "category": "§630e Aufklärung",
       "scale": [
         0,
@@ -117,10 +146,10 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Beschreibt den Ablauf der LP verständlich: Lagerung (Embryonalhaltung / Rundrücken), Lokalanästhesie und/oder Sedierung, Einstich im Bereich L3–L5 (kein Rückenmark an dieser Stelle), Liquorentnahme wenige ml, Nadelentfernung.",
+      "description": "Durchführung — Wie läuft die Maßnahme ab? (Technik, Narkose, Schritte, Dauer). Z.B. Die LP wird zwischen dem 3. und 5. Lendenwirbelfortsatz durchgeführt. Die Punktion kann im Liegen oder Sitzen erfolgen. Bei der Punktion ist eine Kyphosierung der Wirbelsäule in ihrem unteren Abschnitt anzustreben. Bei dem Kind können zusätzlich nach Bedarf Medikamente zur Beruhigung oder zur Schmerzstillung eingesetzt werden, um die Untersuchung so angenehm wie möglich zu machen. Die Kinder müssen dann eine gebückte Haltung einnehmen. Säuglinge werden dann meistens auf die Untersuchungsliege seitlich und gekrümmt hingelegt. Für den Eingriff werden spezielle Hohlnadeln verwendet. Eine solche Nadel wird nur im Bereich der Lendenwirbelsäule vorsichtig in den Wirbelkanal eingeführt. An dieser Stelle des Wirbelkanals befindet sich kein Rückenmark, sondern nur noch Nervenwasser. Vom dem Nervenwasser werden nur wenige Milliliter entnommen und die Nadel wird anschließend sofort entfernt. Um die Nervenwasserentnahme schonend durchführen zu können, kann vor allem bei sehr aufgeregten Kindern für die Untersuchung ein sanftes Beruhigungsmittel/Schlafmittel verabreicht werden.",
       "scoring_guidance": {
-        "2": "Mindestens drei der folgenden Elemente verstaendlich und korrekt erklaert: (1) Lagerung (gebueckte Haltung / Embryonalhaltung / Rundruecken / auf der Seite), (2) Betaeubung oder Sedierung (Lokalanaesthesie, Beruhigungsmittel, Narkose), (3) Einstichlokalisation (Lendenwirbelsaeule / unterer Ruecken / zwischen den Wirbelkoerpern / L3-L5), (4) warum kein Rueckenmark an der Punktionsstelle, (5) Entnahme von nur wenigen ml Nervenwasser. Hinweis: Score 2 erfordert, dass Betaeubung oder Sedierung (Element 2) eines der drei erfuellten Elemente ist.",
-        "1": "Ablauf erkennbar skizziert, aber wesentliche Schritte fehlen — insbesondere wenn Betäubung/Sedierung nicht erwähnt wird, oder wenn nur ein oder zwei Elemente genannt werden. ODER: Bezugsperson wirkt verwirrt.",
+        "2": "Mindestens zwei der folgenden Elemente verständlich und korrekt erklärt: (1) Lagerung (gebückte Haltung / Kyphosierung / Rundrücken / auf der Seite / Liegen oder Sitzen), (2) Medikamente zur Beruhigung oder Schmerzstillung / Narkose / Sedierung / sanftes Beruhigungsmittel/Schlafmittel für aufgeregte Kinder, (3) Einstichlokalisation (Lendenwirbelsäule / unterer Rücken / zwischen den Wirbelkörpern / L3-L5 / 3. bis 5. Lendenwirbelfortsatz), (4) warum kein Rückenmark an der Punktionsstelle — nur Nervenwasser, (5) Entnahme von nur wenigen ml Nervenwasser mit spezieller Hohlnadel, Nadel wird sofort entfernt. Wenn Sedierung nicht erwähnt wird aber andere Elemente vollständig sind → Score 1 statt Score 0.",
+        "1": "Ablauf erkennbar skizziert, aber nur ein Element genannt oder wesentliche Schritte fehlen. ODER: Bezugsperson wirkt verwirrt.",
         "0": "Ablauf nicht beschrieben oder so fragmentarisch, dass Bezugsperson keinen realistischen Eindruck vom Vorgehen erhält."
       },
       "critical": true,
@@ -140,12 +169,17 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Benennt häufige Folgen und Nebenwirkungen (>3%): lokaler Schmerz an der Punktionsstelle, postpunktionelles Kopfschmerzsyndrom, lumbale Wurzelreizsymptomatik, lokale leichte Blutung.",
+      "description": "Mögliche Folgen — Welche unmittelbaren Wirkungen sind wahrscheinlich? Zu den häufigen Nebenwirkungen (> 3%) zählen: lokaler Schmerz an der Punktionsstelle, akute transiente lumbale Wurzelreizsymptomatik, lokale leichte Blutung, postpunktionelles Syndrom.",
       "scoring_guidance": {
-        "2": "Mindestens drei der folgenden Komplikationen klar und korrekt erklaert: (1) Post-LP-Kopfschmerz (durch Liquordruck-Abfall, Stunden nach Eingriff), (2) Infektionsrisiko / Meningitis (durch Einbringen von Keimen), (3) Blutungsrisiko / spinales Haematom, (4) Querschnittlaehmung (sehr selten). Korrekte Erklaerung = Komplikation benannt UND Mechanismus oder klinischer Kontext erklaert, nicht nur aufgezaehlt.",
-        "1": "Genau eine häufige Folge korrekt und spezifisch benannt. Vage Aussagen wie 'das kann wehtun' ohne Benennung einer konkreten Folge zählen nicht.",
+        "2": "Mindestens eine der folgenden häufigen Nebenwirkungen (> 3%) korrekt und spezifisch benannt: (1) lokaler Schmerz an der Punktionsstelle, (2) akute transiente lumbale Wurzelreizsymptomatik (Nervenreizung, ausstrahlender Schmerz), (3) lokale leichte Blutung, (4) postpunktionelles Syndrom (Post-LP-Kopfschmerz durch Liquordruck-Abfall). Korrekte Benennung erfordert dass die Nebenwirkung spezifisch genannt wird — vage Aussagen wie 'das kann wehtun' ohne Benennung einer konkreten Folge zählen nicht.",
+        "1": "Häufige Folgen nur vage angedeutet ohne spezifische Benennung (z.B. 'das kann unangenehm sein').",
         "0": "Keine häufigen Folgen oder Nebenwirkungen erwähnt, oder ausschließlich vage Schmerzaussagen ohne konkrete Folgebenennung."
       },
+      "evaluation_notes": [
+        "LP_D bewertet HÄUFIGE Nebenwirkungen (> 3%) — NICHT seltene Komplikationen (die gehören zu LP_E).",
+        "Die vier anerkannten häufigen Nebenwirkungen sind: lokaler Schmerz, Wurzelreizsymptomatik, lokale leichte Blutung, postpunktionelles Syndrom.",
+        "Akzeptiere auch laienverständliche Umschreibungen (z.B. 'Kopfschmerzen nach der Punktion' = postpunktionelles Syndrom, 'es kann kurz ins Bein ziehen' = Wurzelreizsymptomatik)."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -163,18 +197,23 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Benennt seltene Komplikationen (<3%): Infektion des Stichkanals, Kreislaufreaktionen bis Synkope, Blutungen mit neurologischen Ausfällen, Subduralhämatom, Hirnnervenausfälle, Einklemmungssyndrome.",
+      "description": "Risiken — Welche Komplikationen können auftreten? Zu den seltenen Komplikationen (< 3%) gehören: Infektion des Stichkanals, Kreislaufreaktionen bis hin zu Synkopen. In Einzelfällen wurden beschrieben: Blutungen mit neurologischen Ausfällen (vorwiegend bei Punktion trotz Kontraindikationen oder bei Vorliegen von Gefäßanomalien), Subduralhämatome, Hirnnervenausfälle, Migräneattacken, epileptische Anfälle, Einklemmungssyndrome (vorwiegend bei Missachtung von Kontraindikationen).",
       "scoring_guidance": {
-        "2": "Konsequenzen eines Verzichts klar erklaert: mindestens (1) Diagnose bleibt unklar / nicht beweisbar UND (2) Behandlung kann nicht gezielt begonnen werden oder besteht nur als empirische Therapie. ODER: explizite Erwaehnung dass ohne LP-Befund die Entscheidung, ob und welches Antibiotikum gegeben wird, unsicher bleibt.",
-        "1": "Mindestens eine seltene Komplikation korrekt benannt, aber ohne jede Einordnung, ODER zwei Komplikationen nur vage angedeutet. ODER: Komplikationen benannt, aber Bezugsperson äußert Bedenken.",
+        "2": "Mindestens eine der folgenden seltenen Komplikationen (< 3%) korrekt benannt: (1) Infektion des Stichkanals, (2) Kreislaufreaktionen / Synkope, (3) Blutungen mit neurologischen Ausfällen, (4) Subduralhämatome, (5) Hirnnervenausfälle, (6) Migräneattacken, (7) epileptische Anfälle, (8) Einklemmungssyndrome.",
+        "1": "Seltene Komplikationen nur vage angedeutet ohne konkrete Benennung. ODER: Komplikationen benannt, aber Bezugsperson äußert Bedenken.",
         "0": "Keine seltenen Komplikationen benannt, oder ausschließlich vage Formulierungen. ODER: Bezugsperson lehnt aktiv ab aufgrund der genannten Risiken."
       },
+      "evaluation_notes": [
+        "LP_E bewertet SELTENE Komplikationen (< 3%) — NICHT häufige Nebenwirkungen (die gehören zu LP_D).",
+        "Besonders schwere Einzelfall-Komplikationen (Blutungen mit neurologischen Ausfällen, Einklemmungssyndrome) treten vorwiegend bei Missachtung von Kontraindikationen oder Gefäßanomalien auf — dies kann als Einordnung dienen.",
+        "Unterscheide: Infektion des Stichkanals (LP_E, selten) vs. lokaler Schmerz (LP_D, häufig)."
+      ],
       "critical": true,
       "type": "standard"
     },
     {
       "id": "LP_F",
-      "name": "Notwendigkeit und Dringlichkeit — Warum ist die Maßnahme erforderlich?",
+      "name": "Notwendigkeit und Dringlichkeit — Warum ist die Maßnahme erforderlich? Muss sie sofort erfolgen?",
       "category": "§630e Aufklärung",
       "scale": [
         0,
@@ -186,10 +225,10 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Erklärt warum die LP jetzt erforderlich ist: diagnostische LP soll bei klinischem Verdacht auf bakterielle Meningitis so rasch wie möglich erfolgen, da eine unbehandelte Meningitis zu schweren Folgeschäden oder Tod führen kann.",
+      "description": "Notwendigkeit und Dringlichkeit — Warum ist die Maßnahme erforderlich? Muss sie sofort erfolgen? Z.B. Eine diagnostische lumbale LP soll bei klinischem Verdacht auf eine bakterielle Meningitis so rasch wie möglich erfolgen.",
       "scoring_guidance": {
-        "2": "Beide Aspekte belegt: (1) Dringlichkeit klar kommuniziert — zeitkritisch, möglichst bald UND (2) Begründung genannt — warum jetzt: z.B. rasche Diagnose für gezielte Therapie, Risiko schwerer Folgen bei Verzögerung. Bezugsperson AKZEPTIERT die Begründung oder stellt keine aktiven Einwände.",
-        "1": "Dringlichkeit erwähnt aber ohne Begründung, ODER Begründung gegeben aber zeitlicher Rahmen unklar. ODER: Dringlichkeit erklärt, aber Bezugsperson äußert Zweifel.",
+        "2": "Dringlichkeit ODER Notwendigkeit klar und explizit kommuniziert. Wenn nur eines explizit vorhanden und das andere zumindest impliziert → Score 2. Bezugsperson AKZEPTIERT die Begründung oder stellt keine aktiven Einwände.",
+        "1": "Dringlichkeit oder Notwendigkeit nur vage angedeutet ohne klaren Inhalt. ODER: Bezugsperson äußert Zweifel.",
         "0": "Dringlichkeit nicht thematisiert, ODER Bezugsperson ohne jede Erklärung unter Druck gesetzt. ODER: Bezugsperson lehnt ab trotz Erklärung der Dringlichkeit."
       },
       "critical": true,
@@ -209,11 +248,11 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Erklärt warum die LP das geeignete diagnostische Verfahren ist: Liquoranalytik ist das einzige Verfahren, das den direkten Nachweis einer Entzündung im Liquorraum und der auslösenden Erreger führen kann. CT/MRT allein reicht für Erregerdiagnostik nicht aus.",
+      "description": "Eignung — Ist die Maßnahme für die Diagnose/Therapie geeignet? Z.B. Die Liquoranalytik ist das einzige Verfahren außer einer Hirnbiopsie, das den Nachweis einer Entzündung im Liquorraum oder im Zentralnervensystem führen kann.",
       "scoring_guidance": {
-        "2": "Erklaert, dass Liquordiagnostik das einzige oder fuehrende Verfahren fuer direkten Erreger- oder Entzuendungsnachweis im Nervenwasser ist. Bildgebung (CT/MRT) allein reicht nicht — eine kurze Begruendung warum ist hilfreich aber nicht zwingend, wenn der Kliniker die Unentbehrlichkeit der LP klar kommuniziert. Fehlendes aktives Verstaendnis-Signaling der Bezugsperson wird nicht negativ gewertet.",
-        "1": "Eignung nur vage erklaert ('das ist die sicherste Methode') ohne Begruendung warum die LP unentbehrlich ist. ODER: Nur einer der beiden Aspekte (Liquor = direkter Nachweis; Bildgebung allein unzureichend) erklaert.",
-        "0": "Eignung nicht erklärt."
+        "2": "Eignung der LP fuer den konkreten Verdacht erkennbar begruendet — z.B. 'nur ueber das Nervenwasser koennen wir den Erreger direkt nachweisen', 'Blutuntersuchung reicht nicht', 'die LP ist der einzige Weg den Erreger im Nervenwasser zu finden'. Jede inhaltliche Begruendung die den Zusammenhang zwischen LP und Diagnose herstellt zaehlt — auch in Laiensprache. Die Bezugsperson muss nicht aktiv Verstaendnis signalisieren. Fehlendes aktives Verstaendnis-Signaling wird nicht negativ gewertet.",
+        "1": "Eignung nur vage erklaert ('das ist die sicherste Methode') ohne Begruendung warum die LP unentbehrlich ist.",
+        "0": "Eignung nicht erklaert."
       },
       "critical": false,
       "type": "standard"
@@ -232,18 +271,23 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Erklärt die Erfolgsaussichten der LP: was die LP diagnostisch leisten kann, und — falls erwähnt — dass sie manchmal trotz Sorgfalt nicht gelingt und ggf. wiederholt werden muss.",
+      "description": "Erfolgsaussichten — Welche Chancen bestehen auf Besserung oder Heilung? Z.B. Manchmal gelingt es trotz großer Erfahrung und Sorgfalt des Arztes nicht die Untersuchung durchzuführen (z.B. wegen körperlicher Besonderheiten). Die Punktion muss dann unter Umständen wiederholt werden.",
       "scoring_guidance": {
-        "2": "Fragerecht und Abbruchrecht der Bezugsperson klar kommuniziert: (1) Bezugsperson wird ausdruecklich zu Fragen eingeladen ODER es wird signalisiert, dass Unklarheiten jederzeit angesprochen werden duerfen, UND (2) es wird vermittelt, dass die Entscheidung der Bezugsperson respektiert wird.",
-        "1": "Nur eine allgemeine positive Aussage über Behandlungserfolg oder Diagnose ohne Einschränkung, ODER nur die Möglichkeit des Misslingens erwähnt.",
-        "0": "Erfolgsaussichten nicht thematisiert. ODER: Arzt gibt vage beruhigende Aussagen ohne realistischen Bezug."
+        "2": "Erfolgsaussichten erkennbar kommuniziert — Kliniker vermittelt was die LP diagnostisch oder therapeutisch leisten kann (z.B. Erregernachweis, gezielte Therapie ermöglichen). Eine Einschränkung (Möglichkeit des Misslingens) ist wünschenswert aber nicht zwingend für Score 2.",
+        "1": "Erfolgsaussichten NUR dann Score 1 wenn der Kliniker EXPLIZIT ueber Behandlungserfolg oder diagnostischen Nutzen spricht — z.B. 'damit koennen wir gezielt behandeln'. Aussagen ueber die Notwendigkeit der LP ('wir brauchen das um den Erreger zu finden') zaehlen NICHT als Erfolgsaussichten sondern als Eignung (LP_G). Score 0 wenn nur Notwendigkeit/Eignung erklaert wird ohne auf Behandlungschancen einzugehen.",
+        "0": "Erfolgsaussichten nicht thematisiert. ODER: Arzt gibt nur vage beruhigende Aussagen ohne realistischen Bezug."
       },
+      "evaluation_notes": [
+        "⚠ STRENGE ABGRENZUNG LP_H vs LP_G: LP_H bewertet NUR ob der Kliniker ueber ERFOLGSAUSSICHTEN/BEHANDLUNGSCHANCEN spricht — WAS NACH der LP passiert (z.B. 'dann koennen wir gezielt mit Antibiotika behandeln', 'die Heilungschancen sind gut'). Aussagen ueber die NOTWENDIGKEIT oder EIGNUNG der LP selbst ('wir brauchen die LP', 'nur so koennen wir den Erreger finden') gehoeren zu LP_G, NICHT zu LP_H.",
+        "STANDARDANNAHME: Score 0. Erfolgsaussichten werden in Aufklaerungsgespraechen SELTEN explizit thematisiert. Vergib Score 1 oder 2 NUR wenn der Kliniker WOERTLICH ueber Behandlungserfolg, Heilungschancen, oder therapeutische Konsequenzen der Diagnostik spricht. Blosse Erklaerungen warum die LP noetig ist → Score 0 fuer LP_H.",
+        "⚠ SELBSTKONTROLLE: Bezieht sich die Aussage DIREKT auf die LP-Erfolgsaussichten oder auf die allgemeine Krankheitsprognose? 'Wenn wir das frueh erkennen, koennen wir gezielt mit Antibiotika behandeln' → Score 1 (LP-bezogene Behandlungschance). 'Das heilt oft gut aus' oder 'die Prognose ist gut' OHNE direkten LP-Bezug → Score 0 (allgemeine Prognoseaussage, gehoert nicht zu LP_H). Pruefe: Wird die LP als URSACHE des Behandlungserfolgs dargestellt? Wenn nein → Score 0."
+      ],
       "critical": false,
       "type": "standard"
     },
     {
       "id": "LP_I",
-      "name": "Behandlungsalternativen — Gibt es gleichwertige Alternativen?",
+      "name": "Behandlungsalternativen — Gibt es mehrere gleichwertige Methoden mit unterschiedlichen Belastungen, Risiken oder Heilungschancen?",
       "category": "§630e Aufklärung",
       "scale": [
         0,
@@ -255,12 +299,15 @@
         "1": "Unvollständig",
         "2": "Vollständig"
       },
-      "description": "Thematisiert ob es Alternativen gibt: zur direkten Untersuchung des Nervenwassers auf Krankheitserreger ist die LP die einzige Möglichkeit. Blut- und Bildgebungsbefunde ergänzen, ersetzen die LP-Diagnostik aber nicht.",
+      "description": "Behandlungsalternativen — Gibt es mehrere gleichwertige Methoden mit unterschiedlichen Belastungen, Risiken oder Heilungschancen? Z.B. Der Liquor ist ein wichtiges, teilweise alternativloses diagnostisches Verfahren bei Entzündungen des Nervensystems und der Hirnhäute, bildgebend nicht fassbare Blutungen im Bereich des Subarachnoidalraums sowie Ausbreitung maligner Erkrankungen auf den Liquorraum und die Meningen. Zur direkten Untersuchung des Nervenwassers an Krankheitserregern ist die Nervenwasseruntersuchung die einzige Möglichkeit.",
       "scoring_guidance": {
-        "2": "Einwilligung aktiv eingeholt: Kliniker fragt ausdruecklich nach Zustimmung ('Sind Sie einverstanden?', 'Stimmen Sie zu?', 'Duerfen wir die LP durchfuehren?') oder aequivalente Formulierung, die klar eine Entscheidung der Bezugsperson erwartet. Es ist nicht ausreichend, die LP ohne Einwilligung zu beginnen oder die Einwilligung nur implizit vorauszusetzen.",
-        "1": "Fehlende Alternative erwähnt oder impliziert ohne Begründung. ODER: Begründung gegeben, aber Bezugsperson wirkt verwirrt oder schlägt weiterhin Alternativen vor.",
-        "0": "Alternativen nicht thematisiert. ODER: Arzt antwortet ausweichend. ODER: Bezugsperson lehnt die LP ab und insistiert auf Alternative."
+        "2": "Frage nach Alternativen inhaltlich beantwortet: erklaert dass die LP das einzige oder fuehrende Verfahren zur direkten Untersuchung des Nervenwassers ist. Jede Aussage die kommuniziert dass es KEINE gleichwertige Alternative zur LP gibt zaehlt — z.B. 'das kann man nur ueber die Punktion herausfinden', 'Blut allein reicht nicht', 'es gibt kein anderes Verfahren fuer diesen Nachweis'. Fehlendes aktives Verstaendnis-Signaling der Bezugsperson wird nicht negativ gewertet.",
+        "1": "Fehlende Alternative erwaehnt oder impliziert ohne inhaltliche Begruendung (z.B. 'es gibt eigentlich nichts anderes' als blosse Behauptung OHNE Erklaerung warum die LP alternativlos ist).",
+        "0": "Alternativen nicht thematisiert. ODER: Arzt antwortet ausweichend."
       },
+      "evaluation_notes": [
+        "⚠ Die Reaktion der Bezugsperson (Zustimmung, Ablehnung, Skepsis) beeinflusst den Score NICHT. Bewertet wird NUR ob der Kliniker die Alternativlosigkeit inhaltlich begruendet hat. Wenn der Kliniker erklaert dass die LP das einzige Verfahren ist UND eine inhaltliche Begruendung gibt (z.B. 'nur so kann man die Zellen im Nervenwasser untersuchen') → Score 2, auch wenn die Bezugsperson ablehnt oder skeptisch reagiert."
+      ],
       "critical": false,
       "type": "standard"
     }

@@ -7,7 +7,7 @@
 
 ### {{ item.id }}) {{ item.name }} (0, 1 oder 2)
 
-LUCAS-Kriterien:
+Kriterien:
 {% for level, text in item.scoring_guidance.items() %}
 - **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
 {% endfor %}
@@ -26,13 +26,42 @@ Bewertungsanleitung:
 
 ---
 
+## Pflichtprozess — Bedürfnisscan für Item E (ZWINGEND vor E-Bewertung)
+
+**Schritt 1 — Bedürfnisse identifizieren:**
+Durchsuche das GESAMTE Transkript nach ALLEN explizit geäußerten Bedürfnissen, Fragen und Sorgen von SPEAKER_01 (z.B. Verständnisfragen, Zukunftssorgen, Schuldgefühle, praktische Fragen zur Behandlung, Fragen zum Alltag/Leben des Kindes).
+
+**Schritt 2 — Abdeckung prüfen:**
+Für JEDES identifizierte Bedürfnis: Hat SPEAKER_00 es adressiert?
+- **adressiert** — SPEAKER_00 hat IRGENDEINE inhaltliche Antwort zu diesem Thema gegeben. Die Qualität oder Klarheit der Antwort spielt hier KEINE Rolle — das wird in Schritt 3 bewertet. Sobald SPEAKER_00 auf das Thema eingegangen ist (auch holprig, auch nach Rückfrage), gilt es als adressiert.
+- **nicht adressiert** — SPEAKER_00 hat das Bedürfnis komplett übergangen, ignoriert oder mit einem Themenwechsel beantwortet (KEINE inhaltliche Antwort gegeben)
+
+⚠ **WICHTIG:** Auch reaktive Antworten auf Fragen von SPEAKER_01 zählen als adressiert. ⚠ **SELBSTKONTROLLE:** Wenn SPEAKER_00 zum Thema gesprochen hat (auch wenn unklar oder unvollständig), ist es adressiert, NICHT „nicht adressiert". Die Unterscheidung ist: Hat SPEAKER_00 das Thema INHALTLICH aufgegriffen (= adressiert) oder KOMPLETT IGNORIERT (= nicht adressiert)?
+
+**Schritt 3 — Verständlichkeit separat bewerten:**
+Sind die Formulierungen von SPEAKER_00 **überwiegend** leicht verständlich? Einzelne unklare Momente bei sonst verständlicher Kommunikation = überwiegend verständlich. Durchgängig schwer verständlich = teilweise schwer verständlich.
+
+**Schritt 4 — Gesamtbild bewerten:**
+- Alle oder fast alle Bedürfnisse adressiert (≤1 nicht adressiert) UND Formulierungen überwiegend verständlich → E:2
+- Mehrere Bedürfnisse KOMPLETT IGNORIERT (≥2 nicht adressiert) ODER Formulierungen durchgängig schwer verständlich → E:1
+- Wesentliche Bedürfnisse systematisch nicht adressiert → E:0
+
+**Schritt 5 — Dokumentation:**
+Beginne die justification für E mit: `SCAN: [Anzahl] wesentliche Bedürfnisse identifiziert, [Anzahl] adressiert.`
+
+---
+
 ## Anweisungen
 
 Bewerte Items C und E auf Basis des gesamten Transkripts.
 
 **C** — Identifiziere alle medizinischen Fachbegriffe und prüfe ob sie proaktiv (vor Rückfrage) oder reaktiv (nach Rückfrage) erklärt wurden. Beurteile das Gesamtbild.
 
-**E** — Scanne das gesamte Transkript nach Fragen von SPEAKER_00 die die Perspektive, Sorgen oder das Verständnis der Bezugsperson explorieren. Unterscheide proaktive Exploration (SPEAKER_00 initiiert) von reaktiver Antwort. Hinweis: E bewertet Exploration; emotionale Reaktionen und Empathie gehören zu F.
+**E** — Führe zuerst den Bedürfnisscan durch (Schritte 1–5 oben). Bewerte dann E basierend auf dem Gesamtbild aller identifizierten Bedürfnisse und deren Abdeckung. E bewertet Exploration und Informationsvermittlung; emotionale Reaktionen und Empathie gehören zu F.
+
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
+
+⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel.
 
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 

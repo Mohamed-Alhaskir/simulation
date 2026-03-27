@@ -7,7 +7,7 @@
 
 ### {{ item.id }}) {{ item.name }} (0, 1 oder 2)
 
-LUCAS-Kriterien:
+Kriterien:
 {% for level, text in item.scoring_guidance.items() %}
 - **{{ level }}** {% if item.scale_labels %}({{ item.scale_labels.get(level, '') }}){% endif %}: {{ text }}
 {% endfor %}
@@ -26,11 +26,43 @@ Bewertungsanleitung:
 
 ---
 
+## Pflichtprozess — Emotionsscan für Item F (ZWINGEND vor F-Bewertung)
+
+**Schritt 1 — Vollständiger Scan:**
+Durchsuche das GESAMTE Transkript (von Anfang bis Ende) nach ALLEN Äußerungen von SPEAKER_01, die Emotionen signalisieren (Angst, Sorge, Schock, Überwältigung, Ablehnung, Trauer, Wut, Frustration, Verwirrung). Notiere JEDEN Moment mit Zeitstempel.
+
+**Schritt 2 — Für jeden Moment die Reaktion von SPEAKER_00 klassifizieren:**
+- **empathisch** — Reaktion erfüllt MINDESTENS EINES: (a) benennt ein KONKRETES Gefühl, eine KONKRETE Sorge oder Perspektive von SPEAKER_01 (z.B. "Sie machen sich Sorgen um Ihr Kind", "Das ist beängstigend", "Sie wollen ihn schützen"); (b) bietet nicht-formelhafte Perspektivübernahme die über bloßes Anerkennen hinausgeht; (c) gibt aktiv Raum zum Elaborieren (Pause, offene Nachfrage). ⚠ **ENTSCHEIDEND:** Wenn die Reaktion mit einer Standardformel BEGINNT ("Ich verstehe", "Das kann ich nachvollziehen") aber DANACH die spezifische Sorge/Perspektive von SPEAKER_01 BENENNT → das ist EMPATHISCH, nicht routiniert.
+- **routiniert** — NUR generische Quittierung OHNE Benennung spezifischer Gefühle/Sorgen (z.B. nur "Ich verstehe", nur "Das ist schwer", nur "Ja, das kann ich nachvollziehen") UND kehrt sofort zur Sachinformation zurück
+- **fehlend** — Emotion übergangen, rein sachlich geantwortet, Themenwechsel
+
+**Schritt 3 — Gesamtbild bewerten:**
+- ≥1 empathischer Moment (auch wenn andere routiniert) → F:2
+- ALLE Reaktionen nur routiniert/formelhaft → F:1
+- Emotionen überwiegend übergangen/fehlend → F:0
+
+⚠ **WICHTIG:** Scanne bis zum ENDE des Transkripts. Empathieversagen in der zweiten Hälfte (z.B. bei Eskalation, Vertrauensverlust) kann das Gesamtbild entscheidend verändern — auch wenn der Anfang empathisch war.
+
+**Schritt 4 — Dokumentation:**
+Beginne die justification für F mit: `SCAN: [Anzahl] emotionale Momente gefunden: [MM:SS] → empathisch/routiniert/fehlend; ...`
+
+---
+
 ## Anweisungen
 
-**F** — Identifiziere emotionale Äusserungen von SPEAKER_01. Prüfe jeweils die Reaktion von SPEAKER_00. F:2 vs F:1 Entscheidung: Ein einziger genuiner empathischer Moment (echte Perspektivübernahme, nicht-formelhafte Validierung) reicht für F:2, auch wenn andere Reaktionen routinierter ausfallen. F:1 nur wenn ALLE Reaktionen formelhaft bleiben. Evidence MUSS als Interaktionspaar formatiert sein: "[MM:SS] SPEAKER_01: '...' → SPEAKER_00: '...'"
+**F** — Führe zuerst den Emotionsscan durch (Schritte 1–4 oben). Bewerte dann F basierend auf dem Gesamtbild aller emotionalen Momente. Evidence MUSS als Interaktionspaar formatiert sein: "[MM:SS] SPEAKER_01: '...' → SPEAKER_00: '...'"
 
-**G** — G bewertet AKTIVE Initiative von SPEAKER_00 — nicht reaktive Antworten auf Fragen von SPEAKER_01 (das gehört zu Item E). Standard-Abschlussformeln ('Haben Sie noch Fragen?') allein begründen kein G:1.
+**G** — G bewertet drei Techniken der AKTIVEN Initiative von SPEAKER_00:
+
+(1) **Klärung** — SPEAKER_00 stellt von sich aus sicher, dass SPEAKER_01 eine Information verstanden hat (z.B. "Verstehen Sie was ich meine?", Paraphrasieren, Verständnisprüfung)
+(2) **Zusammenfassung** — SPEAKER_00 fasst von sich aus Gesprächsinhalte zusammen (z.B. "Also zusammengefasst...", Rekapitulation am Ende oder zwischen Themenblöcken)
+(3) **Einholung von Rückfragen** — SPEAKER_00 lädt SPEAKER_01 aktiv ein, Fragen zu stellen oder Bedenken zu äußern (z.B. "Haben Sie dazu Fragen?", "Gibt es etwas das Sie nochmal besprechen möchten?", "Falls Sie irgendwelche Fragen haben, dürfen Sie jederzeit nachfragen"). ⚠ Diese Einladungen sind PER DEFINITION aktive Initiative — sie zählen IMMER für G.
+
+⚠ **SELBSTKONTROLLE für G:** Die Selbstkontrolle gilt NUR für Klärung (1) und Zusammenfassung (2): Wer hat diesen Moment initiiert — SPEAKER_00 oder SPEAKER_01? Wenn SPEAKER_01 eine Frage stellte und SPEAKER_00 antwortete → das ist REAKTIV und zählt NICHT für G. Einladungen zum Nachfragen (3) sind IMMER aktive Initiative und müssen diese Prüfung NICHT bestehen.
+
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
+
+⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel.
 
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 
@@ -42,7 +74,7 @@ Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text
       "item": "{{ item.id }}",
       "rating": <0, 1 oder 2>,
       "rating_label": "<Competent|Borderline|Unacceptable>",
-      "justification": "<max 3 Sätze>",
+      "justification": "<Für F: SCAN-Ergebnis + Begründung. Für G: max 3 Sätze>",
       "evidence": ["<[MM:SS] SPEAKER_01: '...' → SPEAKER_00: '...'>"],
       "confidence": "<high|medium|low>"
     }{% if not loop.last %},{% endif %}

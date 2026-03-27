@@ -1,38 +1,100 @@
 {
   "id": "GSLP",
   "name": "Checkliste Gesprächsstruktur für die ärztliche Aufklärung nach § 630e BGB",
-  "version": "1.0",
+  "version": "1.1",
   "domain": "conversation_structuring",
-  "description": "Prüft ob alle 9 gesetzlich geforderten Aufklärungsthemen nach §630e BGB im Gespräch angesprochen wurden. Bewertet NUR die Abdeckung der Themen (Struktur), NICHT die medizinische Qualität der Inhalte. Version 1.0, 09-10-2025.",
+  "description": "Prüft ob alle 9 gesetzlich geforderten Aufklärungsthemen nach §630e BGB im Gespräch angesprochen wurden. Bewertet NUR die Abdeckung der Themen (Struktur), NICHT die medizinische Qualität der Inhalte. Version 1.1, revidiert zur Angleichung an die Original-Checkliste.",
   "reference": "Bürgerliches Gesetzbuch (BGB) – § 630e Aufklärungspflichten. 2013. p. 277.",
-  "scoring_preamble": "Vergib Score 2 wenn das Thema klar und erkennbar im Gespräch angesprochen wurde — unabhängig von der medizinischen Vollständigkeit (diese wird im Erwartungshorizont bewertet). Score 1 wenn das Thema nur am Rande oder sehr vage gestreift wurde, sodass eine informierte Einwilligung fraglich ist. Score 0 wenn das Thema vollständig fehlt. Im Zweifelsfall zwischen 1 und 2 wähle 1. Wichtig: Diese Checkliste bewertet NICHT ob die Informationen medizinisch korrekt oder vollständig waren — nur ob das Thema überhaupt adressiert wurde.\n\nGESPRÄCHSKONTEXT:\n- SPEAKER_00 = Kliniker (zu bewerten)\n- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)",
+  "scoring_preamble": "Vergib Score 2 wenn das Thema klar und erkennbar im Gespräch angesprochen wurde — unabhängig von der medizinischen Vollständigkeit (diese wird im Erwartungshorizont bewertet). Score 1 wenn das Thema nur am Rande oder sehr vage gestreift wurde, sodass eine informierte Einwilligung fraglich ist. Score 0 wenn das Thema vollständig fehlt. Im Zweifelsfall zwischen 1 und 2 wähle 1. Wichtig: Diese Checkliste bewertet NICHT ob die Informationen medizinisch korrekt oder vollständig waren — nur ob das Thema überhaupt adressiert wurde.\n\nGESPRÄCHSKONTEXT:\n- SPEAKER_00 = Kliniker (zu bewerten)\n- SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)\n\n⚠ SPEAKER-VERIFIZIERUNG (PFLICHT): Pruefe in den ersten 2 Minuten wer sich als Arzt/Aerztin vorstellt. Falls SPEAKER_01 sich als Arzt/Aerztin identifiziert und SPEAKER_00 dies NICHT tut → Sprecherbezeichnungen sind VERTAUSCHT. Bewerte dann SPEAKER_01 als Kliniker und SPEAKER_00 als Bezugsperson fuer ALLE Items.\n\n⚠ KALIBRIERUNGSHINWEIS: Vermeide sowohl Mittenkategorie-Bias (blindes Score-1-Vergeben) ALS AUCH Unterbewertung (Score 0 bei Unsicherheit).\n- Score 0 NUR wenn das Verhalten/Thema im GESAMTEN Transkript NICHT erkennbar ist.\n- Score 1 wenn das Verhalten/Thema ERKENNBAR aber UNVOLLSTÄNDIG umgesetzt/angesprochen wurde.\n- Score 2 wenn das Verhalten/Thema KLAR BELEGT ist — auch wenn nicht perfekt oder lehrbuchmäßig.\n- ZWEIFELSFALLREGEL: Wähle den Score der am besten durch konkrete Transkriptbelege gestützt wird. Score 1 ist ein VALIDER Score für teilweise vorhandenes Verhalten — wähle ihn nicht automatisch ab.\n\nSELBSTKONTROLLE vor jedem Rating:\n(a) Habe ich ein konkretes Transkriptzitat das diesen Score stützt?\n(b) Wenn rating=0: Habe ich das GESAMTE Transkript durchsucht und WIRKLICH nichts gefunden?\n(c) Wenn rating=1: Kann ich benennen was vorhanden UND was unvollständig war?\n(d) Wenn rating=2: Ist das Kernverhalten/-thema klar erkennbar — auch wenn Details fehlen?\n\nJSON-REGEL: Verwende in justification-Strings KEINE doppelten Anfuehrungszeichen. Nutze einfache Anfuehrungszeichen (') fuer Zitate innerhalb von justification.",
   "passes": [
     {
       "id": "pass1",
-      "name": "Gesprächsstruktur §630e BGB",
+      "name": "Art und Umfang",
       "type": "standard",
       "item_ids": [
         "LP_GS_1",
-        "LP_GS_2",
+        "LP_GS_2"
+      ],
+      "template": "gslp_beschreibung.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Art des Eingriffs (LP_GS_1) und Umfang der Maßnahme (LP_GS_2)."
+      }
+    },
+    {
+      "id": "pass2",
+      "name": "Durchführung und mögliche Folgen",
+      "type": "standard",
+      "item_ids": [
         "LP_GS_3",
-        "LP_GS_4",
-        "LP_GS_5",
+        "LP_GS_4"
+      ],
+      "template": "gslp_beschreibung.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Durchführung / Ablauf der Maßnahme (LP_GS_3) und mögliche unmittelbare Folgen (LP_GS_4)."
+      }
+    },
+    {
+      "id": "pass3",
+      "name": "Risiken",
+      "type": "standard",
+      "item_ids": [
+        "LP_GS_5"
+      ],
+      "template": "gslp_beschreibung.j2",
+      "max_tokens": 1500,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Risiken und Komplikationen der Maßnahme (LP_GS_5)."
+      }
+    },
+    {
+      "id": "pass4",
+      "name": "Notwendigkeit und Eignung",
+      "type": "standard",
+      "item_ids": [
         "LP_GS_6",
-        "LP_GS_7",
+        "LP_GS_7"
+      ],
+      "template": "gslp_begruendung.j2",
+      "max_tokens": 2000,
+      "context_requirements": {
+        "transcript": "full",
+        "phase_focus": "Notwendigkeit und Dringlichkeit der Maßnahme (LP_GS_6) und Eignung der LP für Diagnose/Therapie (LP_GS_7)."
+      }
+    },
+    {
+      "id": "pass5",
+      "name": "Erfolgsaussichten und Behandlungsalternativen",
+      "type": "standard",
+      "item_ids": [
         "LP_GS_8",
         "LP_GS_9"
       ],
-      "template": "gslp.j2",
-      "max_tokens": 6000,
+      "template": "gslp_begruendung.j2",
+      "max_tokens": 2000,
       "context_requirements": {
-        "transcript": "full"
+        "transcript": "full",
+        "phase_focus": "Erfolgsaussichten der Maßnahme (LP_GS_8) und Behandlungsalternativen (LP_GS_9)."
       }
+    },
+    {
+      "id": "pass6",
+      "name": "Sequenzprüfung",
+      "type": "sequence_check",
+      "item_ids": [],
+      "template": "gslp_sequence.j2",
+      "max_tokens": 1000,
+      "context_requirements": {}
     }
   ],
   "items": [
     {
       "id": "LP_GS_1",
-      "name": "Art des Eingriffs — Was ist geplant?",
+      "name": "Art des Eingriffs — Welche Behandlung / welcher Eingriff ist geplant?",
       "category": "Art",
       "scale": [
         0,
@@ -44,7 +106,7 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Benennt welche Behandlung oder welcher Eingriff geplant ist.",
+      "description": "Art — Welche Behandlung / welcher Eingriff ist geplant?",
       "scoring_guidance": {
         "2": "Eingriff explizit benannt — Lumbalpunktion, LP, Nervenwasserpunktion oder gleichwertige Umschreibung. Bezugsperson kann schließen was konkret durchgeführt wird.",
         "1": "Eingriff nur sehr vage umschrieben (z.B. 'wir müssen eine Untersuchung machen') ohne klare Benennung.",
@@ -67,7 +129,7 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Erklärt in welchem Ausmaß die Maßnahme durchgeführt wird.",
+      "description": "Umfang — In welchem Ausmaß wird die Maßnahme durchgeführt?",
       "scoring_guidance": {
         "2": "Mindestens ein konkreter Aspekt des Umfangs erkennbar angesprochen: Dauer, Menge des entnommenen Liquors, oder Wundversorgung danach.",
         "1": "Umfang nur sehr allgemein angedeutet (z.B. 'das geht schnell') ohne jeden konkreten Anhaltspunkt.",
@@ -90,12 +152,15 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Beschreibt den Ablauf der Maßnahme (Technik, Betäubung, Schritte, Dauer).",
+      "description": "Durchführung — Wie läuft die Maßnahme ab? (Technik, Narkose, Schritte, Dauer)",
       "scoring_guidance": {
-        "2": "Ablauf erkennbar beschrieben — mindestens zwei Aspekte des Vorgehens angesprochen (z.B. Lagerung, Betäubung, Einstichstelle, Nadeleinführung).",
-        "1": "Ablauf nur sehr oberflächlich angedeutet — ein Aspekt erwähnt ohne weitere Erklärung.",
+        "2": "Ablauf erkennbar beschrieben — mindestens ZWEI verschiedene Aspekte des Vorgehens INHALTLICH beschrieben (z.B. Lagerung UND Einstichtechnik, oder Narkose UND Schrittfolge, oder Dauer UND Technik). Die Beschreibung muss UEBER eine reine Erwaehnung hinausgehen. Blosse Erwaehnung OHNE Erklaerung → Score 1. NUR EIN Aspekt inhaltlich beschrieben → Score 1.",
+        "1": "Ablauf nur sehr oberflaechlich angedeutet — ein Aspekt erwaehnt ohne erklaerende Details. Hierzu zaehlt auch eine reine Erwaehnung von Betaeubung/Narkose ohne Beschreibung des eigentlichen Ablaufs.",
         "0": "Ablauf des Eingriffs nicht thematisiert."
       },
+      "evaluation_notes": [
+        "Score 2 erfordert dass die Bezugsperson einen EINDRUCK bekommt wie der Ablauf KONKRET aussieht — nicht nur dass etwas gemacht wird. Erwaehnung dass eine Narkose/Betaeubung erfolgt ALLEIN ist kein Score 2 sondern Score 1, weil es den Ablauf nicht beschreibt."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -113,12 +178,16 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Benennt häufige unmittelbare Wirkungen und Nebenwirkungen.",
+      "description": "Mögliche Folgen — Welche unmittelbaren Wirkungen sind wahrscheinlich?",
       "scoring_guidance": {
-        "2": "Mindestens eine häufige Folge oder Nebenwirkung des Eingriffs erkennbar thematisiert (z.B. Schmerz an der Einstichstelle, Kopfschmerz, Rückenschmerz).",
-        "1": "Mögliche Folgen nur vage angedeutet (z.B. 'das kann ein bisschen unangenehm sein') ohne konkrete Benennung.",
-        "0": "Mögliche unmittelbare Folgen nicht thematisiert."
+        "2": "Mindestens eine haeufige Folge oder Nebenwirkung des Eingriffs KONKRET und INHALTLICH thematisiert — die Nebenwirkung muss NAMENTLICH benannt werden (z.B. 'Kopfschmerzen nach der Punktion', 'Schmerzen an der Einstichstelle', 'Uebelkeit'). Eine blosse vage Andeutung ('das kann unangenehm sein', 'es kann ein bisschen wehtun') ohne konkrete Benennung einer SPEZIFISCHEN Folge → Score 1, nicht Score 2.",
+        "1": "Moegliche Folgen nur vage angedeutet (z.B. 'das kann ein bisschen unangenehm sein', 'es kann wehtun') ohne KONKRETE Benennung einer spezifischen Nebenwirkung.",
+        "0": "Moegliche unmittelbare Folgen nicht thematisiert."
       },
+      "evaluation_notes": [
+        "ABGRENZUNG Score 1 vs Score 2: 'Es kann wehtun' oder 'das ist unangenehm' → Score 1. 'Es koennen Kopfschmerzen auftreten' oder 'die Einstichstelle kann schmerzen' → Score 2. Der Unterschied ist ob eine SPEZIFISCHE Folge namentlich benannt wird.",
+        "⚠ ABGRENZUNG GS_4 (Folgen) vs GS_5 (Risiken): GS_4 bewertet HAEUFIGE und UNMITTELBARE Folgen — Dinge die WAHRSCHEINLICH passieren (z.B. postpunktioneller Kopfschmerz, lokaler Schmerz an der Einstichstelle, kurzfristige Uebelkeit, Liegebeduerftigkeit). GS_5 bewertet SELTENE Komplikationen (z.B. Infektion, Blutung, Nervenschaden, Sensibilitaetsstoerungen). Wenn der Kliniker NUR seltene Komplikationen benennt (Infektion, Blutung, Nervenverletzung) aber KEINE haeufigen unmittelbaren Folgen → Score 1 fuer GS_4, Score 2 fuer GS_5."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -136,7 +205,7 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Benennt mögliche Komplikationen und Risiken des Eingriffs.",
+      "description": "Risiken — Welche Komplikationen können auftreten?",
       "scoring_guidance": {
         "2": "Mindestens eine seltene Komplikation erkennbar thematisiert — Bezugsperson erhält einen Eindruck dass ernsthafte Risiken existieren (z.B. Infektion, Blutung, neurologische Ausfälle).",
         "1": "Risiken nur sehr vage erwähnt (z.B. 'in seltenen Fällen kann etwas schiefgehen') ohne Benennung einer konkreten Komplikation.",
@@ -147,7 +216,7 @@
     },
     {
       "id": "LP_GS_6",
-      "name": "Notwendigkeit und Dringlichkeit — Warum ist die Maßnahme erforderlich?",
+      "name": "Notwendigkeit und Dringlichkeit — Warum ist die Maßnahme erforderlich? Muss sie sofort erfolgen?",
       "category": "Notwendigkeit und Dringlichkeit",
       "scale": [
         0,
@@ -159,12 +228,16 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Erklärt warum die Maßnahme erforderlich ist und ob sie dringend durchgeführt werden muss.",
+      "description": "Notwendigkeit und Dringlichkeit — Warum ist die Maßnahme erforderlich? Muss sie sofort erfolgen?",
       "scoring_guidance": {
-        "2": "Sowohl Notwendigkeit (warum braucht das Kind diesen Eingriff jetzt) als auch Dringlichkeit (warum zeitkritisch / was passiert ohne sofortige Behandlung) klar und explizit benannt — nicht nur vage angedeutet. Beide Elemente muessen im Transkript belegbar sein.",
-        "1": "Nur Notwendigkeit ODER nur Dringlichkeit thematisiert, nicht beides. ODER: Beide Elemente erwaehnt, aber jeweils so vage ('das muss jetzt sein', 'das ist wichtig'), dass kein klarer Inhalt vermittelt wird.",
-        "0": "Weder Notwendigkeit noch Dringlichkeit thematisiert — oder ausschliesslich vage Phrasen ohne jeden erklaerenden Inhalt."
+        "2": "Sowohl Notwendigkeit (warum braucht das Kind diesen Eingriff jetzt) als auch Dringlichkeit (warum zeitkritisch / muss sie sofort erfolgen / was passiert ohne sofortige Behandlung) klar und explizit benannt — nicht nur vage angedeutet. Beide Elemente müssen im Transkript belegbar sein.",
+        "1": "Notwendigkeit oder Dringlichkeit nur vage angedeutet ('das muss jetzt sein', 'das ist wichtig') ohne klaren erklärenden Inhalt.",
+        "0": "Weder Notwendigkeit noch Dringlichkeit thematisiert — oder ausschließlich vage Phrasen ohne jeden erklärenden Inhalt."
       },
+      "evaluation_notes": [
+        "Score 2 wenn der Kliniker erkennbar begründet hat WARUM der Eingriff nötig ist ODER WARUM er zeitkritisch ist. Beides explizit ist ideal, aber eines reicht wenn das Gesamtbild der Aufklärung schlüssig ist.",
+        "Notwendigkeit = WARUM der Eingriff noetig ist (medizinische Begruendung). Dringlichkeit = WARUM er JETZT/SOFORT erfolgen muss (Zeitkritikalitaet, Konsequenzen bei Verzoegerung)."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -182,12 +255,15 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Erklärt warum die Maßnahme für die Diagnose oder Therapie geeignet ist.",
+      "description": "Eignung — Ist die Maßnahme für die Diagnose/Therapie geeignet?",
       "scoring_guidance": {
         "2": "Eignung der Lumbalpunktion für den konkreten Verdacht erkennbar begründet — Bezugsperson versteht warum gerade diese Maßnahme sinnvoll ist.",
         "1": "Eignung nur pauschal behauptet (z.B. 'das ist die beste Methode') ohne erkennbare Begründung.",
         "0": "Eignung der Maßnahme nicht thematisiert."
       },
+      "evaluation_notes": [
+        "HINWEIS: Jede Erklärung die einen Zusammenhang zwischen LP und dem konkreten Verdacht herstellt zählt als Begründung — z.B. 'um zu schauen ob eine Hirnhautentzündung vorliegt müssen wir das Nervenwasser untersuchen'. Der Kliniker muss nicht explizit das Wort 'geeignet' verwenden."
+      ],
       "critical": false,
       "type": "standard"
     },
@@ -205,18 +281,21 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Erklärt die Erfolgsaussichten der Maßnahme.",
+      "description": "Erfolgsaussichten — Welche Chancen bestehen auf Besserung oder Heilung?",
       "scoring_guidance": {
-        "2": "Erfolgsaussichten konkret und inhaltlich erklaert: entweder (a) diagnostischer Nutzen der LP spezifisch beschrieben (z.B. direkter Erregernachweis moeglich, Unterscheidung viral/bakteriell) ODER (b) Behandlungserfolg nach Diagnosestellung erklaert mit konkretem Inhalt (z.B. Antibiotika zielen genau auf den Erreger). Vage Formulierungen wie 'dann koennen wir hoffentlich helfen' ohne erklaerenden Inhalt genuegen nicht fuer Score 2.",
-        "1": "Erfolgsaussichten nur vage angedeutet (z.B. 'dann koennen wir hoffentlich helfen', 'das sollte klappen') ohne konkreten erklaerenden Inhalt. ODER: Diagnostischer Nutzen oder Behandlungserfolg erwaehnt, aber so oberflaechilich, dass kein realer Informationsgewinn entsteht.",
+        "2": "Erfolgsaussichten konkret und inhaltlich erklärt: entweder (a) diagnostischer Nutzen der LP spezifisch beschrieben (z.B. direkter Erregernachweis möglich, Unterscheidung viral/bakteriell) ODER (b) Behandlungserfolg nach Diagnosestellung erklärt mit konkretem Inhalt (z.B. Antibiotika zielen genau auf den Erreger). Vage Formulierungen wie 'dann können wir hoffentlich helfen' ohne erklärenden Inhalt genügen nicht für Score 2.",
+        "1": "Erfolgsaussichten nur vage angedeutet (z.B. 'dann können wir hoffentlich helfen', 'das sollte klappen') ohne jeden erkennbaren Inhalt.",
         "0": "Erfolgsaussichten nicht thematisiert."
       },
+      "evaluation_notes": [
+        "SELBSTKONTROLLE fuer Score 2: Gibt der Kliniker einen erkennbaren Eindruck davon was die LP leisten kann? Allgemeine Aussagen wie 'dann koennen wir behandeln' genuegen wenn ein inhaltlicher Bezug zur Diagnostik oder Therapie erkennbar ist."
+      ],
       "critical": false,
       "type": "standard"
     },
     {
       "id": "LP_GS_9",
-      "name": "Behandlungsalternativen — Gibt es gleichwertige Alternativen?",
+      "name": "Behandlungsalternativen — Gibt es mehrere gleichwertige Methoden mit unterschiedlichen Belastungen, Risiken oder Heilungschancen?",
       "category": "Behandlungsalternativen",
       "scale": [
         0,
@@ -228,12 +307,15 @@
         "1": "Ansatz",
         "2": "Vollständig"
       },
-      "description": "Thematisiert ob es Alternativen zur geplanten Maßnahme gibt.",
+      "description": "Behandlungsalternativen — Gibt es mehrere gleichwertige Methoden mit unterschiedlichen Belastungen, Risiken oder Heilungschancen?",
       "scoring_guidance": {
-        "2": "Frage nach gleichwertigen Alternativen explizit und inhaltlich beantwortet: entweder (a) konkrete Alternative genannt UND erklaert warum sie nicht gleichwertig ist (z.B. Bildgebung zeigt keine Erreger im Liquor), ODER (b) explizit und begruendet kommuniziert, dass keine gleichwertige Alternative existiert — mit inhaltlicher Erklaerung, nicht nur als Behauptung ('es gibt nichts anderes').",
-        "1": "Alternativen nur am Rande erwaehnt ohne inhaltliche Erklaerung (z.B. 'es gibt eigentlich nichts anderes') ODER eine Alternative genannt ohne zu erklaeren warum sie nicht gleichwertig ist.",
+        "2": "Alternativen thematisiert — Kliniker erklaert entweder eine Alternative ODER begruendet warum es keine gleichwertige gibt. WICHTIG: Aussagen wie 'das kann man nur ueber diese Punktion herausfinden', 'es gibt kein anderes Verfahren' oder 'die LP ist die einzige Moeglichkeit' SIND Thematisierungen von Alternativen (durch Erklaerung der Alternativlosigkeit). Jede inhaltliche Erklaerung die vermittelt warum die LP unersetzlich ist zaehlt als Score 2.",
+        "1": "Alternativlosigkeit nur beilaeufig erwaehnt ohne inhaltliche Erklaerung (z.B. nur 'es gibt nichts anderes' als Behauptung ohne jede Begruendung warum die LP unersetzlich ist).",
         "0": "Behandlungsalternativen nicht thematisiert."
       },
+      "evaluation_notes": [
+        "HINWEIS: Die Aussage 'es gibt keine gleichwertige Alternative' oder 'die LP ist das einzige Verfahren' IST eine Thematisierung von Alternativen wenn sie mit einer Begründung versehen ist → Score 2. Ohne Begründung → Score 1. Scanne das gesamte Transkript — Alternativen können auch im Kontext der Eignung oder der Diagnostik besprochen werden."
+      ],
       "critical": false,
       "type": "standard"
     }

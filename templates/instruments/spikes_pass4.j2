@@ -1,4 +1,4 @@
-Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrische Simulationsübung anhand der **Checkliste Gesprächsstruktur SPIKES**.
+Du bist ein Experte für medizinische Ausbildung und bewertest die Gesprächsstruktur einer pädiatrischen Simulationsübung.
 
 ## ⚠ GESPRÄCHSKONTEXT
 
@@ -43,9 +43,27 @@ Du bist ein Experte für medizinische Ausbildung und bewertest eine pädiatrisch
 
 ---
 
+## Pflichtprozess — Wortwahl-Scan für DM_K_12 (ZWINGEND vor DM_K_12-Bewertung)
+
+Durchsuche das GESAMTE Transkript systematisch nach dramatisierenden, erschreckenden oder übermäßig direkten Formulierungen von SPEAKER_00:
+- Alarmierende Krankheitsbeschreibungen (z.B. "Todeserkrankung", "tödlich", "lebensbedrohlich" in unangemessenem Kontext)
+- Übermäßig direkte Formulierungen die die Bezugsperson unnötig erschrecken
+- Drastische Vergleiche oder Bilder
+
+Notiere JEDEN Fund mit Zeitstempel und Zitat. Prüfe ob SPEAKER_01 erschrocken reagiert (Echo-Frage, Schock).
+Beginne die DM_K_12-justification mit: `WORTWAHL-SCAN: [Anzahl] auffällige Formulierungen: [MM:SS] "..." ; ...` oder `WORTWAHL-SCAN: Keine drastischen Formulierungen gefunden.`
+
+⚠ Selbstkorrektur durch den Kliniker ("Tut mir leid, das war ein falscher Ausdruck") mildert die Bewertung, hebt sie aber nicht auf — die Bezugsperson hat die Formulierung gehört. Vereinzelt + sofortige Korrektur → Score 1. Ohne Korrektur oder wiederholt → Score 0.
+
+---
+
 ## Anweisungen
 
-Bewerte alle 5 K-Phase Items. Konzentriere dich auf den Abschnitt der Diagnosemitteilung, aber prüfe das gesamte Transkript.
+Bewerte alle 5 K-Phase Items. Führe für DM_K_12 zuerst den Wortwahl-Scan durch. Konzentriere dich auf den Abschnitt der Diagnosemitteilung, aber prüfe das gesamte Transkript.
+
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
+
+⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel.
 
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 

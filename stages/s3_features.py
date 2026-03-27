@@ -1,5 +1,5 @@
 """
-Stage 4: Feature Extraction
+Stage 3: Feature Extraction
 =============================
 Extracts structured features from the diarized transcript:
   - Turn-taking patterns (who speaks when, how long)

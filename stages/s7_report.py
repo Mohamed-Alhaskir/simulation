@@ -1,5 +1,5 @@
 """
-Stage 6: Standardized Report Generation
+Stage 7: Standardized Report Generation
 =========================================
 Renders the LUCAS + SPIKES LLM analysis into the standardized feedback
 report format.

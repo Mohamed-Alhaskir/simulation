@@ -1,23 +1,23 @@
 {
   "scenarios": {
     "Diabetes": {
-      "instruments": ["SPIKES", "LUCAS", "Diabetes_CC"],
-      "display_name": "Diagnoseübermittlung Diabetes Mellitus Typ 1"
+      "instruments": ["LUCAS", "SPIKES", "Diabetes_CC"],
+      "display_name": "Diagnoseübermittlung Diabetes Mellitus Typ 1",
+      "scenario_context": {
+        "setting": "Diagnoseübermittlung Diabetes Mellitus Typ 1 bei einem pädiatrischen Patienten (Erstmanifestation)"
+      }
     },
     "LP_Aufklaerung": {
       "instruments": ["LUCAS", "GSLP", "LP_Aufklaerung"],
-      "display_name": "LP-Aufklärung bei V.a. Meningitis"
-    },
-    "Bauchschmerzen": {
-      "instruments": ["LUCAS"],
-      "display_name": "Bauchschmerzen – Anamnese bei akutem abdominalem Schmerz"
+      "display_name": "LP-Aufklärung bei V.a. Meningitis",
+      "scenario_context": {
+        "setting": "Einwilligungsgespräch für eine Lumbalpunktion bei Verdacht auf Meningitis"
+      }
     }
   },
   "sessions": {
     "session_001": "LP_Aufklaerung",
-    "session_002": "Bauchschmerzen",
     "session_003": "LP_Aufklaerung",
-    "session_004": "Bauchschmerzen",
     "session_005": "LP_Aufklaerung",
     "session_006": "LP_Aufklaerung",
     "session_007": "Diabetes",

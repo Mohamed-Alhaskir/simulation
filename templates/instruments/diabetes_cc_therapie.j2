@@ -5,24 +5,36 @@ Deine Aufgabe ist es, den **klinischen Inhalt** eines Gesprächs zur Diagnoseüb
 
 Das Gespräch findet **NICHT** direkt mit dem Patienten statt.
 Der Kliniker (SPEAKER_00) spricht ausschließlich mit einer **Bezugsperson des Patienten** (SPEAKER_01) — in der Regel einem Elternteil oder Angehörigen.
-Der Patient selbst ist **abwesend** oder nicht gesprächsfähig.
 
 - SPEAKER_00 = Kliniker (zu bewerten)
 - SPEAKER_01 = Bezugsperson / Angehöriger (nicht zu bewerten)
 
 **Szenario:** Diagnoseübermittlung Typ-1-Diabetes mellitus bei einem pädiatrischen Patienten (Diabetische Ketoazidose bei Erstmanifestation).
-Die Bezugsperson muss nach dem Gespräch die Diagnose, ihre Ursache, ihre Konsequenzen und die Therapiegrundlage verstanden haben.
 
 ---
 
 ## ⚠ WICHTIGE ABGRENZUNG
 
 Bewertest du AUSSCHLIESSLICH den **klinischen Inhalt** — Korrektheit und Vollständigkeit medizinischer Aussagen.
-Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet (LUCAS, SPIKES).
+Kommunikationsstil, Empathie und Gesprächsführung werden separat bewertet.
 
 Unterscheide:
 - **Fehlt (0):** Thema wurde nicht angesprochen
 - **Klinisch falsch (0):** Aussage inhaltlich falsch oder irreführend → beginne justification mit **"FALSCH:"**
+
+---
+
+## Abschnittskontext — Therapieprinzipien im Alltag (SP-Frage D)
+
+⚠ **Dieser Abschnitt bewertet die Vermittlung der Therapieprinzipien:**
+- Chronizität und lebenslange Insulinpflicht — ohne Insulin keine Überlebensfähigkeit (DM_D_9)
+- Insulintherapie im Alltag — Basis-Bolus-Prinzip, Pen, Pumpe (DM_D_10)
+- Technologische Unterstützung — CGM, AID-Systeme (DM_D_11)
+- Kohlenhydratbewusste Ernährung — keine klassische Diät (DM_D_12)
+- Sport und Bewegung ausdrücklich empfohlen, mit Anpassung (DM_D_13)
+- Schulung und psychosoziale Unterstützung (DM_D_14)
+
+Schlüsselfrage: Hat die Bezugsperson ein realistisches Bild wie der Alltag mit Typ-1-Diabetes aussieht?
 
 ---
 
@@ -47,18 +59,18 @@ Durchsuche das GESAMTE Transkript, konzentriere dich aber besonders auf Gespräc
 {% for item in items %}
 ---
 
-### {{ item.id }} — {{ item.name }}{% if item.critical %} [KRITISCH]{% endif %}{% if item.get('type') == 'conditional' %} [KONDITIONAL]{% endif %}
+### {{ item.id }} — {{ item.name }}{% if item.critical %} [KRITISCH]{% endif %}
 
 {{ item.description }}
-
-{% if item.get('type') == 'conditional' %}
-**Bedingung:** {{ item.condition }}
-Wenn die Bedingung NICHT eingetreten ist → rating: "NA"
-{% endif %}
 
 {% for level, text in item.scoring_guidance.items() %}
 - **{{ level }}**: {{ text }}
 {% endfor %}
+{% if item.get('evaluation_notes') %}
+{% for note in item.evaluation_notes %}
+*Hinweis:* {{ note }}
+{% endfor %}
+{% endif %}
 {% endfor %}
 
 ---
@@ -71,12 +83,14 @@ Wenn die Bedingung NICHT eingetreten ist → rating: "NA"
 
 ## Anweisungen
 
-Bewerte jedes Item auf der 0/1/2/NA-Skala gemäß den Bewertungshinweisen oben.
+Bewerte jedes Item auf der 0/1/2-Skala gemäß den Bewertungshinweisen oben.
 
 Für jedes Item:
-- **rating**: 0, 1, 2 oder "NA"
+- **rating**: 0, 1 oder 2
 - **justification**: Ein Satz. Bei Score 0 wegen aktivem Fehler: beginne mit "FALSCH:". Bei Score 0 wegen Fehlen: beginne mit "Fehlt:". Bei Score 1: benenne explizit was vorhanden war UND was fehlte.
 - **evidence**: 1–2 Transkriptzitate mit Zeitstempel [MM:SS] die das Rating belegen. Bei Score 0 wegen Fehlen: "kein Beleg — nicht erwähnt".
+
+⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN medizinisches Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
 
 ⚠ **Transkriptbindung:** Jedes evidence-Zitat MUSS einem tatsächlichen Segment im Transkript oben entsprechen. Erlaubte Zeitstempel sind ausschließlich die im Transkript erscheinenden Zeiten. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel — schreibe stattdessen: `"kein direktes Zitat — [kurze Beschreibung]"`
 
@@ -88,11 +102,11 @@ Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text
     {
       "id": "{{ item.id }}",
       "name": "{{ item.name }}",
-      "rating": <0, 1, 2 oder "NA">,
+      "rating": <0, 1 oder 2>,
       "justification": "<ein Satz>",
       "evidence": ["<[MM:SS] 'Zitat'>"]
     }{% if not loop.last %},{% endif %}
 {% endfor %}
   ],
-  "overall_clinical_note": "<2–3 Sätze klinische Gesamtbewertung>"
+  "overall_clinical_note": "<2–3 Sätze klinische Gesamtbewertung der Therapievermittlung>"
 }
