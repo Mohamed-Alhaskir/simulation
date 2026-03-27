@@ -1,0 +1,84 @@
+Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)
+
+Copyright (c) 2025-2026 Mohamed Alhaskir, Hannah Haven, Jonas Bienzeisler
+RWTH Aachen University, Medical Informatics
+
+This work is licensed under the Creative Commons Attribution-NonCommercial
+4.0 International License. To view a copy of this license, visit:
+
+    https://creativecommons.org/licenses/by-nc/4.0/
+
+You are free to:
+
+  - Share: copy and redistribute the material in any medium or format
+  - Adapt: remix, transform, and build upon the material
+
+Under the following terms:
+
+  - Attribution: You must give appropriate credit, provide a link to the
+    license, and indicate if changes were made. You may do so in any
+    reasonable manner, but not in any way that suggests the licensor
+    endorses you or your use.
+
+  - NonCommercial: You may not use the material for commercial purposes
+    without prior written permission from the copyright holders.
+    Commercial purposes include, but are not limited to, selling the
+    software, incorporating it into commercial products, or using it to
+    provide commercial services. For commercial licensing inquiries,
+    contact the authors at RWTH Aachen University.
+
+  - No additional restrictions: You may not apply legal terms or
+    technological measures that legally restrict others from doing
+    anything the license permits.
+
+Notices:
+
+  You do not have to comply with the license for elements of the material
+  in the public domain or where your use is permitted by an applicable
+  exception or limitation.
+
+  No warranties are given. The license may not give you all of the
+  permissions necessary for your intended use. For example, other rights
+  such as publicity, privacy, or moral rights may limit how you use the
+  material.
+
+--------------------------------------------------------------------------------
+
+THIRD-PARTY ASSESSMENT FRAMEWORKS
+
+The assessment instruments implemented in this pipeline are based on
+published frameworks and are subject to their own licensing terms:
+
+  - LUCAS (Liverpool Undergraduate Communication Assessment Scale):
+    Developed by the University of Liverpool. Contact UoL for licensing
+    terms. The instrument definitions in this repository are adapted for
+    automated scoring research and do not constitute the original scale.
+
+  - SPIKES Protocol:
+    Published in Baile et al. (2000), The Oncologist 5(4), 302-311.
+    Used under academic fair use for research purposes.
+
+  - Informed Consent Structure (GSLP):
+    Based on requirements defined in Section 630e of the German Civil Code
+    (Buergerliches Gesetzbuch). Legal text is in the public domain.
+
+These instrument definitions are provided for research reproducibility
+only. Redistribution of the instrument definitions separately from this
+pipeline may require separate permissions from the respective rights holders.
+
+--------------------------------------------------------------------------------
+
+DISCLAIMER
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE.
+
+This pipeline is designed for research purposes in medical education. It
+does not constitute medical advice and must not be used as a sole basis
+for clinical decision-making. The automated assessments augment, but do
+not replace, qualified instructor-led evaluation.

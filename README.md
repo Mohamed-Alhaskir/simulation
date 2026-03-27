@@ -6,17 +6,18 @@
   <img src="https://img.shields.io/badge/Ethics-S--44%2F2025-orange" alt="Ethics S-44/2025"/>
   <img src="https://img.shields.io/badge/Language-German-lightgrey" alt="Language: German"/>
   <img src="https://img.shields.io/badge/Inference-Local%20LLM-purple" alt="Local LLM"/>
+  <img src="https://img.shields.io/badge/License-CC%20BY--NC%204.0-lightgrey" alt="CC BY-NC 4.0"/>
 </p>
 
 ---
 
 ## Abstract
 
-We present a deterministic, reproducible pipeline for automated assessment of communication and clinical competency in paediatric simulation training. The system processes composite audiovisual recordings from standardised patient scenarios and generates structured feedback reports grounded in validated assessment frameworks — the **LUCAS communication scale** (University of Liverpool, 10 items, max 18 points), the **SPIKES bad-news delivery protocol** (Baile et al., 2000), and **scenario-specific clinical content rubrics** aligned with §630e BGB informed-consent requirements.
+We present a deterministic, reproducible pipeline for automated assessment of communication and clinical competency in paediatric simulation training. The system processes composite audiovisual recordings from standardised patient scenarios and generates structured feedback reports grounded in validated assessment frameworks — the **LUCAS communication scale** (University of Liverpool, 10 items, max 18 points), the **SPIKES bad-news delivery protocol** (Baile et al., 2000), and **scenario-specific clinical content rubrics** (informed-consent structure, clinical quality, and disease-specific knowledge).
 
-The pipeline integrates automatic speech recognition with speaker diarization (Whisper large-v3 + Pyannote), non-verbal behaviour analysis (MediaPipe computer vision), and multi-pass large language model inference (Qwen2.5-32B-Instruct, temperature = 0, seed = 42). All model weights, prompts, configuration, and random seeds are cryptographically locked in a **freeze manifest** prior to confirmatory analysis, ensuring full auditability and reproducibility in a clinical research context.
+The pipeline integrates automatic speech recognition with speaker diarization (Whisper large-v3 + NeMo TitaNet via [whisper-diarization](https://github.com/MahmoudAshraf97/whisper-diarization)), non-verbal behaviour analysis (MediaPipe computer vision), and multi-pass large language model inference (Qwen2.5-32B-Instruct, temperature = 0, seed = 42). All model weights, prompts, configuration, and random seeds are cryptographically locked in a **freeze manifest** prior to confirmatory analysis, ensuring full auditability and reproducibility in a clinical research context.
 
-> **Study context:** Prospective evaluation at the **RWTH Aachen Universtiy** (Medical Informatics). Ethics committee reference: **S-44/2025**. The pipeline augments — but does not replace — instructor-led debriefings.
+> **Study context:** Prospective evaluation at the **RWTH Aachen University** (Medical Informatics). Ethics committee reference: **S-44/2025**.
 
 ---
 
@@ -42,7 +43,7 @@ Medical simulation training relies on structured debriefing to translate simulat
 
 This pipeline addresses three core challenges:
 
-1. **Multimodal evidence integration** — Communication quality depends on verbal content, vocal delivery, and non-verbal behaviour simultaneously. The system combines ASR-derived transcripts, verbal interaction metrics, and MediaPipe-extracted gaze/posture/gesture data into a single structured context before any LLM inference.
+1. **Multimodal evidence integration** — Communication quality depends on verbal content and non-verbal behaviour simultaneously. The system combines ASR-derived transcripts, verbal interaction metrics, and MediaPipe-extracted gaze/positioning/posture data into a single structured context before any LLM inference.
 
 2. **Assessment framework fidelity** — Rather than holistic LLM judgement, all scoring is grounded in published frameworks with explicit rubrics, mandatory evidence requirements, and programmatic hard-rule validators that override LLM outputs when metric thresholds are violated.
 
@@ -71,7 +72,7 @@ INPUT: data/raw/session_XXX/recording.mp4
           ┌──────────────▼──────────────┐
           │  02 · ASR & DIARIZATION      │
           │  Whisper large-v3            │
-          │  Pyannote 3.1 · LLM relabel  │
+          │  NeMo TitaNet diarization    │
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
@@ -83,15 +84,15 @@ INPUT: data/raw/session_XXX/recording.mp4
           ┌──────────────▼──────────────┐
           │  04 · VIDEO ANALYSIS         │
           │  MediaPipe: Face/Pose/Hands  │
-          │  Gaze · Posture · Gestures   │
+          │  Gaze · Positioning · Posture│
           │  Person-relative baselines   │
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
           │  05 · LLM ANALYSIS           │
-          │  Pass 1: SPIKES annotation   │  ← Diabetes only
-          │  Pass 2: LUCAS (7 sub-passes)│  ← All scenarios
-          │  Pass 3: Clinical content    │  ← Per module
+          │  LUCAS  (7 passes, all)      │
+          │  SPIKES (7 passes, Diabetes) │
+          │  Clinical content (per-scen.)│
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
@@ -125,7 +126,7 @@ Ten items rated A–J, **maximum total 18 points**. Applied to **all scenarios**
 | I | Professional | Professional behaviour | 2 | 0/2 only |
 | J | Professional | Professional spoken conduct | 2 | 0/2 only |
 
-Scoring for Item D derives exclusively from MediaPipe non-verbal behaviour metrics (gaze rate, arm openness, posture deviation, hand movement periodicity). Items I and J are binary (no borderline score). LLM scoring uses a **7-pass decomposition** (`LucasMultipassScorer`) rather than a single monolithic prompt, with programmatic validators enforcing metric-based thresholds after each sub-pass.
+Item D scoring derives from MediaPipe non-verbal behaviour metrics (D1 eye contact via iris tracking, D2 positioning via rolling Hough horizon, D3 posture via arm openness baseline). Items I and J are binary (0 or 2, no borderline score). Item I incorporates video-derived demeanour cues as supplementary evidence alongside the transcript. LLM scoring uses a **7-pass decomposition** rather than a single monolithic prompt, with programmatic validators enforcing metric-based thresholds after each sub-pass. All LLM prompts include anti-hallucination safeguards (QUELLENREGEL: transcript-only evidence, Transkriptbindung: no fabricated timestamps).
 
 ### SPIKES Protocol (Baile et al., 2000)
 
@@ -142,13 +143,13 @@ Six-step framework for bad-news delivery. Applied to **Diabetes diagnosis** scen
 
 ### Clinical Content Rubrics
 
-Scenario-specific checklists evaluating **medical accuracy and completeness**, scored 0/1/2/NA per item. Applied per-scenario via separate LLM calls:
+Scenario-specific checklists evaluating **medical accuracy and completeness**, scored 0/1/2/NA per item. Applied per-scenario via multi-pass LLM calls:
 
-| Scenario | Modules | Items |
-|----------|---------|-------|
-| LP\_Aufklaerung | GSLP (§630e structural) + LP\_Aufklaerung (clinical quality) | 9 + 9 |
-| Bauchschmerzen | Bauchschmerzen (history-taking) | 10 |
-| Diabetes | Diabetes (T1DM diagnosis disclosure) | 20 |
+| Scenario | Instruments | Passes | Description |
+|----------|-------------|--------|-------------|
+| LP\_Aufklaerung | GSLP (structural) | 3 | Beschreibung, Begründung, Sequenzprüfung |
+| LP\_Aufklaerung | LP\_Aufklaerung (clinical quality) | 3 | Beschreibung, Begründung, Risiken |
+| Diabetes | Diabetes\_CC (clinical content) | 5 | Pathophysiologie, Diagnostik, Therapie, Schuldfrage, Komplikationen |
 
 ---
 
@@ -185,10 +186,16 @@ huggingface-cli download Qwen/Qwen2.5-72B-Instruct-GGUF \
 
 Update `config/pipeline_config.yaml` → `llm.model_path` accordingly.
 
-**Pyannote** — speaker diarization requires accepting model terms on HuggingFace:
+**Whisper-diarization** — clone the diarization pipeline:
 
-1. Accept terms at [pyannote/speaker-diarization-3.1](https://huggingface.co/pyannote/speaker-diarization-3.1)
-2. Export your token: `export HF_TOKEN=hf_your_token_here`
+```bash
+git clone https://github.com/MahmoudAshraf97/whisper-diarization.git
+cd whisper-diarization
+conda env create -f environment.yml
+conda activate whisper-diarization
+```
+
+Update `config/pipeline_config.yaml` -> `asr.diarization.repo_path` to the clone path.
 
 ---
 
@@ -254,7 +261,7 @@ All parameters live in [`config/pipeline_config.yaml`](config/pipeline_config.ya
 
 | Section | Key parameters |
 |---------|---------------|
-| `asr` | `model_name` (large-v3), `device` (cuda/cpu), `compute_type`, `beam_size`, diarization on/off, `num_speakers` |
+| `asr` | `model_name` (large-v3), `device` (cuda/cpu), `compute_type`, `beam_size`, `suppress_numerals`, diarization settings (`batch_size`, `temperature`, `no_stem`) |
 | `llm` | `backend` (llama\_cpp / vllm), `model_path`, `temperature` (0.0), `seed` (42), `context_length`, `repeat_penalty` |
 | `video_analysis` | `enabled`, `sample_fps`, detection/tracking confidence thresholds, `calibration_seconds` |
 | `features` | `pause_threshold_s`, `compute_interruptions` |
@@ -281,20 +288,21 @@ data/reports/session_001/
 │   └── features.json                    # Turn-taking, pauses, phases, response latencies
 │
 ├── 04_video_analysis/
-│   ├── video_features.json              # D1–D5 NVB metrics with reliability ratings
+│   ├── video_features.json              # D1–D3 NVB metrics with reliability ratings
 │   └── annotated_video.mp4              # Frame-annotated video (optional)
 │
 ├── 05_analysis/
-│   ├── assembled_context.json           # Ground truth: exact LLM input (reproducibility)
-│   ├── spikes_{pass}_prompt.txt         # Rendered prompt (audit trail)
-│   ├── spikes_{pass}_raw_output.txt     # Raw LLM text (audit trail)
-│   ├── spikes_annotation.json           # Pass 1: SPIKES step annotation
-│   ├── lucas_prompt.txt / raw_output.txt
-│   ├── lucas_analysis.json              # Pass 2: LUCAS items A–J
-│   ├── clinical_content_{module}_prompt.txt
-│   ├── clinical_content_{module}_raw_output.txt
-│   ├── clinical_content.json            # Pass 3: clinical checklist (combined)
-│   └── analysis.json                    # All three passes merged
+│   ├── assembled_context.json           # Exact LLM input (reproducibility)
+│   ├── lucas_pass{1-7}_prompt.txt       # Rendered LUCAS prompts (audit trail)
+│   ├── lucas_pass{1-7}_raw_output.txt   # Raw LUCAS LLM responses
+│   ├── lucas_analysis.json              # LUCAS items A–J (merged)
+│   ├── spikes_pass{1-7}_prompt.txt      # Rendered SPIKES prompts
+│   ├── spikes_pass{1-7}_raw_output.txt  # Raw SPIKES LLM responses
+│   ├── spikes_annotation.json           # SPIKES phases (merged)
+│   ├── {instrument}_prompt.txt          # Clinical content prompts
+│   ├── {instrument}_raw_output.txt      # Clinical content LLM responses
+│   ├── clinical_content.json            # Clinical checklist (combined)
+│   └── analysis.json                    # All instruments merged
 │
 ├── 07_report/
 │   ├── REPORT_session_001.json          # Primary structured report
@@ -317,9 +325,9 @@ The pipeline implements a **freeze manifest** that cryptographically locks all a
 | `frozen_at` | UTC ISO timestamp |
 | `seeds.global` / `seeds.llm` | Global and LLM seeds (both `42`) |
 | `models.asr` | Whisper model, compute type, beam size |
-| `models.diarization` | Pyannote model identifier |
+| `models.diarization` | NeMo TitaNet model identifier |
 | `models.llm` | Backend, model path, temperature, context length |
-| `prompt_template_hash` | SHA-256 of all Jinja2 prompt templates |
+| `prompt_template_hashes` | Per-file SHA-256 of all 25 Jinja2 templates + 5 instrument JSON definitions, plus combined digest |
 | `config_hash` | SHA-256 of full YAML configuration |
 | `manifest_digest` | SHA-256 of the complete manifest |
 
@@ -327,32 +335,39 @@ The pipeline implements a **freeze manifest** that cryptographically locks all a
 
 ```bash
 # 1. Finalise all code, prompts, and config
-# 2. Generate and commit the manifest
+# 2. Commit everything
+git add -A && git commit -m "Finalise pipeline for confirmatory analysis"
+
+# 3. Generate and commit the manifest
 python pipeline.py --config config/pipeline_config.yaml \
                    --freeze-manifest > freeze_manifest.json
 git add freeze_manifest.json && git commit -m "Freeze manifest v0.3.0"
 
-# 3. Do NOT modify code, prompts, models, or config after this point
-# 4. The pipeline verifies manifest integrity on every subsequent run
+# 4. Tag the freeze point
+git tag -a v0.3.0-freeze -m "Pipeline freeze for confirmatory analysis"
+git push origin main --tags
+
+# 5. Do NOT modify code, prompts, models, or config after this point
 ```
 
-Every re-run after freeze compares the current state against the archived manifest. Any deviation (code change, prompt edit, config update, different model) raises a verification error before analysis proceeds.
+Every re-run after freeze compares the current state against the archived manifest. Any deviation (code change, prompt edit, config update, different model) raises a `FREEZE VIOLATION` with the specific changed fields before analysis proceeds.
 
 ---
 
 ## Scenario Routing
 
-The pipeline applies different assessment passes depending on scenario type, controlled by `_SCENARIO_CONFIG` in [`stages/s5_analysis.py`](stages/s5_analysis.py):
+The pipeline applies different assessment instruments depending on scenario type, controlled by `_SCENARIO_CONFIG` in [`stages/s5_analysis.py`](stages/s5_analysis.py):
 
-| Scenario | LUCAS | SPIKES | Clinical modules |
-|----------|:-----:|:------:|:---------------:|
-| `LP_Aufklaerung` | All sessions | — | GSLP + LP\_Aufklaerung |
-| `Diabetes` | All sessions | ✓ | Diabetes |
+| Scenario | LUCAS | SPIKES | Clinical instruments |
+|----------|:-----:|:------:|:-------------------:|
+| `LP_Aufklaerung` | 7 passes | — | GSLP (3 passes) + LP\_Aufklaerung (3 passes) |
+| `Diabetes` | 7 passes | 7 passes | Diabetes\_CC (5 passes) |
 
 New scenarios can be added by:
-1. Creating a clinical module JSON in `templates/clinical_modules/`
-2. Adding an entry to `_SCENARIO_CONFIG` in `stages/s5_analysis.py`
-3. Registering sessions in `templates/scenario_catalog.json`
+1. Creating instrument JSON definitions in `instruments/`
+2. Creating corresponding Jinja2 templates in `templates/instruments/`
+3. Adding an entry to `_SCENARIO_CONFIG` in `stages/s5_analysis.py`
+4. Registering sessions in `templates/scenario_catalog.json`
 
 ---
 
@@ -363,18 +378,37 @@ paed-sim-pipeline/
 │
 ├── pipeline.py                      # Main orchestrator & CLI
 ├── config/
-│   └── pipeline_config.yaml         # Single source of truth for all parameters
+│   ├── pipeline_config.yaml         # Single source of truth for all parameters
+│   └── pipeline_config.example.yaml # Template config (no secrets/paths)
 │
 ├── stages/
 │   ├── base.py                      # Abstract BaseStage
 │   ├── s1_ingest.py                 # Video validation, audio extraction, quadrant split
-│   ├── s2_asr.py                    # Whisper transcription + Pyannote diarization
-│   ├── s3_features.py               # Verbal interaction features + phase segmentation
-│   ├── s4_video_analysis.py         # MediaPipe NVB: gaze, posture, gestures
-│   ├── s5_analysis.py               # LLM analysis orchestrator (SPIKES + LUCAS + clinical)
-│   ├── s6_translate.py              # Optional translation pass (disabled by default)
-│   ├── s7_report.py                 # HTML/PDF/JSON report generation
-│   └── lucas_multipass.py           # 7-pass LUCAS scorer with hard-rule validators
+│   ├── s2_asr.py                    # Whisper transcription + NeMo TitaNet diarization
+│   ├── s3_features.py               # Verbal interaction features
+│   ├── s4_video_analysis.py         # MediaPipe NVB: gaze (D1), positioning (D2), posture (D3)
+│   ├── s5_analysis.py               # LLM analysis orchestrator (LUCAS + SPIKES + clinical)
+│   ├── s6_translate.py              # Optional translation pass
+│   └── s7_report.py                 # HTML/PDF/JSON report generation
+│
+├── instruments/                     # Assessment instrument definitions
+│   ├── LUCAS.json                   # LUCAS 10-item scoring definitions
+│   ├── SPIKES.json                  # SPIKES 6-step protocol definitions
+│   ├── GSLP.json                    # Informed-consent structure checklist
+│   ├── LP_Aufklaerung.json          # LP consent — clinical quality rubric
+│   └── Diabetes_CC.json             # T1DM diagnosis disclosure rubric
+│
+├── templates/
+│   ├── scenario_catalog.json        # Session ID → scenario mapping
+│   └── instruments/                 # Multi-pass Jinja2 scoring prompts
+│       ├── lucas_pass{1-7}.j2       # LUCAS: 7 passes (items → aggregation)
+│       ├── spikes_pass{1-7}.j2      # SPIKES: 7 passes (phases → aggregation)
+│       ├── gslp_beschreibung.j2     # GSLP: Beschreibung pass
+│       ├── gslp_begruendung.j2      # GSLP: Begründung pass
+│       ├── gslp_sequence.j2         # GSLP: Sequenzprüfung (aggregation)
+│       ├── lp_aufklaerung_*.j2      # LP: Beschreibung, Begründung, Risiken
+│       └── diabetes_cc_*.j2         # Diabetes: Pathophysio, Diagnostik, Therapie,
+│                                    #           Schuldfrage, Komplikationen
 │
 ├── utils/
 │   ├── artifact_io.py               # JSON serialisation helpers
@@ -382,26 +416,11 @@ paed-sim-pipeline/
 │   ├── json_utils.py                # Custom JSON encoder (NumPy, NaN, Inf)
 │   ├── llm_backends.py              # llama-cpp-python & vLLM backend abstractions
 │   ├── logging_setup.py             # Centralised logging configuration
-│   └── scenario_map.py              # Session → scenario resolution
-│
-├── templates/
-│   ├── lucas_prompt.j2              # LUCAS 10-item scoring prompt (Jinja2)
-│   ├── spikes_prompt.j2             # SPIKES 6-step annotation prompt
-│   ├── clinical_content_prompt.j2   # Clinical content evaluation prompt
-│   ├── scenario_catalog.json        # Session ID → scenario ID mapping
-│   └── clinical_modules/
-│       ├── GSLP.json                # §630e BGB consent structure checklist
-│       ├── LP_Aufklaerung.json      # LP consent — clinical quality rubric
-│       ├── Bauchschmerzen.json      # Abdominal pain history-taking rubric
-│       └── Diabetes.json            # T1DM diagnosis disclosure rubric
-│
-├── tasks/
-│   ├── todo.md                      # Active task tracking
-│   └── lessons.md                   # Development learnings log
+│   ├── scenario_map.py              # Session → scenario resolution
+│   └── scorers/
+│       └── instrument_scorer.py     # Template rendering & scoring orchestration
 │
 ├── environment.yml                  # Conda environment specification
-├── PIPELINE.md                      # Full technical documentation
-├── DATA_SPEC.md                     # Input/output file specification
 └── README.md                        # This file
 ```
 
@@ -424,15 +443,27 @@ If you use this pipeline in academic work, please cite:
 
 **Assessment frameworks:**
 
-- LUCAS: [University of Liverpool Communication Assessment Scale — contact UoL for licensing]
-- SPIKES: Baile, W.F., Buckman, R., Lenzi, R., Glober, G., Beale, E.A., & Kudelka, A.P. (2000). SPIKES — A six-step protocol for delivering bad news. *The Oncologist, 5*(4), 302–311. https://doi.org/10.1634/theoncologist.5-4-302
-- Informed consent framework: §630e BGB (Patientenrechtegesetz, Germany)
+- **LUCAS**: Kramer, D., Hillman, T., & Sheringham, J. (2023). Liverpool Undergraduate Communication Assessment Scale (LUCAS): Development and evaluation of a communication skills assessment tool. *Medical Teacher, 45*(10), 1137–1144. https://doi.org/10.1080/0142159X.2023.2197126
+- **SPIKES**: Baile, W.F., Buckman, R., Lenzi, R., Glober, G., Beale, E.A., & Kudelka, A.P. (2000). SPIKES — A six-step protocol for delivering bad news: Application to the patient with cancer. *The Oncologist, 5*(4), 302–311. https://doi.org/10.1634/theoncologist.5-4-302
+- **GSLP / LP_Aufklaerung (Informed consent structure and clinical quality)**: Bundesministerium der Justiz. Bürgerliches Gesetzbuch §630e — Aufklärungspflichten (Patientenrechtegesetz), 2013. https://www.gesetze-im-internet.de/bgb/__630e.html
+- **Diabetes_CC (T1DM clinical content)**: Deutsche Diabetes Gesellschaft (DDG). S3-Leitlinie: Diagnostik, Therapie und Verlaufskontrolle des Diabetes mellitus im Kindes- und Jugendalter. AWMF-Register Nr. 057-016, Version 4.0, 2023. https://register.awmf.org/de/leitlinien/detail/057-016
+
+**Software and models:**
+
+- **Whisper**: Radford, A., Kim, J.W., Xu, T., Brockman, G., McLeavey, C., & Sutskever, I. (2023). Robust speech recognition via large-scale weak supervision. *Proceedings of the 40th ICML*, 28492–28518. https://doi.org/10.48550/arXiv.2212.04356
+- **whisper-diarization**: Ashraf, M. (2023). whisper-diarization: Speaker diarization using Whisper and NeMo. https://github.com/MahmoudAshraf97/whisper-diarization
+- **NeMo TitaNet**: Koluguri, N.R., Park, T., & Ginsburg, B. (2022). TitaNet: Neural model for speaker representation with 1D Depth-wise separable convolutions and global context. *Proceedings of ICASSP 2022*, 8102–8106. https://doi.org/10.1109/ICASSP43922.2022.9746806
+- **MediaPipe**: Lugaresi, C., Tang, J., Nash, H., McClanahan, C., Uboweja, E., Hays, M., ... & Grundmann, M. (2019). MediaPipe: A framework for building perception pipelines. *arXiv preprint arXiv:1906.08172*. https://doi.org/10.48550/arXiv.1906.08172
+- **Qwen2.5**: Yang, A., Yang, B., Hui, B., Zheng, B., Yu, B., Zhou, C., ... & Li, Z. (2024). Qwen2.5 technical report. *arXiv preprint arXiv:2412.15115*. https://doi.org/10.48550/arXiv.2412.15115
+- **llama.cpp**: Gerganov, G. (2023). llama.cpp: Inference of Meta's LLaMA model in pure C/C++. https://github.com/ggerganov/llama.cpp
 
 ---
 
 ## License
 
-This repository is made available for **research and academic use** under the terms described in [LICENSE](LICENSE). The clinical assessment rubrics (LUCAS, SPIKES, clinical modules) are reproduced for research purposes only and remain subject to their respective source licences.
+This repository is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)](LICENSE). You may share and adapt the material for non-commercial purposes with appropriate attribution.
+
+The clinical assessment instruments (LUCAS, SPIKES, GSLP) are adapted for automated scoring research and remain subject to their respective source licences — see [LICENSE](LICENSE) for details.
 
 ---
 
