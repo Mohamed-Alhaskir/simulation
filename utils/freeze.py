@@ -40,15 +40,19 @@ class FreezeManifest:
             },
             "models": {
                 "asr": {
-                    "engine": self.config.get("asr", {}).get("model_type"),
+                    "engine": "faster-whisper",
                     "model_name": self.config.get("asr", {}).get("model_name"),
                     "compute_type": self.config.get("asr", {}).get("compute_type"),
                     "beam_size": self.config.get("asr", {}).get("beam_size"),
+                    "language": self.config.get("asr", {}).get("language"),
                 },
                 "diarization": {
-                    "model": self.config.get("asr", {})
+                    "enabled": self.config.get("asr", {})
                     .get("diarization", {})
-                    .get("model"),
+                    .get("enabled"),
+                    "repo_path": self.config.get("asr", {})
+                    .get("diarization", {})
+                    .get("repo_path"),
                 },
                 "llm": {
                     "backend": self.config.get("llm", {}).get("backend"),
