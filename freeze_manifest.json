@@ -1,0 +1,63 @@
+{
+  "pipeline_version": "0.4.0",
+  "git_commit": "03483843c287b1b57f3456841ee2dee8a31d1edc",
+  "frozen_at": "2026-03-27T21:07:35.553227+00:00",
+  "seeds": {
+    "global": 42,
+    "llm": 42
+  },
+  "models": {
+    "asr": {
+      "engine": null,
+      "model_name": "large-v3",
+      "compute_type": "float16",
+      "beam_size": 7
+    },
+    "diarization": {
+      "model": null
+    },
+    "llm": {
+      "backend": "llama_cpp",
+      "model_path": "/data/malhaskir/simdata/models/qwen2.5-32b-instruct-q8_0-00001-of-00009.gguf",
+      "temperature": 0.0,
+      "context_length": 32768
+    }
+  },
+  "prompt_template_hashes": {
+    "files": {
+      "templates/instruments/diabetes_cc_complications.j2": "5b8f2ae29e0ceb0461fa8845125512740ad51b3a080de9d9d1347bc7f7b8ffea",
+      "templates/instruments/diabetes_cc_diagnostik.j2": "229d7f940df95b80c4b38a688371ec890d4f7ee23412286a714d07930d6bf9c3",
+      "templates/instruments/diabetes_cc_pathophysio.j2": "6340c532b3cecdec51cc583b450f236bfca855951203d5b85e1aa972f41ea935",
+      "templates/instruments/diabetes_cc_schuldfrage.j2": "6182e9e7a0ebb7722c1fe4892d69c7b33e559f4365a98693454aab3cb36e48ed",
+      "templates/instruments/diabetes_cc_therapie.j2": "6c220dfcb97cb4e164350215510f1d31314a6170957b57d9b57c76626af0da0d",
+      "templates/instruments/gslp_begruendung.j2": "8afd3197c03469ac594f4046bbd0ac89d2e7d3c62956db508aa80a819ff3345f",
+      "templates/instruments/gslp_beschreibung.j2": "a02036b68d040dfcdb72b447ff5b82e4aca6bc86d74858784ca8fdb0c849e601",
+      "templates/instruments/gslp_sequence.j2": "d1894f35eeadc230a362653a2fa778c7026a182ca958ba612ce3f760308936d5",
+      "templates/instruments/lp_aufklaerung_begruendung.j2": "a965c7e9d64ecdfc41ab7645d8be55be29e75b806ad9a856cd3a9c5c77278c2a",
+      "templates/instruments/lp_aufklaerung_beschreibung.j2": "859b5ff62c8bc95df8e42a3342cab5ab18a5807abcd088f67785fc04de97e9ac",
+      "templates/instruments/lp_aufklaerung_risiken.j2": "ccb862859405cee309fc9ade8b6c116b5a23f1cb94122fdd7ac719ff85020129",
+      "templates/instruments/lucas_pass1.j2": "c264d122f34bbc0fb399632adf2e11cd42887ecf63e253c24a86a14d5760f5f2",
+      "templates/instruments/lucas_pass2.j2": "7fbff309de2d3c76d9dcaedb5df4f1fdf89a3c934da9325fda8a8871a7fb3159",
+      "templates/instruments/lucas_pass3.j2": "459db214377a1db1505517f2f13a8475cb1d3f35ac35bb8c9c98a439695212f3",
+      "templates/instruments/lucas_pass4.j2": "964b1a8d224e6582a26b402e27a34e73ac937f1105ff43f012c03e378272e02b",
+      "templates/instruments/lucas_pass5.j2": "df856d0e679fc4ee9f779c633ffb2136234e084c468bb9698f48562def54ec47",
+      "templates/instruments/lucas_pass6.j2": "2b04e0c6ddedd3aa240541704af28c481b077988b61894a713e7e930e92f6c71",
+      "templates/instruments/lucas_pass7.j2": "c35b1f8cd38899cc5b7236e00aaed832659eed451d4df1c586a050c16adffb0f",
+      "templates/instruments/spikes_pass1.j2": "efdd6c87d9d51a3519fe4e406f5e24af10bb8049294015de4a71e97bee85ba39",
+      "templates/instruments/spikes_pass2.j2": "ce3b61d4212333958c1b964c9b05909b2b4ead6449e175503dc2a6e1f69eed73",
+      "templates/instruments/spikes_pass3.j2": "5f87d9ad31e9864fbc6d2d45785d9323316ac1fbb20b1a6d2378652fad2763f9",
+      "templates/instruments/spikes_pass4.j2": "e1be07941a3f6069df5e80123741d8fb9a48df672163a8f1bc3652a4b453f431",
+      "templates/instruments/spikes_pass5.j2": "e50dc1aea395ced5ea66fb1b0d5061c86d7a1d96326ffa394a10082a5537890b",
+      "templates/instruments/spikes_pass6.j2": "427d2647031e8a6b00b7a5d9d5dfc97ef38e9bfe335ebd0b479bb218892f0c16",
+      "templates/instruments/spikes_pass7.j2": "c80566234e91a462e11e418fca105c039f019366cf8bc51c645e310b547480e6",
+      "instruments/Diabetes_CC.json": "5cd0505387b2bf5243a7b3295f51e7f9b15bedd54e80658f25522d441ef2ce3a",
+      "instruments/GSLP.json": "f2ef51613ee3f73c4012d2334f4df2e0c261ad4ee3982d2a055a22a8c9fd352d",
+      "instruments/LP_Aufklaerung.json": "528e28613a222c3b4a667e4e942304d151876b282d9eca56a9c78ca0ee3cca92",
+      "instruments/LUCAS.json": "eb90ea02df58e7ba451956b36ee227c620c302d67ef9815f335bfb6990cc601a",
+      "instruments/SPIKES.json": "6bd1b72eff6479580b5c4bea3f2b506fc14c57c09c8934a0a042a36b857ce2ab"
+    },
+    "combined": "43acd1302ee21f58f41e0f382852fcf288aaff54bf6053e0aac9daf5b6a6a598"
+  },
+  "config_hash": "f523ac33f4c95abf7fd91c48b83526124f41fe4c26f59720858342b6a3dc8b8a",
+  "manifest_digest": "f7c0ec1089cde1a0"
+}
