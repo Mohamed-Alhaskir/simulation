@@ -1,20 +1,22 @@
 {
   "pipeline_version": "0.4.0",
-  "git_commit": "91de32abb7538b520b6444e206926d67dc670f72",
-  "frozen_at": "2026-03-27T21:18:57.479845+00:00",
+  "git_commit": "191890f15c5f1dc24d3bb9a95d276a286c9a4870",
+  "frozen_at": "2026-03-27T21:26:27.489129+00:00",
   "seeds": {
     "global": 42,
     "llm": 42
   },
   "models": {
     "asr": {
-      "engine": null,
+      "engine": "faster-whisper",
       "model_name": "large-v3",
       "compute_type": "float16",
-      "beam_size": 7
+      "beam_size": 7,
+      "language": "de"
     },
     "diarization": {
-      "model": null
+      "enabled": true,
+      "repo_path": "/home/malhaskir/projects/whisper-diarization"
     },
     "llm": {
       "backend": "llama_cpp",
@@ -59,5 +61,5 @@
     "combined": "43acd1302ee21f58f41e0f382852fcf288aaff54bf6053e0aac9daf5b6a6a598"
   },
   "config_hash": "f523ac33f4c95abf7fd91c48b83526124f41fe4c26f59720858342b6a3dc8b8a",
-  "manifest_digest": "4fafb5a41be799e9"
+  "manifest_digest": "61bfd39887160d19"
 }

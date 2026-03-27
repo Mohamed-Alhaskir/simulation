@@ -115,6 +115,20 @@ class Pipeline:
             config=self.config,
         )
 
+        # Verify freeze manifest if one exists
+        manifest_path = Path("freeze_manifest.json")
+        if manifest_path.exists():
+            frozen = FreezeManifest.load_and_verify(
+                str(manifest_path), self.config, PIPELINE_VERSION
+            )
+            if not frozen:
+                self.logger.error(
+                    "Pipeline state does not match freeze manifest. "
+                    "Bump the version and re-freeze, or remove "
+                    "freeze_manifest.json to run without verification."
+                )
+                raise SystemExit(1)
+
         self.stages = {
             "ingest":         DataIngestionStage(self.config),
             "asr":            ASRStage(self.config),

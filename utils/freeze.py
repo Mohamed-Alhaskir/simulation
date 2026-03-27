@@ -50,13 +50,12 @@ class FreezeManifest:
                     "enabled": self.config.get("asr", {})
                     .get("diarization", {})
                     .get("enabled"),
-                    "repo_path": self.config.get("asr", {})
-                    .get("diarization", {})
-                    .get("repo_path"),
                 },
                 "llm": {
                     "backend": self.config.get("llm", {}).get("backend"),
-                    "model_path": self.config.get("llm", {}).get("model_path"),
+                    "model_id": Path(
+                        self.config.get("llm", {}).get("model_path", "")
+                    ).stem,
                     "temperature": self.config.get("llm", {}).get("temperature"),
                     "context_length": self.config.get("llm", {}).get("context_length"),
                 },
