@@ -59,7 +59,7 @@ Beginne die DM_K_12-justification mit: `WORTWAHL-SCAN: [Anzahl] auffällige Form
 
 ## Anweisungen
 
-Bewerte alle 5 K-Phase Items. Führe für DM_K_12 zuerst den Wortwahl-Scan durch. Konzentriere dich auf den Abschnitt der Diagnosemitteilung, aber prüfe das gesamte Transkript.
+Bewerte die {{ items|length }} K-Phase Item(s) in diesem Durchgang. {% if items|selectattr('id', 'equalto', 'DM_K_12')|list %}Führe für DM_K_12 zuerst den Wortwahl-Scan durch. {% endif %}Konzentriere dich auf den Abschnitt der Diagnosemitteilung, aber prüfe das gesamte Transkript.
 
 ⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
 

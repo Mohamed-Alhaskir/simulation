@@ -25,6 +25,7 @@ from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from json_repair import repair_json
 from utils.json_utils import repair_unescaped_quotes
 
 
@@ -82,7 +83,7 @@ def _extract_partial_items(text: str) -> list[dict]:
 
     Scans the text for fully-closed ``{ ... }`` blocks at any nesting depth that
     contain at least ``"id"`` and ``"rating"`` keys and are individually valid
-    JSON.  Used as a last-resort fallback when the full response cannot be parsed.
+    JSON.  Uses a string-aware walker so braces inside JSON strings are ignored.
     """
     items = []
     seen_ids: set = set()
@@ -91,13 +92,31 @@ def _extract_partial_items(text: str) -> list[dict]:
         if text[i] != "{":
             i += 1
             continue
-        # Walk forward to find the matching closing brace
+        # Walk forward to find the matching closing brace, respecting strings
         depth = 0
         j = i
+        in_str = False
+        esc = False
         while j < len(text):
-            if text[j] == "{":
+            ch = text[j]
+            if esc:
+                esc = False
+                j += 1
+                continue
+            if ch == '\\' and in_str:
+                esc = True
+                j += 1
+                continue
+            if ch == '"':
+                in_str = not in_str
+                j += 1
+                continue
+            if in_str:
+                j += 1
+                continue
+            if ch == "{":
                 depth += 1
-            elif text[j] == "}":
+            elif ch == "}":
                 depth -= 1
                 if depth == 0:
                     break
@@ -359,26 +378,67 @@ class InstrumentScorer:
                         f"Instrument {instr['id']} — running {pass_def['id']} "
                         f"({len(pass_items)} items)"
                     )
-                    raw = self.backend.generate(prompt, pass_cfg)
-                    parsed_items = self._parse_response(raw)
+
+                    expected_ids = {
+                        iid for iid in pass_def.get("item_ids", [])
+                    }
+                    max_attempts = 2
+                    parsed_items = None
+
+                    for attempt in range(1, max_attempts + 1):
+                        raw = self.backend.generate(prompt, pass_cfg)
+                        parsed_items = self._parse_response(raw)
+
+                        if parsed_items is None:
+                            self.logger.warning(
+                                f"Pass {pass_def['id']} attempt {attempt}/{max_attempts}: "
+                                f"parse failed completely"
+                            )
+                            if attempt < max_attempts:
+                                self.logger.info(
+                                    f"Retrying {pass_def['id']}…"
+                                )
+                                continue
+                            # Final attempt failed — save debug and skip
+                            self.logger.error(
+                                f"Pass {pass_def['id']}: parse failed after "
+                                f"{max_attempts} attempts, skipping"
+                            )
+                            try:
+                                debug_path = (
+                                    _ROOT / "data" / "debug"
+                                    / f"{instr['id']}_{pass_def['id']}_raw.txt"
+                                )
+                                debug_path.parent.mkdir(parents=True, exist_ok=True)
+                                debug_path.write_text(raw, encoding="utf-8")
+                                self.logger.info(
+                                    f"Raw output saved to {debug_path}"
+                                )
+                            except Exception:
+                                pass
+                            break
+
+                        # Check if all expected items were recovered
+                        recovered_ids = {
+                            (it.get("id") or it.get("item"))
+                            for it in parsed_items
+                        }
+                        missing = expected_ids - recovered_ids
+                        if missing and attempt < max_attempts:
+                            self.logger.warning(
+                                f"Pass {pass_def['id']} attempt {attempt}/{max_attempts}: "
+                                f"partial recovery, missing {missing} — retrying"
+                            )
+                            continue
+
+                        if missing:
+                            self.logger.warning(
+                                f"Pass {pass_def['id']}: still missing {missing} "
+                                f"after {max_attempts} attempts, using partial result"
+                            )
+                        break
 
                     if parsed_items is None:
-                        self.logger.error(
-                            f"Pass {pass_def['id']}: parse failed, skipping"
-                        )
-                        # Save raw output for debugging
-                        try:
-                            debug_path = (
-                                _ROOT / "data" / "debug"
-                                / f"{instr['id']}_{pass_def['id']}_raw.txt"
-                            )
-                            debug_path.parent.mkdir(parents=True, exist_ok=True)
-                            debug_path.write_text(raw, encoding="utf-8")
-                            self.logger.info(
-                                f"Raw output saved to {debug_path}"
-                            )
-                        except Exception:
-                            pass
                         continue
 
                     for item in parsed_items:
@@ -477,18 +537,112 @@ class InstrumentScorer:
             **pass_context,
         )
 
+    def _merge_multiple_json_objects(self, text: str) -> str:
+        """
+        Handle LLM output containing multiple JSON root objects (e.g. {...}\\n{...}).
+
+        When the model outputs two or more separate JSON objects each with an
+        "items" array, merge them into a single object.  Returns the merged
+        JSON string, or the original text if merging is not applicable.
+        """
+        # Quick check: are there multiple top-level { } blocks?
+        stripped = text.strip()
+        if not stripped.startswith("{"):
+            return text
+
+        # Try to split on }...{ boundaries at the top level
+        objects: list[dict] = []
+        i = 0
+        n = len(stripped)
+        while i < n:
+            if stripped[i] != "{":
+                i += 1
+                continue
+            # Walk to find the matching close brace (string-aware)
+            depth = 0
+            j = i
+            in_str = False
+            esc = False
+            while j < n:
+                ch = stripped[j]
+                if esc:
+                    esc = False
+                    j += 1
+                    continue
+                if ch == '\\' and in_str:
+                    esc = True
+                    j += 1
+                    continue
+                if ch == '"':
+                    in_str = not in_str
+                    j += 1
+                    continue
+                if in_str:
+                    j += 1
+                    continue
+                if ch == '{':
+                    depth += 1
+                elif ch == '}':
+                    depth -= 1
+                    if depth == 0:
+                        break
+                j += 1
+            if depth != 0:
+                break
+            candidate = stripped[i:j + 1]
+            try:
+                obj = json.loads(candidate)
+                if isinstance(obj, dict):
+                    objects.append(obj)
+            except json.JSONDecodeError:
+                break
+            i = j + 1
+
+        if len(objects) <= 1:
+            return text  # Single object or couldn't split — no merging needed
+
+        # Merge items arrays from all objects
+        merged_items = []
+        seen_ids: set = set()
+        extra_keys: dict = {}
+        for obj in objects:
+            for item in obj.get("items", []):
+                item_id = item.get("id")
+                if item_id and item_id not in seen_ids:
+                    merged_items.append(item)
+                    seen_ids.add(item_id)
+            # Preserve non-items keys from first object
+            for k, v in obj.items():
+                if k != "items" and k not in extra_keys:
+                    extra_keys[k] = v
+
+        merged = {**extra_keys, "items": merged_items}
+        self.logger.warning(
+            f"Merged {len(objects)} JSON objects into one "
+            f"({len(merged_items)} unique items)"
+        )
+        return json.dumps(merged, ensure_ascii=False)
+
     @staticmethod
     def _sanitize_json_strings(text: str) -> str:
         """
         Walk JSON text respecting string boundaries and escape any
         unescaped double-quotes found INSIDE string values.
 
-        Unlike repair_unescaped_quotes (which uses heuristics about what
-        follows a quote), this walker uses a state machine: once we enter
-        a string (opening "), every subsequent " is checked against a
-        strict closing-quote rule: a " is only a closer if the NEXT
-        non-whitespace char is one of  : , ] } or EOF.
-        Everything else is escaped.
+        A ``"`` inside a string is only treated as the **closing** quote if
+        the token sequence after it is consistent with valid JSON structure.
+        Simple one-char lookahead (``"`` followed by ``,``) is insufficient
+        because natural text often contains patterns like ``"Ja", und``
+        where the comma is part of the embedded text, not a JSON delimiter.
+
+        Closing-quote rules (checked in order):
+        1. ``"`` + ``:``  → closing (value before a key)
+        2. ``"`` + ``}``  → closing (last value in object)
+        3. ``"`` + ``]``  → closing (last element in array)
+        4. ``"`` + EOF    → closing
+        5. ``"`` + ``,``  → closing ONLY if the token after the comma is
+           ``"``  ``{``  ``[``  or a digit/minus (i.e. valid JSON value
+           start).  Otherwise it's an embedded quote.
         """
         out: list[str] = []
         in_string = False
@@ -521,10 +675,25 @@ class InstrumentScorer:
                     while j < n and text[j] in ' \t\r\n':
                         j += 1
                     next_ch = text[j] if j < n else ''
-                    if next_ch in (':', ',', '}', ']', ''):
-                        # This is the real closing quote
+                    if next_ch in (':', '}', ']', ''):
+                        # Definitely a closing quote
                         in_string = False
                         out.append(ch)
+                    elif next_ch == ',':
+                        # Ambiguous: could be JSON delimiter or embedded
+                        # text like "Ja", und...
+                        # Check what comes AFTER the comma
+                        k = j + 1
+                        while k < n and text[k] in ' \t\r\n':
+                            k += 1
+                        after_comma = text[k] if k < n else ''
+                        if after_comma in ('"', '{', '[', '-') or after_comma.isdigit():
+                            # Looks like a valid JSON value start → real closer
+                            in_string = False
+                            out.append(ch)
+                        else:
+                            # Embedded quote (e.g. "Ja", und weiter)
+                            out.append('\\"')
                     else:
                         # Embedded quote — escape it
                         out.append('\\"')
@@ -542,6 +711,10 @@ class InstrumentScorer:
         text = re.sub(r"\s*```$", "", text, flags=re.MULTILINE)
         # Remove invalid JSON escape sequences: \' → ' (single quotes never need escaping in JSON)
         text = text.replace("\\'", "'")
+
+        # Handle multiple JSON root objects: model sometimes outputs {…}\n{…}
+        # Merge their "items" arrays into a single object.
+        text = self._merge_multiple_json_objects(text)
 
         parsed = None
 
@@ -562,54 +735,15 @@ class InstrumentScorer:
                 except json.JSONDecodeError:
                     pass
 
-        # Sanitize embedded quotes (e.g. SPEAKER_XX: "citation" inside JSON strings)
-        # using a state-machine approach that operates on clean text.
+        # Use json-repair library — handles unescaped quotes, truncation,
+        # and other LLM JSON malformations generically.
         if parsed is None:
-            sanitized = self._sanitize_json_strings(text)
-            start_s = sanitized.find("{")
-            end_s = sanitized.rfind("}")
-            if start_s != -1 and end_s > start_s:
-                try:
-                    parsed = json.loads(sanitized[start_s:end_s + 1])
-                    self.logger.warning(
-                        "JSON recovered by sanitizing embedded quotes"
-                    )
-                except json.JSONDecodeError:
-                    try:
-                        repaired = repair_unescaped_quotes(
-                            sanitized[start_s:end_s + 1]
-                        )
-                        parsed = json.loads(repaired)
-                        self.logger.warning(
-                            "JSON recovered by sanitize + quote repair"
-                        )
-                    except Exception:
-                        pass
-
-        # Try closing truncated JSON (LLM output cut off mid-string/array)
-        if parsed is None:
-            closed = _close_truncated_json(text)
-            if closed != text:
-                start_c = closed.find("{")
-                end_c = closed.rfind("}")
-                if start_c != -1 and end_c > start_c:
-                    try:
-                        parsed = json.loads(closed[start_c:end_c + 1])
-                        self.logger.warning(
-                            "JSON recovered by closing truncated structures"
-                        )
-                    except json.JSONDecodeError:
-                        # Try sanitize on closed text too
-                        try:
-                            sanitized_closed = self._sanitize_json_strings(
-                                closed[start_c:end_c + 1]
-                            )
-                            parsed = json.loads(sanitized_closed)
-                            self.logger.warning(
-                                "JSON recovered by closing + sanitize"
-                            )
-                        except Exception:
-                            pass
+            try:
+                repaired_str = repair_json(text, return_objects=False)
+                parsed = json.loads(repaired_str)
+                self.logger.warning("JSON recovered by json-repair")
+            except Exception:
+                pass
 
         if parsed is None:
             # Diagnostic: find exact failure position

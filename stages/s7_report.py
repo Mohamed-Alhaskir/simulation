@@ -290,9 +290,9 @@ class ReportGenerationStage(BaseStage):
             ) + "</ul>"
 
         def _bar(score, max_score) -> str:
-            if score is None or max_score == 0:
+            if score is None or score == "NA" or max_score == 0:
                 return ""
-            pct = round(score / max_score * 100)
+            pct = round(int(score) / max_score * 100)
             return (
                 f'<div class="bar-wrap">'
                 f'<div class="bar-fill" style="width:{pct}%"></div>'
@@ -301,82 +301,113 @@ class ReportGenerationStage(BaseStage):
 
         def _lbl_cls(label: str) -> str:
             l = (label or "").lower()
-            if "unacceptable" in l: return "lbl-bad"
-            if "borderline"   in l: return "lbl-warn"
-            if "competent"    in l: return "lbl-good"
+            if "unacceptable" in l or "fehlt" in l: return "lbl-bad"
+            if "borderline" in l or "ansatz" in l or "unvollständig" in l: return "lbl-warn"
+            if "competent" in l or "vollständig" in l: return "lbl-good"
+            if l == "na": return "lbl-uk"
             return "lbl-uk"
 
-        def _scorecard_row(it: dict) -> str:
-            score     = it["rating"]
-            max_score = it["max_score"]
-            label     = it.get("rating_label", "")
-            score_str = f"{score}/{max_score}" if score is not None else "—"
-            return (
-                f'<div class="sc-row">'
-                f'<span class="sc-id">{it["item_id"]}</span>'
-                f'<span class="sc-name">{it["name"]}</span>'
-                f'<span class="sc-bar">{_bar(score, max_score)}</span>'
-                f'<span class="sc-score">{score_str}</span>'
-                f'<span class="rating-lbl {_lbl_cls(label)}">{label}</span>'
-                f'</div>'
-            )
+        def _rating_label(item: dict) -> str:
+            """Return a display label for a rating, using existing label or deriving one."""
+            if item.get("rating_label"):
+                return item["rating_label"]
+            r = item.get("rating")
+            if r == "NA" or r is None:
+                return "NA"
+            return {2: "Vollständig", 1: "Ansatz", 0: "Fehlt"}.get(r, "")
 
-        # ── scorecard ────────────────────────────────────────────────────
-        items_by_id   = {it["item_id"]: it for it in report.get("items", [])}
-        scorecard_html = ""
-        for section_name, ids in _LUCAS_SECTIONS.items():
-            rows = "".join(
-                _scorecard_row(items_by_id[i])
-                for i in ids if i in items_by_id
-            )
-            if rows:
-                scorecard_html += (
-                    f'<div class="sc-section-label">{section_name}</div>'
-                    + rows
-                )
+        def _item_id(item: dict) -> str:
+            """Return the display ID from either 'item_id' or 'id'."""
+            return item.get("item_id", item.get("id", ""))
 
-        # ── detailed item cards ──────────────────────────────────────────
-        sections_html = ""
-        for section_name, ids in _LUCAS_SECTIONS.items():
-            section_items = [items_by_id[i] for i in ids if i in items_by_id]
-            if not section_items:
-                continue
-            cards = ""
-            for it in section_items:
-                score     = it["rating"]
-                max_score = it["max_score"]
-                label     = it.get("rating_label", "")
-                score_str = f"{score} / {max_score}" if score is not None else "—"
+        def _item_max(item: dict) -> int:
+            """Return max score, defaulting to 2."""
+            return item.get("max_score", 2)
 
-                ev_block = ""
-                if it.get("evidence"):
-                    ev_lis = "".join(
-                        f'<li><code>{e}</code></li>' for e in it["evidence"]
-                    )
-                    ev_block = (
-                        f'<div class="card-sub">'
-                        f'<h5>Evidence</h5><ul class="ev-list">{ev_lis}</ul>'
+        # ── generic scorecard builder ───────────────────────────────────
+        def _build_scorecard(title: str, categories: list[tuple[str, str]],
+                             items: list[dict]) -> str:
+            """
+            Build a compact score dashboard.
+            categories: list of (category_key, display_name) tuples.
+            items: flat list of item dicts.
+            """
+            html = ""
+            for cat_key, cat_display in categories:
+                cat_items = [i for i in items if
+                             i.get("category", i.get("item_id", "")) == cat_key
+                             or (cat_key in _LUCAS_SECTIONS and i.get("item_id") in _LUCAS_SECTIONS.get(cat_key, []))]
+                if not cat_items:
+                    continue
+                rows = ""
+                for it in cat_items:
+                    score     = it.get("rating")
+                    max_score = _item_max(it)
+                    label     = _rating_label(it)
+                    if score == "NA" or score is None:
+                        score_str = "NA"
+                    else:
+                        score_str = f"{score}/{max_score}"
+                    crit = ' <span class="cc-crit-badge">CRIT</span>' if it.get("critical") else ""
+                    rows += (
+                        f'<div class="sc-row">'
+                        f'<span class="sc-id">{_item_id(it)}</span>'
+                        f'<span class="sc-name">{it["name"]}{crit}</span>'
+                        f'<span class="sc-bar">{_bar(score, max_score)}</span>'
+                        f'<span class="sc-score">{score_str}</span>'
+                        f'<span class="rating-lbl {_lbl_cls(label)}">{label}</span>'
                         f'</div>'
                     )
+                html += f'<div class="sc-section-label">{cat_display}</div>' + rows
 
-                cards += f"""
-              <div class="item-card">
-                <div class="card-head">
-                  <div class="card-title">
-                    <span class="card-id">{it["item_id"]}</span>
-                    <div>
-                      <div class="card-name">{it["name"]}</div>
-                      <div class="card-cat">{it.get("category","")}</div>
-                    </div>
-                  </div>
-                  <div class="card-score-block">
-                    {_bar(score, max_score)}
-                    <span class="card-score-num">{score_str}</span>
-                    <span class="rating-lbl {_lbl_cls(label)}">{label}</span>
-                  </div>
-                </div>
-                <p class="card-just">{it.get("justification","")}</p>
-                {ev_block}
+            return f"""
+            <div class="scorecard">
+              <div class="scorecard-title">{title}</div>
+              {html}
+            </div>""" if html else ""
+
+        # ── generic detail cards builder ────────────────────────────────
+        def _build_detail_cards(categories: list[tuple[str, str]],
+                                items: list[dict],
+                                show_cols: bool = False) -> str:
+            """
+            Build detailed item cards grouped by category.
+            show_cols: if True, render strengths/gaps/next_steps (LUCAS only).
+            """
+            all_html = ""
+            for cat_key, cat_display in categories:
+                cat_items = [i for i in items if
+                             i.get("category", i.get("item_id", "")) == cat_key
+                             or (cat_key in _LUCAS_SECTIONS and i.get("item_id") in _LUCAS_SECTIONS.get(cat_key, []))]
+                if not cat_items:
+                    continue
+
+                cards = ""
+                for it in cat_items:
+                    score     = it.get("rating")
+                    max_score = _item_max(it)
+                    label     = _rating_label(it)
+                    if score == "NA" or score is None:
+                        score_str = "NA"
+                    else:
+                        score_str = f"{score} / {max_score}"
+
+                    # Evidence block
+                    ev_block = ""
+                    if it.get("evidence"):
+                        ev_lis = "".join(
+                            f'<li><code>{e}</code></li>' for e in it["evidence"]
+                        )
+                        ev_block = (
+                            f'<div class="card-sub">'
+                            f'<h5>Evidence</h5><ul class="ev-list">{ev_lis}</ul>'
+                            f'</div>'
+                        )
+
+                    # Strengths / gaps / next steps (LUCAS only)
+                    cols_block = ""
+                    if show_cols:
+                        cols_block = f"""
                 <div class="card-cols">
                   <div class="card-col">
                     <h5>&#10003; Strengths</h5>
@@ -390,85 +421,134 @@ class ReportGenerationStage(BaseStage):
                     <h5>&#8594; Next Steps</h5>
                     {_ul(it.get("next_steps",[]))}
                   </div>
+                </div>"""
+
+                    # Critical miss card styling
+                    is_crit_miss = it.get("critical", False) and it.get("rating") == 0
+                    card_cls = "item-card item-card--critical-miss" if is_crit_miss else "item-card"
+                    crit_badge = ' <span class="cc-crit-badge">CRITICAL</span>' if it.get("critical") else ""
+
+                    cards += f"""
+              <div class="{card_cls}">
+                <div class="card-head">
+                  <div class="card-title">
+                    <span class="card-id">{_item_id(it)}</span>
+                    <div>
+                      <div class="card-name">{it["name"]}{crit_badge}</div>
+                      <div class="card-cat">{it.get("category","")}</div>
+                    </div>
+                  </div>
+                  <div class="card-score-block">
+                    {_bar(score, max_score)}
+                    <span class="card-score-num">{score_str}</span>
+                    <span class="rating-lbl {_lbl_cls(label)}">{label}</span>
+                  </div>
                 </div>
+                <p class="card-just">{it.get("justification","")}</p>
+                {ev_block}
+                {cols_block}
               </div>"""
 
-            sections_html += f"""
+                all_html += f"""
             <div class="section-block">
               <div class="section-header">
-                <span class="section-title">{section_name}</span>
+                <span class="section-title">{cat_display}</span>
               </div>
               {cards}
             </div>"""
 
-        # ── SPIKES table ─────────────────────────────────────────────────
+            return all_html
+
+        # ── helper: ordered categories from items ───────────────────────
+        def _ordered_cats(items: list[dict], name_map: dict | None = None) -> list[tuple[str, str]]:
+            """Extract unique categories from items preserving insertion order."""
+            seen: list[str] = []
+            for item in items:
+                c = item.get("category", "")
+                if c and c not in seen:
+                    seen.append(c)
+            if name_map:
+                return [(c, name_map.get(c, c)) for c in seen]
+            return [(c, c) for c in seen]
+
+        # ── LUCAS scorecard + detail cards ──────────────────────────────
+        lucas_items = report.get("items", [])
+        lucas_categories = [(sec, sec) for sec in _LUCAS_SECTIONS]
+
+        # For LUCAS, items use item_id and are grouped by section via _LUCAS_SECTIONS
+        # We need a special filter: item belongs to category if item_id is in the section's ID list
+        items_by_id = {it["item_id"]: it for it in lucas_items}
+        # Flatten into category-tagged items for the generic builder
+        lucas_tagged = []
+        for sec_name, ids in _LUCAS_SECTIONS.items():
+            for iid in ids:
+                if iid in items_by_id:
+                    it = dict(items_by_id[iid])
+                    it["category"] = sec_name
+                    lucas_tagged.append(it)
+
+        scorecard_html = _build_scorecard(
+            "Score Dashboard &mdash; LUCAS Items A &ndash; J",
+            lucas_categories, lucas_tagged
+        )
+        sections_html = _build_detail_cards(
+            lucas_categories, lucas_tagged, show_cols=True
+        )
+
+        # ── SPIKES scorecard + detail cards ─────────────────────────────
+        _SPIKES_PHASE_NAMES = {
+            "S":  "S — Setting",
+            "P":  "P — Perception",
+            "I":  "I — Invitation",
+            "K":  "K — Knowledge",
+            "E":  "E — Empathy",
+            "S2": "S2 — Strategy & Summary",
+        }
+
         spikes_html = ""
         spikes = report.get("spikes_annotation")
         if spikes and not spikes.get("parse_error") and not spikes.get("skipped"):
-            rows = ""
-            # Handle both generic 6-step and detailed item-based responses
-            items = spikes.get("items", spikes.get("steps", []))
+            sp_items = spikes.get("items", spikes.get("steps", []))
+            sp_cats = _ordered_cats(sp_items, _SPIKES_PHASE_NAMES)
 
-            if items and "phase" in items[0]:
-                # Detailed variant: show items grouped by phase
-                from itertools import groupby
-                items_sorted = sorted(items, key=lambda x: x.get("phase", ""))
-                for phase, phase_items in groupby(items_sorted, key=lambda x: x.get("phase", "")):
-                    for item in phase_items:
-                        rating = item.get("rating")
-                        rating_str = str(rating) if rating not in [None, "NA"] else "—"
-                        cls = "sp-rated" if rating not in [None, "NA"] else "sp-na"
-                        rows += (
-                            f'<tr class="{cls}">'
-                            f'<td class="sp-id"><strong>{item.get("id","")}</strong></td>'
-                            f'<td>{item.get("name","")}</td>'
-                            f'<td class="sp-icon" style="text-align:center;">{rating_str}</td>'
-                            f'<td class="sp-note">{item.get("justification","")[:80]}...</td>'
-                            f'</tr>'
-                        )
-            else:
-                # Generic variant: show 6 steps
-                for step in items:
-                    present = step.get("present", False)
-                    icon    = "✓" if present else "✗"
-                    cls     = "sp-yes" if present else "sp-no"
-                    rows += (
-                        f'<tr class="{cls}">'
-                        f'<td class="sp-id"><strong>{step.get("id","")}</strong></td>'
-                        f'<td>{step.get("name","")}</td>'
-                        f'<td class="sp-icon">{icon}</td>'
-                        f'<td class="sp-note">{step.get("note","")}</td>'
-                        f'</tr>'
-                    )
-
+            # Sequence note
             seq_ok   = spikes.get("sequence_correct", False)
             seq_note = spikes.get("sequence_note", "")
-            overall  = spikes.get("overall_spikes_structure_note", "")
             seq_cls  = "seq-ok" if seq_ok else "seq-bad"
 
+            # Overall score from summary
+            sp_summary = spikes.get("summary", {})
+            sp_total   = sp_summary.get("raw_score", "—")
+            sp_max_tot = sp_summary.get("max_possible_score", "—")
+            sp_pct_tot = sp_summary.get("normalised_score_pct", "—")
+
+            sp_scorecard = _build_scorecard(
+                "Score Dashboard &mdash; SPIKES Protocol",
+                sp_cats, sp_items
+            )
+            sp_cards = _build_detail_cards(sp_cats, sp_items)
+
             spikes_html = f"""
-            <div class="section-block">
-              <div class="section-header">
+            <div style="margin-top:36px;">
+              <div class="section-header" style="margin-bottom:10px;">
                 <span class="section-title">SPIKES Protocol Analysis</span>
               </div>
-              <div class="card-plain">
-                <table class="sp-table">
-                  <thead>
-                    <tr>
-                      <th>Item</th><th>Name</th>
-                      <th style="width:80px;text-align:center">Rating/Status</th>
-                      <th>Note</th>
-                    </tr>
-                  </thead>
-                  <tbody>{rows}</tbody>
-                </table>
+              <div class="card-plain" style="padding:12px 16px;margin-bottom:16px;">
+                <div class="cc-score-panel" style="margin-bottom:8px;">
+                  <div class="cc-score-box">
+                    <div class="cc-score-label">Total SPIKES Score</div>
+                    <div class="cc-score-num">{sp_total}/{sp_max_tot}</div>
+                    <div class="cc-score-pct">{sp_pct_tot}%</div>
+                  </div>
+                </div>
                 <div class="sp-seq {seq_cls}">
                   <strong>Sequence:</strong>
                   {"Correct &nbsp;✓" if seq_ok else f"&mdash; {seq_note}"}
                 </div>
-                <p class="sp-overall">{overall}</p>
               </div>
-            </div>"""
+              {sp_scorecard}
+            </div>
+            {sp_cards}"""
 
         # ── top-level data ────────────────────────────────────────────────
         total   = report.get("lucas_total_score", "—")
@@ -478,8 +558,7 @@ class ReportGenerationStage(BaseStage):
         gen_at  = (report.get("generated_at", "") or "")[:19].replace("T", " ")
         summary = report.get("overall_summary", "")
 
-
-        # ── Clinical Content section ──────────────────────────────────────
+        # ── Clinical Content scorecard + detail cards ───────────────────
         cc_html = ""
         cc_data = report.get("clinical_content")
         if cc_data and not cc_data.get("parse_error"):
@@ -488,7 +567,6 @@ class ReportGenerationStage(BaseStage):
             critical_fps    = cc_data.get("critical_false_positives", [])
             has_miss        = cc_data.get("has_critical_miss", False)
             overall_note    = cc_data.get("overall_clinical_note", "")
-            cat_pcts        = cc_data.get("category_scores_pct", {})
 
             # Critical miss banner
             banner_html = ""
@@ -516,99 +594,24 @@ class ReportGenerationStage(BaseStage):
                     '</div>'
                 )
 
-            from itertools import groupby
+            cc_cats = _ordered_cats(cc_items)
 
-            def _cc_rating_cls(r):
-                if r == "NA": return "cc-rating-na"
-                if r == 2:    return "cc-rating-2"
-                if r == 1:    return "cc-rating-1"
-                return "cc-rating-0"
-
-            # Compute per-category raw / max scores from items directly
-            cat_raw: dict[str, int] = {}
-            cat_max: dict[str, int] = {}
-            for item in cc_items:
-                cat = item.get("category", "")
-                if item.get("rating") not in (None, "NA"):
-                    cat_raw[cat] = cat_raw.get(cat, 0) + int(item["rating"])
-                    cat_max[cat] = cat_max.get(cat, 0) + 2
-
-            # Build one section block per category (preserving insertion order)
-            seen_cats: list[str] = []
-            for item in cc_items:
-                c = item.get("category", "")
-                if c not in seen_cats:
-                    seen_cats.append(c)
-
-            module_blocks = ""
-            for cat_name in seen_cats:
-                cat_items = [i for i in cc_items if i.get("category", "") == cat_name]
-                c_raw  = cat_raw.get(cat_name, 0)
-                c_max  = cat_max.get(cat_name, 0)
-                c_pct  = round(c_raw / c_max * 100, 1) if c_max else "—"
-                c_miss = has_miss and any(
-                    i.get("critical") and i.get("rating") == 0
-                    for i in cat_items
-                )
-                miss_cls = "has-miss" if c_miss else ""
-
-                rows = ""
-                for item in cat_items:
-                    r         = item["rating"]
-                    r_cls     = _cc_rating_cls(r)
-                    r_str     = str(r) if r != "NA" else "NA"
-                    max_pts   = "2" if r != "NA" else "—"
-                    is_crit   = item.get("critical", False)
-                    is_miss_i = is_crit and r == 0
-                    is_wrong  = item.get("wrong", False)
-                    row_cls   = "cc-critical-miss" if is_miss_i else ("cc-wrong" if is_wrong else "")
-                    crit_badge = '<span class="cc-crit-badge">CRITICAL</span>' if is_crit else ""
-                    ev_text   = "; ".join(item.get("evidence", [])[:2]) or "—"
-                    rows += (
-                        f'<tr class="{row_cls}">'
-                        f'<td><strong>{item["id"]}</strong>{crit_badge}</td>'
-                        f'<td>{item["name"]}</td>'
-                        f'<td class="{r_cls}" style="text-align:center;white-space:nowrap;">'
-                        f'{r_str}/{max_pts}</td>'
-                        f'<td>{item["justification"]} '
-                        f'<em style="color:#94a3b8;font-size:11px;">{ev_text}</em></td>'
-                        '</tr>'
-                    )
-
-                module_blocks += f"""
-              <div class="section-block" style="margin-bottom:24px;">
-                <div class="section-header">
-                  <span class="section-title">{cat_name}</span>
-                </div>
-                <div class="card-plain">
-                  <div class="cc-score-panel">
-                    <div class="cc-score-box {miss_cls}">
-                      <div class="cc-score-label">Score</div>
-                      <div class="cc-score-num">{c_raw}/{c_max}</div>
-                      <div class="cc-score-pct">{c_pct}%</div>
-                    </div>
-                  </div>
-                  <table class="cc-item-table">
-                    <thead><tr>
-                      <th style="width:70px">ID</th>
-                      <th>Item</th>
-                      <th style="width:60px;text-align:center">Score</th>
-                      <th>Justification &amp; Evidence</th>
-                    </tr></thead>
-                    <tbody>{rows}</tbody>
-                  </table>
-                </div>
-              </div>"""
+            cc_scorecard = _build_scorecard(
+                "Score Dashboard &mdash; Clinical Content",
+                cc_cats, cc_items
+            )
+            cc_cards = _build_detail_cards(cc_cats, cc_items)
 
             cc_html = f"""
-            <div class="section-block">
-              <div class="section-header">
+            <div style="margin-top:36px;">
+              <div class="section-header" style="margin-bottom:10px;">
                 <span class="section-title">Clinical Content Assessment</span>
               </div>
               {banner_html}
-              <p style="margin:0 0 16px;font-size:13px;color:#374151;">{overall_note}</p>
+              {"<p style='margin:0 0 16px;font-size:13px;color:#374151;'>" + overall_note + "</p>" if overall_note else ""}
+              {cc_scorecard}
             </div>
-            {module_blocks}"""
+            {cc_cards}"""
 
         # ── blank log lines ───────────────────────────────────────────────
         log_lines = "".join(
@@ -825,7 +828,7 @@ a {{ color: var(--accent); }}
 }}
 .sc-row {{
   display: grid;
-  grid-template-columns: 24px 1fr 120px 52px 110px;
+  grid-template-columns: 70px 1fr 120px 52px 110px;
   align-items: center;
   gap: 10px;
   padding: 5px 0;
@@ -834,9 +837,10 @@ a {{ color: var(--accent); }}
 .sc-row:last-child {{ border-bottom: none; }}
 .sc-id {{
   font-weight: 800;
-  font-size: 15px;
+  font-size: 12px;
   color: var(--rwth-blue);
-  text-align: center;
+  text-align: left;
+  white-space: nowrap;
 }}
 .sc-name {{ font-size: 13px; color: var(--text); }}
 .sc-bar  {{ /* bar rendered inline */ }}
@@ -938,6 +942,10 @@ a {{ color: var(--accent); }}
   border-radius: var(--radius);
   padding: 18px 22px;
   margin-bottom: 12px;
+}}
+.item-card--critical-miss {{
+  border-left: 4px solid #dc2626;
+  background: #fef2f2;
   page-break-inside: avoid;
 }}
 .card-head {{
@@ -954,11 +962,13 @@ a {{ color: var(--accent); }}
   flex: 1;
 }}
 .card-id {{
-  font-size: 26px;
+  font-size: 16px;
   font-weight: 900;
   color: var(--rwth-blue);
-  line-height: 1;
-  min-width: 28px;
+  line-height: 1.1;
+  min-width: 65px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }}
 .card-name {{
   font-size: 15px;
@@ -1160,7 +1170,7 @@ a {{ color: var(--accent); }}
 @media (max-width: 680px) {{
   .lh-top        {{ flex-direction: column; gap: 16px; text-align: center; }}
   .info-grid     {{ grid-template-columns: 1fr 1fr; }}
-  .sc-row        {{ grid-template-columns: 24px 1fr 80px 40px 90px; }}
+  .sc-row        {{ grid-template-columns: 60px 1fr 80px 40px 90px; }}
   .card-cols     {{ grid-template-columns: 1fr; }}
   .card-head     {{ flex-direction: column; }}
   .card-score-block {{ align-items: flex-start; }}
@@ -1252,7 +1262,7 @@ a {{ color: var(--accent); }}
     border-bottom: 1px solid #aaa;
     padding: 1px 2px;
   }}
-  .scorecard {{ break-inside: avoid; }}
+  .scorecard {{ /* allow scorecard to split across pages for long instruments */ }}
   .summary-card {{ break-inside: avoid; }}
   .item-card {{ break-inside: avoid; page-break-inside: avoid; }}
   .notes-textarea {{ display: none !important; }}
@@ -1347,10 +1357,7 @@ a {{ color: var(--accent); }}
   </div>
 
   <!-- ③ SCORE DASHBOARD -->
-  <div class="scorecard">
-    <div class="scorecard-title">Score Dashboard &mdash; LUCAS Items A &ndash; J</div>
-    {scorecard_html}
-  </div>
+  {scorecard_html}
 
   <!-- ④ OVERALL SUMMARY -->
   <div class="summary-card">

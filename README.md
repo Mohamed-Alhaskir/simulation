@@ -170,37 +170,18 @@ Scenario-specific checklists evaluating **medical accuracy and completeness**, s
 
 ```bash
 conda env create -f environment.yml
-conda activate paed-sim-pipeline
+conda activate simpipeline
 ```
 
 ### Models
 
-**Whisper** — downloaded automatically by `faster-whisper` on first run.
+| Component | Model | Source |
+|-----------|-------|--------|
+| ASR | Whisper large-v3 | Auto-downloaded by `faster-whisper` on first run |
+| Diarization | NeMo TitaNet | Via [MahmoudAshraf97/whisper-diarization](https://github.com/MahmoudAshraf97/whisper-diarization) — clone and set `asr.diarization.repo_path` in config |
+| LLM | Qwen2.5-32B-Instruct (GGUF Q8\_0) | [Qwen/Qwen2.5-32B-Instruct-GGUF](https://huggingface.co/Qwen/Qwen2.5-32B-Instruct-GGUF) — download and set `llm.model_path` in config |
 
-**LLM** — download a GGUF-quantised model:
-
-```bash
-# Recommended: Qwen2.5-32B-Instruct Q8_0 (~34 GB VRAM)
-huggingface-cli download Qwen/Qwen2.5-32B-Instruct-GGUF \
-    qwen2.5-32b-instruct-q8_0-*.gguf --local-dir models/
-
-# Alternative: 72B Q4_XS (~42 GB VRAM, lower quality)
-huggingface-cli download Qwen/Qwen2.5-72B-Instruct-GGUF \
-    Qwen2.5-72B-Instruct-IQ4_XS.gguf --local-dir models/
-```
-
-Update `config/pipeline_config.yaml` → `llm.model_path` accordingly.
-
-**Whisper-diarization** — clone the diarization pipeline:
-
-```bash
-git clone https://github.com/MahmoudAshraf97/whisper-diarization.git
-cd whisper-diarization
-conda env create -f environment.yml
-conda activate whisper-diarization
-```
-
-Update `config/pipeline_config.yaml` -> `asr.diarization.repo_path` to the clone path.
+See `config/pipeline_config.example.yaml` for all model-related settings.
 
 ---
 

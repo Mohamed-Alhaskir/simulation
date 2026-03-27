@@ -5,13 +5,16 @@
   "domain": "Global Communication",
   "description": "10-item communication skills assessment scale for clinical simulations. Items A-J covering introductions, speech, non-verbal behaviour, empathy, professionalism.",
   "reference": "Liverpool Undergraduate Communication Assessment Scale (LUCAS), University of Liverpool.",
-  "scoring_preamble": "Du bist ein Experte fuer medizinische Ausbildung und bewertest eine klinische Simulationsuebung anhand der Liverpool Undergraduate Communication Assessment Scale (LUCAS).\n\nGESPRAECHSKONTEXT:\n- SPEAKER_00 = Kliniker (wird bewertet)\n- SPEAKER_01 = Bezugsperson / Angehoeriger (wird NICHT bewertet)\n- Das Gespraech findet zwischen dem Kliniker und der Bezugsperson statt, NICHT direkt mit dem Patienten.\n- Bewerte ausschliesslich das Verhalten des KLINIKERS.\n\n⚠ SPEAKER-VERIFIZIERUNG (PFLICHT vor allen Items):\nPruefe in den ersten 2 Minuten des Transkripts wer sich als Arzt/Aerztin/Kliniker vorstellt oder medizinische Erklärungen gibt. Falls SPEAKER_01 sich als Arzt/Aerztin identifiziert (z.B. 'Ich bin die Aerztin', 'Ich bin einer der zustaendigen Aerzte') und SPEAKER_00 dies NICHT tut → die Sprecherbezeichnungen sind VERTAUSCHT. In diesem Fall: bewerte SPEAKER_01 als Kliniker und SPEAKER_00 als Bezugsperson fuer ALLE Items. Passe auch die Evidence-Formate entsprechend an.\n\nABGRENZUNG:\nBewerte AUSSCHLIESSLICH die Kommunikationsqualitaet und das kommunikative Verhalten von SPEAKER_00 — Gespraechsoeffnung, Ausdruck, Koerpersprache, Empathie, Professionalitaet.\nKlinische Korrektheit von Fachinformationen und Gespraechsstrukturierung werden durch separate Instrumente bewertet — nicht durch LUCAS.\n\nEVIDENCE-REGELN (gelten fuer ALLE Items):\nJeder evidence-Eintrag ist ein woertliches Transkriptzitat:\n  Format A (Einzelaussage):  \"[MM:SS] SPEAKER_00: 'Zitat'\"\n  Format B (Interaktion):    \"[MM:SS] SPEAKER_01: 'Stimulus' -> SPEAKER_00: 'Reaktion'\"\nVERBOTEN in evidence: Analysen, Checklisten, Scan-Ergebnisse, Platzhalter\n\nJSON-REGEL: Verwende in justification-Strings KEINE doppelten Anfuehrungszeichen. Nutze einfache Anfuehrungszeichen (') fuer Zitate innerhalb von justification.\n\nKUERZE-REGEL:\n- justification: max 3 Saetze\n- evidence: max 5 Eintraege\n\nAntworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown, kein Text davor/danach.\n⚠ KALIBRIERUNGSHINWEIS: Vermeide sowohl Mittenkategorie-Bias (blindes Score-1-Vergeben) ALS AUCH Unterbewertung (Score 0 bei Unsicherheit).\n- Score 0 NUR wenn das Verhalten/Thema im GESAMTEN Transkript NICHT erkennbar ist.\n- Score 1 wenn das Verhalten/Thema ERKENNBAR aber UNVOLLSTÄNDIG umgesetzt/angesprochen wurde.\n- Score 2 wenn das Verhalten/Thema KLAR BELEGT ist — auch wenn nicht perfekt oder lehrbuchmäßig.\n- ZWEIFELSFALLREGEL: Wähle den Score der am besten durch konkrete Transkriptbelege gestützt wird. Score 1 ist ein VALIDER Score für teilweise vorhandenes Verhalten — wähle ihn nicht automatisch ab.\n\nSELBSTKONTROLLE vor jedem Rating:\n(a) Habe ich ein konkretes Transkriptzitat das diesen Score stützt?\n(b) Wenn rating=0: Habe ich das GESAMTE Transkript durchsucht und WIRKLICH nichts gefunden?\n(c) Wenn rating=1: Kann ich benennen was vorhanden UND was unvollständig war?\n(d) Wenn rating=2: Ist das Kernverhalten/-thema klar erkennbar — auch wenn Details fehlen?",
+  "scoring_preamble": "Du bist ein Experte fuer medizinische Ausbildung und bewertest eine klinische Simulationsuebung anhand der Liverpool Undergraduate Communication Assessment Scale (LUCAS).\n\nGESPRAECHSKONTEXT:\n- SPEAKER_00 = Kliniker (wird bewertet)\n- SPEAKER_01 = Bezugsperson / Angehoeriger (wird NICHT bewertet)\n- Das Gespraech findet zwischen dem Kliniker und der Bezugsperson statt, NICHT direkt mit dem Patienten.\n- Bewerte ausschliesslich das Verhalten des KLINIKERS.\n\n⚠ SPEAKER-VERIFIZIERUNG (PFLICHT vor allen Items):\nPruefe in den ersten 2 Minuten des Transkripts wer sich als Arzt/Aerztin/Kliniker vorstellt oder medizinische Erklärungen gibt. Falls SPEAKER_01 sich als Arzt/Aerztin identifiziert (z.B. 'Ich bin die Aerztin', 'Ich bin einer der zustaendigen Aerzte') und SPEAKER_00 dies NICHT tut → die Sprecherbezeichnungen sind VERTAUSCHT. In diesem Fall: bewerte SPEAKER_01 als Kliniker und SPEAKER_00 als Bezugsperson fuer ALLE Items. Passe auch die Evidence-Formate entsprechend an.\n\nABGRENZUNG:\nBewerte AUSSCHLIESSLICH die Kommunikationsqualitaet und das kommunikative Verhalten von SPEAKER_00 — Gespraechsoeffnung, Ausdruck, Koerpersprache, Empathie, Professionalitaet.\nKlinische Korrektheit von Fachinformationen und Gespraechsstrukturierung werden durch separate Instrumente bewertet — nicht durch LUCAS.\n\nEVIDENCE-REGELN (gelten fuer ALLE Items):\nJeder evidence-Eintrag ist ein woertliches Transkriptzitat:\n  Format A (Einzelaussage):  \"[MM:SS] SPEAKER_00: 'Zitat'\"\n  Format B (Interaktion):    \"[MM:SS] SPEAKER_01: 'Stimulus' -> SPEAKER_00: 'Reaktion'\"\nVERBOTEN in evidence: Analysen, Checklisten, Scan-Ergebnisse, Platzhalter\n\nJSON-REGEL: Verwende in justification- und evidence-Strings KEINE doppelten Anfuehrungszeichen. Nutze einfache Anfuehrungszeichen (') fuer Zitate innerhalb von justification und evidence.\n\nKUERZE-REGEL:\n- justification: max 3 Saetze\n- evidence: max 5 Eintraege\n\nAntworte AUSSCHLIESSLICH mit einem validen JSON-Objekt. Kein Markdown, kein Text davor/danach.\n⚠ KALIBRIERUNGSHINWEIS: Vermeide sowohl Mittenkategorie-Bias (blindes Score-1-Vergeben) ALS AUCH Unterbewertung (Score 0 bei Unsicherheit).\n- Score 0 NUR wenn das Verhalten/Thema im GESAMTEN Transkript NICHT erkennbar ist.\n- Score 1 wenn das Verhalten/Thema ERKENNBAR aber UNVOLLSTÄNDIG umgesetzt/angesprochen wurde.\n- Score 2 wenn das Verhalten/Thema KLAR BELEGT ist — auch wenn nicht perfekt oder lehrbuchmäßig.\n- ZWEIFELSFALLREGEL: Wähle den Score der am besten durch konkrete Transkriptbelege gestützt wird. Score 1 ist ein VALIDER Score für teilweise vorhandenes Verhalten — wähle ihn nicht automatisch ab.\n\nSELBSTKONTROLLE vor jedem Rating:\n(a) Habe ich ein konkretes Transkriptzitat das diesen Score stützt?\n(b) Wenn rating=0: Habe ich das GESAMTE Transkript durchsucht und WIRKLICH nichts gefunden?\n(c) Wenn rating=1: Kann ich benennen was vorhanden UND was unvollständig war?\n(d) Wenn rating=2: Ist das Kernverhalten/-thema klar erkennbar — auch wenn Details fehlen?",
   "passes": [
     {
       "id": "pass1",
       "name": "Introductions",
       "type": "standard",
-      "item_ids": ["A", "B"],
+      "item_ids": [
+        "A",
+        "B"
+      ],
       "context_requirements": {
         "transcript": "opening",
         "opening_max_seconds": 120,
@@ -24,7 +27,10 @@
       "id": "pass2",
       "name": "Clarity and Exploration",
       "type": "standard",
-      "item_ids": ["C", "E"],
+      "item_ids": [
+        "C",
+        "E"
+      ],
       "context_requirements": {
         "transcript": "full"
       },
@@ -35,7 +41,9 @@
       "id": "pass3",
       "name": "Non-verbal Behaviour",
       "type": "standard",
-      "item_ids": ["D"],
+      "item_ids": [
+        "D"
+      ],
       "context_requirements": {
         "transcript": "video_only",
         "video_features": true
@@ -47,7 +55,10 @@
       "id": "pass4",
       "name": "Empathy and Summarising",
       "type": "standard",
-      "item_ids": ["F", "G"],
+      "item_ids": [
+        "F",
+        "G"
+      ],
       "context_requirements": {
         "transcript": "full"
       },
@@ -58,7 +69,9 @@
       "id": "pass5",
       "name": "Consulting Style",
       "type": "standard",
-      "item_ids": ["H"],
+      "item_ids": [
+        "H"
+      ],
       "context_requirements": {
         "transcript": "full",
         "verbal_features": true
@@ -70,7 +83,10 @@
       "id": "pass6",
       "name": "Professional Conduct",
       "type": "standard",
-      "item_ids": ["I", "J"],
+      "item_ids": [
+        "I",
+        "J"
+      ],
       "context_requirements": {
         "transcript": "full",
         "register_warning": true,
@@ -94,7 +110,10 @@
       "id": "A",
       "name": "Greeting and Introduction",
       "category": "Introductions",
-      "scale": [0, 1],
+      "scale": [
+        0,
+        1
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Competent"
@@ -128,7 +147,10 @@
       "id": "B",
       "name": "Identity Check",
       "category": "Introductions",
-      "scale": [0, 1],
+      "scale": [
+        0,
+        1
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Competent"
@@ -150,7 +172,11 @@
       "id": "C",
       "name": "Audibility and Clarity of Speech",
       "category": "General Skills",
-      "scale": [0, 1, 2],
+      "scale": [
+        0,
+        1,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
@@ -175,7 +201,11 @@
       "id": "D",
       "name": "Non-verbal Behaviour",
       "category": "General Skills",
-      "scale": [0, 1, 2],
+      "scale": [
+        0,
+        1,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
@@ -219,7 +249,11 @@
       "id": "E",
       "name": "Questions, Prompts and/or Explanations",
       "category": "General Skills",
-      "scale": [0, 1, 2],
+      "scale": [
+        0,
+        1,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
@@ -245,7 +279,11 @@
       "id": "F",
       "name": "Empathy and Responsiveness",
       "category": "General Skills",
-      "scale": [0, 1, 2],
+      "scale": [
+        0,
+        1,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
@@ -271,7 +309,11 @@
       "id": "G",
       "name": "Clarification and Summarising",
       "category": "General Skills",
-      "scale": [0, 1, 2],
+      "scale": [
+        0,
+        1,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
@@ -297,7 +339,11 @@
       "id": "H",
       "name": "Consulting Style and Organisation",
       "category": "General Skills",
-      "scale": [0, 1, 2],
+      "scale": [
+        0,
+        1,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "1": "Borderline",
@@ -323,7 +369,10 @@
       "id": "I",
       "name": "Professional Behaviour",
       "category": "Professional Conduct",
-      "scale": [0, 2],
+      "scale": [
+        0,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "2": "Competent"
@@ -356,7 +405,10 @@
       "id": "J",
       "name": "Professional Spoken/Verbal Conduct",
       "category": "Professional Conduct",
-      "scale": [0, 2],
+      "scale": [
+        0,
+        2
+      ],
       "scale_labels": {
         "0": "Unacceptable",
         "2": "Competent"
