@@ -1,7 +1,7 @@
 {
   "pipeline_version": "0.4.0",
-  "git_commit": "191890f15c5f1dc24d3bb9a95d276a286c9a4870",
-  "frozen_at": "2026-03-27T21:26:27.489129+00:00",
+  "git_commit": "07b65500af15db8bcc0fa3bd12f68a4c7e95bad7",
+  "frozen_at": "2026-03-27T21:30:17.340764+00:00",
   "seeds": {
     "global": 42,
     "llm": 42
@@ -15,12 +15,11 @@
       "language": "de"
     },
     "diarization": {
-      "enabled": true,
-      "repo_path": "/home/malhaskir/projects/whisper-diarization"
+      "enabled": true
     },
     "llm": {
       "backend": "llama_cpp",
-      "model_path": "/data/malhaskir/simdata/models/qwen2.5-32b-instruct-q8_0-00001-of-00009.gguf",
+      "model_id": "qwen2.5-32b-instruct-q8_0-00001-of-00009",
       "temperature": 0.0,
       "context_length": 32768
     }
@@ -61,5 +60,5 @@
     "combined": "43acd1302ee21f58f41e0f382852fcf288aaff54bf6053e0aac9daf5b6a6a598"
   },
   "config_hash": "f523ac33f4c95abf7fd91c48b83526124f41fe4c26f59720858342b6a3dc8b8a",
-  "manifest_digest": "61bfd39887160d19"
+  "manifest_digest": "7ef2b555634b251d"
 }
