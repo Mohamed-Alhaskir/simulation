@@ -64,7 +64,7 @@ from utils.json_utils import JSONEncoder, sanitize_for_json
 # ---------------------------------------------------------------------------
 # Pipeline version — increment on ANY change to code, prompts, or models
 # ---------------------------------------------------------------------------
-PIPELINE_VERSION = "0.3.0"
+PIPELINE_VERSION = "0.4.0"
 
 # ---------------------------------------------------------------------------
 # Mapping from stage name → the output subdirectory that stage writes to.

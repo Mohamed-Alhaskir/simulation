@@ -1,8 +1,8 @@
-# Automated Multimodal Feedback Generation for Paediatric Simulation Training
+# Automated Multimodal Feedback Generation for Paediatric Simulation Training: Harmonized Assessment and Joint Feedback
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.11-blue?logo=python" alt="Python 3.11"/>
-  <img src="https://img.shields.io/badge/Pipeline-v0.3.0-green" alt="Pipeline v0.3.0"/>
+  <img src="https://img.shields.io/badge/Pipeline-v0.4.0-green" alt="Pipeline v0.4.0"/>
   <img src="https://img.shields.io/badge/Ethics-S--44%2F2025-orange" alt="Ethics S-44/2025"/>
   <img src="https://img.shields.io/badge/Language-German-lightgrey" alt="Language: German"/>
   <img src="https://img.shields.io/badge/Inference-Local%20LLM-purple" alt="Local LLM"/>
@@ -13,11 +13,11 @@
 
 ## Abstract
 
-We present a deterministic, reproducible pipeline for automated assessment of communication and clinical competency in paediatric simulation training. The system processes composite audiovisual recordings from standardised patient scenarios and generates structured feedback reports grounded in validated assessment frameworks — the **LUCAS communication scale** (University of Liverpool, 10 items, max 18 points), the **SPIKES bad-news delivery protocol** (Baile et al., 2000), and **scenario-specific clinical content rubrics** (informed-consent structure, clinical quality, and disease-specific knowledge).
+We present a deterministic, reproducible pipeline for automated assessment of communication and clinical competency in paediatric simulation training. The system processes composite audiovisual recordings from standardised patient scenarios and generates structured feedback reports grounded in validated assessment frameworks — the LUCAS communication scale (University of Liverpool, 10 items, max 18 points), the SPIKES bad-news delivery protocol (Baile et al., 2000), and scenario-specific clinical content rubrics (informed-consent structure, clinical quality, and disease-specific knowledge).
 
 The pipeline integrates automatic speech recognition with speaker diarization (Whisper large-v3 + NeMo TitaNet via [whisper-diarization](https://github.com/MahmoudAshraf97/whisper-diarization)), non-verbal behaviour analysis (MediaPipe computer vision), and multi-pass large language model inference (Qwen2.5-32B-Instruct, temperature = 0, seed = 42). All model weights, prompts, configuration, and random seeds are cryptographically locked in a **freeze manifest** prior to confirmatory analysis, ensuring full auditability and reproducibility in a clinical research context.
 
-> **Study context:** Prospective evaluation at the **RWTH Aachen University** (Medical Informatics). Ethics committee reference: **S-44/2025**.
+> Study context: Prospective evaluation at the RWTH Aachen University (Medical Informatics). Ethics committee reference: S-44/2025.
 
 ---
 
@@ -91,8 +91,13 @@ INPUT: data/raw/session_XXX/recording.mp4
           ┌──────────────▼──────────────┐
           │  05 · LLM ANALYSIS           │
           │  LUCAS  (7 passes, all)      │
-          │  SPIKES (7 passes, Diabetes) │
+          │  SPIKES (16 passes, Diabetes)│
           │  Clinical content (per-scen.)│
+          └──────────────┬──────────────┘
+                         │
+          ┌──────────────▼──────────────┐
+          │  06 · TRANSLATION (optional) │
+          │  Disabled by default         │
           └──────────────┬──────────────┘
                          │
           ┌──────────────▼──────────────┐
@@ -320,7 +325,7 @@ The pipeline implements a **freeze manifest** that cryptographically locks all a
 
 | Manifest field | Content |
 |----------------|---------|
-| `pipeline_version` | Semver string (e.g. `0.3.0`) |
+| `pipeline_version` | Semver string (e.g. `0.4.0`) |
 | `git_commit` | SHA of HEAD at freeze time |
 | `frozen_at` | UTC ISO timestamp |
 | `seeds.global` / `seeds.llm` | Global and LLM seeds (both `42`) |
@@ -341,10 +346,10 @@ git add -A && git commit -m "Finalise pipeline for confirmatory analysis"
 # 3. Generate and commit the manifest
 python pipeline.py --config config/pipeline_config.yaml \
                    --freeze-manifest > freeze_manifest.json
-git add freeze_manifest.json && git commit -m "Freeze manifest v0.3.0"
+git add freeze_manifest.json && git commit -m "Freeze manifest v0.4.0"
 
 # 4. Tag the freeze point
-git tag -a v0.3.0-freeze -m "Pipeline freeze for confirmatory analysis"
+git tag -a v0.4.0-freeze -m "Pipeline freeze for confirmatory analysis"
 git push origin main --tags
 
 # 5. Do NOT modify code, prompts, models, or config after this point
@@ -360,8 +365,8 @@ The pipeline applies different assessment instruments depending on scenario type
 
 | Scenario | LUCAS | SPIKES | Clinical instruments |
 |----------|:-----:|:------:|:-------------------:|
-| `LP_Aufklaerung` | 7 passes | — | GSLP (3 passes) + LP\_Aufklaerung (3 passes) |
-| `Diabetes` | 7 passes | 7 passes | Diabetes\_CC (5 passes) |
+| `Lumbar Puncture` | 7 passes | — | GSLP (3 passes) + LP\_Aufklaerung (3 passes) |
+| `Diabetes` | 7 passes | 16 passes | Diabetes\_CC (5 passes) |
 
 New scenarios can be added by:
 1. Creating instrument JSON definitions in `instruments/`
@@ -432,10 +437,10 @@ If you use this pipeline in academic work, please cite:
 
 ```bibtex
 @software{paed_sim_pipeline_2025,
-  title     = {Harmonized Assessment of Multimodal Observations and Joint Feedback Prospective Evaluation Study},
-  author    = {[Mohamed Alhaskir, Hannah Haven, Jonas Bienzeisler]},
+  title     = {Automated Multimodal Feedback Generation for Paediatric Simulation Training: Harmonized Assessment and Joint Feedback},
+  author    = {Mohamed Alhaskir and Hannah Haven and Jonas Bienzeisler},
   year      = {2026},
-  version   = {0.3.0},
+  version   = {0.4.0},
   institution = {RWTH Aachen University},
   note      = {Ethics ref: S-44/2025}
 }
@@ -463,7 +468,7 @@ If you use this pipeline in academic work, please cite:
 
 This repository is licensed under the [Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0)](LICENSE). You may share and adapt the material for non-commercial purposes with appropriate attribution.
 
-The clinical assessment instruments (LUCAS, SPIKES, GSLP) are adapted for automated scoring research and remain subject to their respective source licences — see [LICENSE](LICENSE) for details.
+see [LICENSE](LICENSE) for details.
 
 ---
 

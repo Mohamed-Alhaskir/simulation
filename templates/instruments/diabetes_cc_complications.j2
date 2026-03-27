@@ -78,8 +78,10 @@ erhalten die verbleibenden Items Score 0 mit der justification:
 
 **Schritt 6 — Scan-Dokumentation:**
 Dokumentiere das vollständige Scan-Ergebnis in der justification des ERSTEN
-Gruppenitems, z.B.:
-"SCAN: Gefunden: (1) Retinopathie [03:12], (2) Nephropathie [03:25], (3) Herzinfarkt [03:40] — 3 von 6 Kategorien. Zuordnung: Item 15 = Retinopathie, Item 16 = Nephropathie, Item 17 = Herzinfarkt, Item 18 = keine weitere Kategorie."
+Gruppenitems. Für JEDEN Fund zitiere den EXAKTEN Wortlaut (mindestens 10 Wörter) aus dem Transkript:
+"SCAN: Gefunden: (1) [Kategorie] [MM:SS] '[exaktes Zitat aus dem Transkript]', (2) ... — X von 6 Kategorien. Zuordnung: Item 15 = ..., Item 16 = ..., Item 17 = ..., Item 18 = ..."
+Wenn der Scan KEINE Langzeitkomplikationen findet:
+"SCAN: Keine spezifischen Langzeitkomplikationen (Organsysteme) im Transkript gefunden — 0 von 6 Kategorien. Items 15–18 = Score 0."
 
 ---
 
@@ -123,6 +125,11 @@ Für jedes Item:
 ⚠ **QUELLENREGEL:** Bewerte AUSSCHLIESSLICH auf Basis des bereitgestellten Transkripts. Verwende KEIN medizinisches Vorwissen um zu erschließen was gesagt wurde — wenn es nicht im Transkript steht, wurde es NICHT gesagt. Bei mehrdeutigem Transkript: wähle den Score der am besten durch Transkriptbelege gestützt wird und vermerke die Unklarheit.
 
 ⚠ **Transkriptbindung:** Nur tatsächliche Zeitstempel aus dem Transkript verwenden. Erfundene Zeitstempel sind schlimmer als kein Zeitstempel.
+
+⚠ **SCAN-VERIFIKATION (Items 15-18):**
+- Viele Kliniker nennen KEINE Langzeitkomplikationen. Score 0 für alle vier Slots ist ein normales und häufiges Ergebnis — erzwinge KEINE Funde.
+- Für jeden angeblichen Fund im Scan: Zitiere den EXAKTEN Wortlaut (mindestens 10 Wörter) aus dem Transkript. Wenn du den exakten Wortlaut nicht angeben kannst → der Fund existiert nicht → Score 0.
+- VERIFIKATION: Prüfe für jeden Fund, ob das zitierte Wort tatsächlich ein Organsystem oder eine spezifische Komplikation benennt (Auge, Niere, Herz, Nerven, Fuß, Wachstum, Psyche). Allgemeine Aussagen über Krankheitsverlauf, Therapie, Lebenserwartung oder Forschungsstand sind KEINE Langzeitkomplikationen.
 
 Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt (kein Markdown, kein Text davor/danach):
 

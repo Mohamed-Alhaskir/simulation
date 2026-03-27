@@ -62,6 +62,18 @@ published frameworks and are subject to their own licensing terms:
     Based on requirements defined in Section 630e of the German Civil Code
     (Buergerliches Gesetzbuch). Legal text is in the public domain.
 
+  - Lumbar Puncture Informed Consent — Clinical Quality:
+    Clinical quality rubric for informed consent conversations, derived from
+    Section 630e BGB requirements and clinical best practice for lumbar
+    puncture procedures. Developed for this project.
+
+  - T1DM Diagnosis Disclosure — Clinical Content:
+    Clinical content checklist for Type 1 Diabetes diagnosis disclosure,
+    based on the S3-Leitlinie "Diagnostik, Therapie und Verlaufskontrolle
+    des Diabetes mellitus im Kindes- und Jugendalter" (AWMF 057-016,
+    Version 4.0, 2023) by the Deutsche Diabetes Gesellschaft (DDG).
+    https://register.awmf.org/de/leitlinien/detail/057-016
+
 These instrument definitions are provided for research reproducibility
 only. Redistribution of the instrument definitions separately from this
 pipeline may require separate permissions from the respective rights holders.
